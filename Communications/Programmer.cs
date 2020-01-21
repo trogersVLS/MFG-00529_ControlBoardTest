@@ -24,6 +24,7 @@ namespace ControlBoardTest
     {
         SerialPort serialport;
         public bool Connected = false;
+        public bool Powered = false;
         ProgrammerType target;
         public Programmer(ProgrammerType target, string comport = null)
         {

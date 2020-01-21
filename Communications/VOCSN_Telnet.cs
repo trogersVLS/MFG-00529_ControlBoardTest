@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text;
 using System.Net.Sockets;
+using System.Threading;
 
 namespace VLS
 {
@@ -75,16 +76,17 @@ namespace VLS
                 cmd_shell = new TcpClient();
                 tlm_shell = new TcpClient();
 
+                Thread.Sleep(1000);
                 var result = qnx_shell.BeginConnect(this._ip_address, this.qnx_port, null, null);
-                var connect = result.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(0.1));
+                var connect = result.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(0.5));
 
                 if (connect)
                 {
                     this.QNX_Login("root", "", 500);
 
-
+                    Thread.Sleep(1000);
                     result = cmd_shell.BeginConnect(this._ip_address, this.cmd_port, null, null);
-                    connect = result.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(0.1));
+                    connect = result.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(0.5));
                     if (connect)
                     {
                         this.CMD_Login();

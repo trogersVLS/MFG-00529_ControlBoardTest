@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 
 <Settings>
-  <config location="VLS" eqid="1111" mfg_code="V" dmm_address="COM15" pps_address="COM16" som_address ="COM8"/>
+  <config location="VLS" eqid="1111" mfg_code="V" dmm_address="COM4" pps_address="COM3" som_address ="COM7"/>
   
   
   
@@ -12,40 +12,62 @@
     <user username="mfgoperator" pass="Ventec123!"/>
   </users>
 
+
+
+  <!-- The following XML nodes are the tests that will be performed by software. The order is important, tests are performed in the order listed. -->
   <specs>
-    <test name="Software Install" method_name="test_software_install" qual="true"/>
-    <test name="Touchscreen Calibration" method_name="test_touch_cal" qual="true"/>
-    <test name="MFG Software Install" method_name="test_mfg_install" qual="true"/>
-    <test name="Power On Test" method_name="test_power_on" qual="true"/>
-    <test name="Pre-Use Test" method_name="test_pre_use" qual="true"/>
-    <test name="LCD Test" method_name="test_lcd" qual="true"/>
-    
+
+   
+    <test name="Blower Test" method_name="test_blower" qual="true"/>
     <test name="3V3_HOT Test" method_name="test_3V3_HOT" qual="false" upper="3.382" lower="3.217"/>
     <test name="5V0_HOT Test" method_name="test_5V0_HOT" qual="false" upper="5.125" lower="4.875"/>
     <test name="5V3 SMPS Test" method_name="test_5V3_SMPS" qual="false" upper="5.432" lower="5.167"/>
     <test name="12V0 SMPS Test" method_name="test_12V0_SMPS" qual="false" upper="12.3" lower="11.7"/>
     <test name="3V3 SMPS Test" method_name="test_3V3_SMPS" qual="false" upper="3.382" lower="3.217"/>
-    <test name="1V2 SMPS Test" method_name="test_1V2_SMPS" qual="false" upper="5.432" lower="5.167"/>
-    <test name="2V048 LDO Test" method_name="test_VREF" qual="false" upper="5.432" lower="5.167"/>
-    <test name="3V3 LDO Test" method_name="test_3V3_LDO" qual="false" upper="5.432" lower="5.167"/>
+    <test name="1V2 SMPS Test" method_name="test_1V2_SMPS" qual="false" upper="1.4" lower="1.0"/>
+    <test name="2V048 LDO Test" method_name="test_VREF" qual="false" upper="2.048" lower="2.038"/>
+    <test name="3V3 LDO Test" method_name="test_3V3_LDO" qual="false" upper="3.382" lower="3.217"/>
     <test name="30V SMPS Test" method_name="test_30V_SMPS" qual="false" upper="33.0" lower="27.0"/>
-    <test name="36V SMPS Test" method_name="test_36V_SMPS" qual="false" upper="5.432" lower="5.167"/>
-    
-    <test name="SPI1 Bus Test" method_name="test_spi1_bus" qual="true"/>
-    <test name="I2C Test" method_name="test_i2c" qual="true"/>
-    <test name="Blower Test" method_name="test_blower" qual="true"/>
-    <test name="PEEP Test" method_name="test_peep" qual="true"/>
-    <test name="DAC Test" method_name="test_dac" qual="true"/>
-    <test name="Oxygen Test" method_name="test_oxygen" qual="true"/>
-
+    <test name="36V SMPS Test" method_name="test_36V_SMPS" qual="false" upper="39.0" lower="33.0"/>
     <test name="SV9 Off Test" method_name="test_sv9_off" qual="false" upper="12.3" lower="11.7"/>
     <test name="SV10 Off Test" method_name="test_sv10_off" qual="false" upper="12.3" lower="11.7"/>
-    <test name="SV9 ON Test" method_name="test_sv9_on" qual="false" upper="-0.3" lower="0.3"/>
-    <test name="SV10 ON Test" method_name="test_sv9_on" qual="false" upper="-0.3" lower="0.3"/>
+    <test name="SV9 ON Test" method_name="test_sv9_on" qual="false" upper="0.3" lower="-0.3"/>
+    <test name="SV10 ON Test" method_name="test_sv9_on" qual="false" upper="0.3" lower="-0.3"/>
+    <test name="Exhl SV 6" method_name="test_exhalation_sv6" qual="false" toggle="29"/>
+    <test name="Exhl SV 7" method_name="test_exhalation_sv7" qual="false" toggle="29"/>
+    <test name="Exhl SV 8" method_name="test_exhalation_sv8" qual="false" toggle="29"/>
 
+    <test name="XFlow SV 1" method_name="test_xflow_sv1" qual="false" toggle="10"/>
+    <test name="XFlow SV 2" method_name="test_xflow_sv2" qual="false" toggle="10"/>
+    <test name="XFlow SV 3" method_name="test_xflow_sv3" qual="false" toggle="10"/>
+    <test name="XFlow SV 4" method_name="test_xflow_sv4" qual="false" toggle="10"/>
+
+    <test name="Flow SV 5" method_name="test_flow_sv5" qual="false" toggle="10"/>
+    
+  </specs>
+    <!--
+    <test name="MFG Install" method_name="test_mfg_install" qual="true"/>
+    <test name="Touchscreen Calibration" method_name="test_touch_cal" qual="true"/>
+    <test name="MFG Software Install" method_name="test_mfg_install" qual="true"/>
+    <test name="Pre-Use Test" method_name="test_pre_use" qual="true"/>
+    <test name="LCD Test" method_name="test_lcd" qual="true"/>
+    
+
+    <test name="SPI1 Bus Test" method_name="test_spi1_bus" qual="true"/>
+    <test name="Exhl SV 6" method_name="test_exhalation" qual="false", toggle="29"/>
+    <test name="I2C Test" method_name="test_i2c" qual="true"/>
+    <test name="PEEP Test" method_name="test_peep" qual="true"/>
+    <test name="DAC Test" method_name="test_dac" qual="true"/>
+    
+    
+    
+
+    
+    <test name="Oxygen Test" method_name="test_oxygen" qual="true"/>
     <test name="Cough Test" method_name="test_cough" qual="true"/>
     <test name="Suction Test" method_name="test_suction" qual="true"/>
     <test name="Nebulizer Test" method_name="test_nebulizer" qual="true"/>
+    
 
     <test name="Low Speed Fan Voltage Test" method_name="test_low_fan_volt" qual="false" upper="7.5" lower="7.1"/>
     <test name="Low Speed Fan Freuency Test" method_name="test_low_fan_freq" qual="false" upper="117" lower="115"/>
@@ -68,7 +90,8 @@
     <test name="CV Charger Test" method_name="test_charger_cv" qual="false" target="1" cv="16.2" upper="1.2" lower="0.3"/>
     <test name="CC Charger Test" method_name="test_charger_cc" qual="false" target="1" cv="16.2" upper="1.8" lower="1.2"/>
 
+    <test name="PRD Software Install" method_name="test_prd_install" qual="true"/>
+    -->
 
-  </specs>
 </Settings>
 

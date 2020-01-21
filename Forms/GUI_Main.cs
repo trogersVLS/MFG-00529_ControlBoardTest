@@ -30,6 +30,9 @@ namespace ControlBoardTest
     public partial class GUI_Main : Form
     {
         //Non designer GUI components
+        const string sys_msg = "sys:";
+        const string ui_msg = "msg:";
+        const string log_msg = "log:";
         
         //Users that have admin privelege
         const string ADMIN = "admin";
@@ -55,6 +58,9 @@ namespace ControlBoardTest
         Programmer CPLD;
         Programmer SOM;
         string som_address;
+
+        //Thread vars
+        CancellationTokenSource CancelTkn;
 
         
 
@@ -338,7 +344,7 @@ namespace ControlBoardTest
             const string cancel_disp = "Cancel";
             //async progress variables. Update the linked property when changed, hooking the appropriate event handler to update the GUI.
             var progress = new Progress<int>(i => StatusBar.Value = i);
-            var messages = new Progress<string>(s => this.console_debugOutput.AppendText("\n" + s));
+            var messages = new Progress<string>(s => this.Parse_Message(s));
             Hashtable Test_Params;
 
             this.StatusBar.Value = 0; //Set the statusbar value to 0 to indicate that the test is about to start.
@@ -347,6 +353,9 @@ namespace ControlBoardTest
             if (this.Button_Run.Text == "Run")
             {   //Change button text to indicate to user that the button serves a new function now. 
                 this.Button_Run.Text = "Cancel";
+                this.Check_FullTest.Enabled = false;
+                this.Check_Functional.Enabled = false;
+                this.Check_SingleTest.Enabled = false;
 
                 //Running a new instance of a functional test
                 if (this.LogData)
@@ -364,50 +373,66 @@ namespace ControlBoardTest
 
 
                 //Control board first pass. The board requires programming and functional testing
-                if (Check_FullTest.Checked & Check_Program.Checked)
+                if (Check_FullTest.Checked & !Check_Functional.Checked)
                 {
-                    console_debugOutput.Text = "Program and Functional Test";
+                    this.Parse_Message(ui_msg + "Beginning functional test ...");
                     this.Button_Yes.Show();
                     this.Button_No.Show();
 
                     
-                    await Task.Factory.StartNew(() => this.test.Program(progress, messages),
-                                                TaskCreationOptions.LongRunning);
-                    await Task.Factory.StartNew(() => this.test.RunTest(progress, messages, this.test.Tests),
-                                                TaskCreationOptions.LongRunning);
+                    try
+                    {
+                        if (this.CPLD.Connected && this.HERC.Connected)
+                        {
+                            this.Parse_Message(log_msg + "Programming device ...");
+                            await Task.Factory.StartNew(() => this.test.Program(progress, messages),
+                                                        TaskCreationOptions.LongRunning);
+                        }
+                        else
+                        {
+                            if(!this.CPLD.Connected) this.Parse_Message(log_msg + "CPLD Programmer is not connected");
+                            if (!this.HERC.Connected) this.Parse_Message(log_msg + "Hercules programmer is not connected");
+                        }
+                        this.Parse_Message(log_msg + "Starting tests ...");
+                        await Task.Factory.StartNew(() => this.test.RunTest(progress, messages, this.Session_Tests),
+                                                    TaskCreationOptions.LongRunning);
+                    }
+                    catch
+                    {
 
+                    }
+                    this.EndTest(this.test.result);
                 }
                 //Control board  not-first pass. The board only requires functional testing
-                else if (Check_FullTest.Checked & !Check_Program.Checked)
+                else if (!Check_FullTest.Checked & Check_Functional.Checked)
                 {
 
-                    console_debugOutput.Text = "Functional Test only";
+                    this.Parse_Message(ui_msg + "Starting Functional Test ...");
                     this.Button_Yes.Show();
                     this.Button_No.Show();
 
+                    this.CancelTkn = new CancellationTokenSource();
                     //TODO:Get the selected task and pass to function.
-                    await Task.Factory.StartNew(() => this.test.RunTest(progress, messages, this.Session_Tests),
-                                                                    TaskCreationOptions.LongRunning);
+                    try
+                    {
+                        await Task.Factory.StartNew(() => this.test.RunTest(progress, messages, this.Session_Tests),
+                                                                        TaskCreationOptions.LongRunning);
+                    }
+                    catch
+                    {
+
+                    }
 
 
 
-
+                    this.EndTest(this.test.result);
                 }
-                //Control board only requires programming. Will program the board with current production software
-                else if (!Check_FullTest.Checked & Check_Program.Checked)
-                {
-                    this.Button_Run.Text = "Cancel";
-                    this.Button_Yes.Show();
-                    this.Button_No.Show();
-
-                    console_debugOutput.Text = "Programming only";
-
-                    await Task.Factory.StartNew(() => this.test.Program(progress, messages),
-                                                TaskCreationOptions.LongRunning);
-
-
-                }
-                //Only a single test is requested. Can be used as an inspection tool / investigation tool
+               
+                /*****************************************************************************************
+                 * Only a single test is requested. Can be used as an inspection tool / investigation tool
+                 *
+                 *
+                 * ****************************************************************************************/
                 else if (Check_SingleTest.Checked)
                 {
                     this.Button_Run.Text = "Cancel";
@@ -427,39 +452,51 @@ namespace ControlBoardTest
                                 break;
                             }
                         }
-                        await Task.Factory.StartNew(() => this.test.RunTest(progress, messages, singleTest),
-                                                TaskCreationOptions.LongRunning);
+                        this.CancelTkn = new CancellationTokenSource();
+                        try
+                        {
 
+
+                            await Task.Factory.StartNew(() => this.test.RunTest(progress, messages, singleTest),
+                                                    TaskCreationOptions.LongRunning);
+                            
+                        }
+                        catch
+                        {
+                            //messages.Report("Test cancelled");
+                        }
                     }
                     catch
                     {
-                        console_debugOutput.Text = ("Please select a test");
+                        console_debugOutput.AppendText("Please select a test");
 
                     }
-                    
+
+
+                    this.EndTest(this.test.result);
                 }
                 else
                 {
                     console_debugOutput.Text = "Please select an action or exit the program";
                 }
-                this.StatusBar.Value = 100;
+                //this.StatusBar.Value = 100;
             }
             else
             {   //Clear the queue and send message to cancel functional test thread.
+
+                
                 while (!this.message_queue.IsEmpty)
                 {
                     this.message_queue.TryDequeue(out string str);
                 }
                 this.message_queue.Enqueue("cancel");
+                return;
+
+                
 
             }
-            //Reset state to exit method
-            this.Button_Yes.Hide();
-            this.Button_No.Hide();
-            this.Button_Run.Text = "Run";
 
-            // Reset GUI?
-            this.EndTest();
+            return;
         
         }
 
@@ -517,11 +554,11 @@ namespace ControlBoardTest
          *   
          * 
          * ****************************************************************************************************/
-        private void EndTest()
+        private void EndTest(string result)
         {
 
             
-            var user_confirmation = MessageBox.Show("Test is finished, save debug output?", "Save!", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            var user_confirmation = MessageBox.Show("Test is finished, save text output?", result, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (user_confirmation == DialogResult.Yes)
             {
                 SaveFileDialog sv = new SaveFileDialog();
@@ -535,7 +572,6 @@ namespace ControlBoardTest
                     
                     File.WriteAllText(sv.FileName, console_debugOutput.Text);
 
-
                 }
                 sv.Dispose();
 
@@ -547,6 +583,40 @@ namespace ControlBoardTest
 
             this.Reset_GUI();
 
+        }
+
+        private void Parse_Message(string text)
+        {
+            if (text.StartsWith(ui_msg))
+            {
+
+                //var rtf = string.Format(@"{{\rtf1\ansi\line\b{0}\b0}}",
+                //          text.Remove(0, ui_msg.Length));
+                //this.console_debugOutput.SelectionStart = this.console_debugOutput.TextLength;
+                //this.console_debugOutput.SelectedRtf = rtf;
+                text = text.Remove(0, ui_msg.Length);
+                this.console_debugOutput.AppendText("\n" + text);
+
+
+            }
+            else if (text.StartsWith(sys_msg))
+            {
+
+            }
+            else if (text.StartsWith(log_msg))
+            {
+                text = text.Remove(0, log_msg.Length);
+                console_debugOutput.AppendText("\n" + text);
+            }
+            else
+            {
+                console_debugOutput.AppendText("\n" + text);
+            }
+
+
+
+
+            return;
         }
         /******************************************************************************************************
          * Field_SerialNumber_KeyUp
@@ -578,7 +648,7 @@ namespace ControlBoardTest
                 //Uncheck all checkboxes;
                 this.Uncheck_All();
                 this.Button_Run.Show();
-                this.Check_Program.Show();
+                this.Check_Functional.Show();
                 this.Check_FullTest.Show();
                 this.Check_SingleTest.Show();
                 
@@ -631,10 +701,62 @@ namespace ControlBoardTest
             if (Check_SingleTest.Checked)
             {   
                 Dropdown_Test_List.Show();
+                this.Check_Functional.Checked = false;
+                this.Check_Functional.Enabled = false;
+                this.Check_FullTest.Checked = false;
+                this.Check_FullTest.Enabled = false;
+
+                //this.Button_Run.Enabled = false;
+                //this.Button_Boot.Visible = true;
+                //this.Button_Boot.Enabled = true;
+                //this.Button_Boot.BackColor = System.Drawing.Color.FromArgb(128, 255, 128);
+
+
             }
             else
             {
                 Dropdown_Test_List.Hide();
+                this.Check_Functional.Enabled = true;
+                this.Check_FullTest.Enabled = true;
+            }
+        }
+        /******************************************************************************************************
+         * Check_SingleTest_CheckedChanged  
+         * - When Check_SingleTest is checked, the dropdown list appears and on the first check, the dropdown
+         * list is populated with all of the test names that are available.
+         * - When Check_SingleTest is unchecked, the dropdown lists is hidden, but the test names are preserved.
+         * 
+         * ****************************************************************************************************/
+
+        private void Check_FullTest_CheckedChanged(object sender, EventArgs e)
+        {
+            if (Check_FullTest.Checked)
+            {  
+                this.Check_Functional.Checked = false;
+            }
+            else
+            {
+                
+               
+            }
+        }
+        /******************************************************************************************************
+         * Check_Functional_CheckedChanged  
+         * - When Check_Functional is checked, FullTest is unchecked
+         *
+         * 
+         * ****************************************************************************************************/
+
+        private void Check_Functional_CheckedChanged(object sender, EventArgs e)
+        {
+            if (Check_Functional.Checked)
+            {
+                this.Check_FullTest.Checked = false;
+            }
+            else
+            {
+
+
             }
         }
         /******************************************************************************************************
@@ -664,7 +786,7 @@ namespace ControlBoardTest
         {
             this.Check_FullTest.Checked = false;
             this.Check_SingleTest.Checked = false;
-            this.Check_Program.Checked = false;
+            this.Check_Functional.Checked = false;
 
         }
         /******************************************************************************************************
@@ -682,16 +804,28 @@ namespace ControlBoardTest
             this.Button_Run.Hide();
             //Hide Checkboxes
             this.Check_FullTest.Hide();
-            this.Check_Program.Hide();
+            this.Check_FullTest.Enabled = true;
+            this.Check_FullTest.Checked = true;
+            this.Check_Functional.Hide();
+            this.Check_Functional.Checked = false;
+            this.Check_Functional.Enabled = true;
             this.Check_SingleTest.Hide();
+            this.Check_SingleTest.Enabled = true;
+            this.Check_SingleTest.Checked = false;
             //Clear serial number box
             this.Field_SerialNumber.ResetText();
             this.Field_SerialNumber.Enabled = true;
             //Reset status bar
             this.StatusBar.Value = 0;
+
+            //Reset Button State
+            this.Button_Run.Text = "Run";
             //Reset Debug_Output
-            this.console_debugOutput.ResetText();
-            this.console_debugOutput.AppendText("Please enter a serial number");
+            //this.console_debugOutput.ResetText();
+            this.console_debugOutput.AppendText("\nPlease enter a serial number");
+
+
+            
         }
 
         private void Button_Jtag_Herc_Click(object sender, EventArgs e)
@@ -735,6 +869,21 @@ namespace ControlBoardTest
             CheckDeviceConnections("gpio");
         }
 
+        private void Field_SerialNumber_DoubleClick(object sender, EventArgs e)
+        {
+            Reset_GUI();
+        }
+
+        private void Logo_VLS_DoubleClick(object sender, EventArgs e)
+        {
+            Reset_GUI();
+        }
+
+        private void Button_Boot_Click(object sender, EventArgs e)
+        {
+
+
+        }
     }
 
   

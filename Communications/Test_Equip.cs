@@ -143,6 +143,24 @@ namespace ControlBoardTest
             return amps;
         }
 
+        public float Get_Freq()
+        {
+            string freq_str = "";
+            float freq;
+
+            freq_str = this.Query(":MEAS:FRE?");
+            try
+            {
+                freq = float.Parse(freq_str, System.Globalization.NumberStyles.Float);
+            }
+            catch
+            {
+                freq = 0;
+            }
+
+            return freq;
+        }
+
         private string Query(string cmd)
         {
             string response = "";

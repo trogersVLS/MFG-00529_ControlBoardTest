@@ -42,7 +42,7 @@
             this.Dropdown_Test_List = new System.Windows.Forms.ComboBox();
             this.Check_SingleTest = new System.Windows.Forms.CheckBox();
             this.Check_FullTest = new System.Windows.Forms.CheckBox();
-            this.Check_Program = new System.Windows.Forms.CheckBox();
+            this.Check_Functional = new System.Windows.Forms.CheckBox();
             this.Console_Admin = new System.Windows.Forms.TextBox();
             this.Logo_VLS = new System.Windows.Forms.PictureBox();
             this.Button_Jtag_Herc = new System.Windows.Forms.Button();
@@ -51,17 +51,20 @@
             this.Button_DMM = new System.Windows.Forms.Button();
             this.Button_PPS = new System.Windows.Forms.Button();
             this.Button_GPIO = new System.Windows.Forms.Button();
+            this.Button_Boot = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.Logo_VLS)).BeginInit();
             this.SuspendLayout();
             // 
             // Button_Run
             // 
-            this.Button_Run.Location = new System.Drawing.Point(425, 107);
+            this.Button_Run.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(128)))), ((int)(((byte)(255)))), ((int)(((byte)(128)))));
+            this.Button_Run.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.Button_Run.Location = new System.Drawing.Point(423, 164);
             this.Button_Run.Name = "Button_Run";
             this.Button_Run.Size = new System.Drawing.Size(103, 42);
             this.Button_Run.TabIndex = 1;
             this.Button_Run.Text = "Run";
-            this.Button_Run.UseVisualStyleBackColor = true;
+            this.Button_Run.UseVisualStyleBackColor = false;
             this.Button_Run.Click += new System.EventHandler(this.Button_Run_Click);
             // 
             // Field_SerialNumber
@@ -84,10 +87,10 @@
             // 
             // console_debugOutput
             // 
-            this.console_debugOutput.Location = new System.Drawing.Point(5, 195);
+            this.console_debugOutput.Location = new System.Drawing.Point(5, 267);
             this.console_debugOutput.Name = "console_debugOutput";
             this.console_debugOutput.ReadOnly = true;
-            this.console_debugOutput.Size = new System.Drawing.Size(521, 394);
+            this.console_debugOutput.Size = new System.Drawing.Size(521, 322);
             this.console_debugOutput.TabIndex = 9;
             this.console_debugOutput.Text = "";
             this.console_debugOutput.TextChanged += new System.EventHandler(this.Console_debugOutput_TextChanged);
@@ -118,7 +121,7 @@
             // 
             // StatusBar
             // 
-            this.StatusBar.Location = new System.Drawing.Point(5, 166);
+            this.StatusBar.Location = new System.Drawing.Point(5, 238);
             this.StatusBar.Name = "StatusBar";
             this.StatusBar.Size = new System.Drawing.Size(521, 23);
             this.StatusBar.Style = System.Windows.Forms.ProgressBarStyle.Continuous;
@@ -160,16 +163,16 @@
             // Dropdown_Test_List
             // 
             this.Dropdown_Test_List.FormattingEnabled = true;
-            this.Dropdown_Test_List.Location = new System.Drawing.Point(281, 128);
+            this.Dropdown_Test_List.Location = new System.Drawing.Point(86, 176);
             this.Dropdown_Test_List.Name = "Dropdown_Test_List";
-            this.Dropdown_Test_List.Size = new System.Drawing.Size(121, 21);
+            this.Dropdown_Test_List.Size = new System.Drawing.Size(150, 21);
             this.Dropdown_Test_List.TabIndex = 15;
             this.Dropdown_Test_List.Visible = false;
             // 
             // Check_SingleTest
             // 
             this.Check_SingleTest.AutoSize = true;
-            this.Check_SingleTest.Location = new System.Drawing.Point(192, 132);
+            this.Check_SingleTest.Location = new System.Drawing.Point(5, 178);
             this.Check_SingleTest.Name = "Check_SingleTest";
             this.Check_SingleTest.Size = new System.Drawing.Size(79, 17);
             this.Check_SingleTest.TabIndex = 13;
@@ -181,22 +184,24 @@
             // Check_FullTest
             // 
             this.Check_FullTest.AutoSize = true;
-            this.Check_FullTest.Location = new System.Drawing.Point(87, 132);
+            this.Check_FullTest.Location = new System.Drawing.Point(5, 132);
             this.Check_FullTest.Name = "Check_FullTest";
-            this.Check_FullTest.Size = new System.Drawing.Size(99, 17);
+            this.Check_FullTest.Size = new System.Drawing.Size(66, 17);
             this.Check_FullTest.TabIndex = 8;
-            this.Check_FullTest.Text = "Functional Test";
+            this.Check_FullTest.Text = "Full Test";
             this.Check_FullTest.UseVisualStyleBackColor = true;
+            this.Check_FullTest.CheckedChanged += new System.EventHandler(this.Check_FullTest_CheckedChanged);
             // 
-            // Check_Program
+            // Check_Functional
             // 
-            this.Check_Program.AutoSize = true;
-            this.Check_Program.Location = new System.Drawing.Point(16, 132);
-            this.Check_Program.Name = "Check_Program";
-            this.Check_Program.Size = new System.Drawing.Size(65, 17);
-            this.Check_Program.TabIndex = 7;
-            this.Check_Program.Text = "Program";
-            this.Check_Program.UseVisualStyleBackColor = true;
+            this.Check_Functional.AutoSize = true;
+            this.Check_Functional.Location = new System.Drawing.Point(5, 155);
+            this.Check_Functional.Name = "Check_Functional";
+            this.Check_Functional.Size = new System.Drawing.Size(75, 17);
+            this.Check_Functional.TabIndex = 7;
+            this.Check_Functional.Text = "Functional";
+            this.Check_Functional.UseVisualStyleBackColor = true;
+            this.Check_Functional.CheckedChanged += new System.EventHandler(this.Check_Functional_CheckedChanged);
             // 
             // Console_Admin
             // 
@@ -219,6 +224,7 @@
             this.Logo_VLS.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
             this.Logo_VLS.TabIndex = 26;
             this.Logo_VLS.TabStop = false;
+            this.Logo_VLS.DoubleClick += new System.EventHandler(this.Logo_VLS_DoubleClick);
             // 
             // Button_Jtag_Herc
             // 
@@ -292,6 +298,20 @@
             this.Button_GPIO.UseVisualStyleBackColor = false;
             this.Button_GPIO.Click += new System.EventHandler(this.Button_GPIO_Click);
             // 
+            // Button_Boot
+            // 
+            this.Button_Boot.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(128)))), ((int)(((byte)(255)))), ((int)(((byte)(128)))));
+            this.Button_Boot.Enabled = false;
+            this.Button_Boot.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.Button_Boot.Location = new System.Drawing.Point(316, 164);
+            this.Button_Boot.Name = "Button_Boot";
+            this.Button_Boot.Size = new System.Drawing.Size(103, 42);
+            this.Button_Boot.TabIndex = 33;
+            this.Button_Boot.Text = "Boot";
+            this.Button_Boot.UseVisualStyleBackColor = false;
+            this.Button_Boot.Visible = false;
+            this.Button_Boot.Click += new System.EventHandler(this.Button_Boot_Click);
+            // 
             // GUI_Main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -299,6 +319,7 @@
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(219)))), ((int)(((byte)(220)))), ((int)(((byte)(222)))));
             this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
             this.ClientSize = new System.Drawing.Size(913, 622);
+            this.Controls.Add(this.Button_Boot);
             this.Controls.Add(this.Button_GPIO);
             this.Controls.Add(this.Button_PPS);
             this.Controls.Add(this.Button_DMM);
@@ -320,10 +341,10 @@
             this.Controls.Add(this.Button_Run);
             this.Controls.Add(this.Field_SerialNumber);
             this.Controls.Add(this.Check_FullTest);
-            this.Controls.Add(this.Check_Program);
+            this.Controls.Add(this.Check_Functional);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "GUI_Main";
-            this.Text = "Control Board Test";
+            this.Text = "c";
             ((System.ComponentModel.ISupportInitialize)(this.Logo_VLS)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -345,7 +366,7 @@
         private System.Windows.Forms.ComboBox Dropdown_Test_List;
         private System.Windows.Forms.CheckBox Check_SingleTest;
         private System.Windows.Forms.CheckBox Check_FullTest;
-        private System.Windows.Forms.CheckBox Check_Program;
+        private System.Windows.Forms.CheckBox Check_Functional;
         private System.Windows.Forms.TextBox Console_Admin;
         private System.Windows.Forms.PictureBox Logo_VLS;
         private System.Windows.Forms.Button Button_Jtag_Herc;
@@ -354,6 +375,7 @@
         private System.Windows.Forms.Button Button_DMM;
         private System.Windows.Forms.Button Button_PPS;
         private System.Windows.Forms.Button Button_GPIO;
+        private System.Windows.Forms.Button Button_Boot;
     }
 }
 

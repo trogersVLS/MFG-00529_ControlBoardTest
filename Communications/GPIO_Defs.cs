@@ -93,11 +93,11 @@ namespace GPIO
             WDOG_DIS =          new GPIO_PIN(DigitalPortType.SecondPortA, 0x08); //Bit 3
 
             //SecondPortC -> 4 bits wide
-            AC_EN =             new GPIO_PIN(DigitalPortType.SecondPortCL, 0x1); // Bit 1
+            AC_EN =             new GPIO_PIN(DigitalPortType.SecondPortCL, 0x1); // Bit 0
 
-            USB_TGL = new GPIO_PIN(DigitalPortType.SecondPortA, 0x20); // Bit 5
-            AS_BTN_ON = new GPIO_PIN(DigitalPortType.ThirdPortA, 0x01); // Bit 0
-            PB_BTN_ON = new GPIO_PIN(DigitalPortType.ThirdPortA, 0x02); //Bit 1
+            USB_TGL =           new GPIO_PIN(DigitalPortType.SecondPortA, 0x20); // Bit 5
+            AS_BTN_ON =         new GPIO_PIN(DigitalPortType.ThirdPortA, 0x01); // Bit 0
+            PB_BTN_ON =         new GPIO_PIN(DigitalPortType.ThirdPortA, 0x02); //Bit 1
 
         }
 

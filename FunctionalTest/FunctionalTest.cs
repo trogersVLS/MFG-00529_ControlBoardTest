@@ -58,7 +58,7 @@ namespace ControlBoardTest
         private int eqid;
         private string user_id;
         private string timestamp;
-        private string result = "FAIL";
+        public string result = "FAIL";
         private Hashtable Parameters;
 
 
@@ -67,9 +67,14 @@ namespace ControlBoardTest
         private Test_Equip PPS;
         private Programmer SOM;
         private VLS_Tlm Vent;
+        
 
         public List<TestData> Tests = new List<TestData>();
         private readonly ConcurrentQueue<string> Rx_Queue;
+
+        const string sys_msg = "sys:";
+        const string ui_msg = "msg:";
+        const string log_msg = "log:";
 
         private bool cancel_request = false;
         private bool log_data;
@@ -100,7 +105,7 @@ namespace ControlBoardTest
             this.Rx_Queue = _rx;
 
             //Create Telemetry connection object
-            this.Vent = new VLS_Tlm("10.10.2.218");
+            this.Vent = new VLS_Tlm("10.10.2.204");
         }
         public FunctionalTest(ConcurrentQueue<string> _rx, Hashtable Parameters)
         {
@@ -134,7 +139,7 @@ namespace ControlBoardTest
             //Create the queue used for passing messages between threads
             this.Rx_Queue = _rx;
             //Create Telemetry connection object
-            this.Vent = new VLS_Tlm("10.10.2.218");
+            this.Vent = new VLS_Tlm("10.10.2.204");
 
 
         }
@@ -147,7 +152,14 @@ namespace ControlBoardTest
         ~FunctionalTest()
         {
             //TODO: Add the destructor tasks
+            try
+            {
+                //this.GPIO.setPort(GPIO_Defs.AC_EN.port, 0);
+            }
+            catch
+            {
 
+            }
 
             //Destructor is obsolete after moving resource management to the GUI thread
         }
@@ -171,20 +183,8 @@ namespace ControlBoardTest
             string message;
             while (!this.Rx_Queue.IsEmpty)
             {
-                //Queue is not empty. Pending inputs or a pending cancel. Need to check to see if it is a cancel
-                this.Rx_Queue.TryPeek(out message);
-                if (message != "cancel")
-                {
-                    //If message is not a cancel, remove the message. Don't care if it's there 
-                    this.Rx_Queue.TryDequeue(out message);
-                }
-                else
-                {
-                    //Message is a cancel, need to exit function so that the program can read the message
-                    this.cancel_request = true;
-                    break;
-                }
-
+                this.Rx_Queue.TryDequeue(out message);
+                if (message == "cancel") cancel_request = true;
             }
             return;
         }
@@ -224,39 +224,87 @@ namespace ControlBoardTest
          *             - message  --> Progress interface variable. Used to update the text in the output box.  
          *             - TestList --> List of TestStep. Used to tell RunTest which tests need to be run.
          * **********************************************************************************************************/
-        public void RunTest(IProgress<int> progress, IProgress<string> message, List<TestData> TestList)
+        async public void RunTest(IProgress<int> progress, IProgress<string> message, List<TestData> TestList)
         {
             int i = 0;
+            bool success = true;
 
-
-
-            // For each test in the test list, run the function
-            // Pass the message object to each test so that the tests can update the display as needed
-            
-            foreach (TestData test in TestList)
+            try
             {
-
-                //TODO: Remove this delay when tests are added
-                Task.Delay(50).Wait();
-                var param = new object[] { message, test };
-                message.Report("Starting " + test.name);   //Indicate which test is being run
-                progress.Report((i * 100) / (TestList.Count)); // Indicate the progress made
-
-
-                //All tests should return a bool
-                var result = (bool)test.testinfo.Invoke(this, param);
-
-                //Build hashtable for logging data.
-                if (this.log_data) {
-                    Hashtable data = this.CreateData(test, (bool)result);
-                    this.LogTestData(data);
+                // For each test in the test list, run the function
+                // Pass the message object to each test so that the tests can update the display as needed
+                if (TestList.Count == 0)
+                {
+                    message.Report(log_msg + "Test is undefined");
+                    return;
+                }
+                if (!this.SOM.Powered)
+                {
+                    if(!this.test_power_on(message)) return;
                 }
 
 
-                i++;
+                foreach (TestData test in TestList)
+                {
+                    this.ClearInput();
+                    if (cancel_request)
+                    {
+
+                        message.Report(ui_msg + "Test Cancelled");
+                        Thread.Sleep(1000);
+                        return;
+                    }
+
+                    //TODO: Remove this delay when tests are added
+
+                    var param = new object[] { message, test };
+                    message.Report(ui_msg + "Starting " + test.name);   //Indicate which test is being run
+                    progress.Report((i * 100) / (TestList.Count)); // Indicate the progress made
+
+
+                    //All tests should return a bool
+                    var result = (bool)test.testinfo.Invoke(this, param);
+                    if (result)
+                    {
+                        message.Report(ui_msg + "\nTest: " + test.name + " - PASS\n");
+
+                    }
+                    else
+                    {
+                        message.Report(ui_msg + "\nTest: " + test.name + " - FAIL\n");
+                        if (success) success = false;
+                    }
+
+                    //Build hashtable for logging data.
+                    if (this.log_data)
+                    {
+                        Hashtable data = this.CreateData(test, (bool)result);
+                        this.LogTestData(data);
+                    }
+
+
+                    i++;
+
+
+
+                }
+                
+                
             }
+            catch (Exception e)
+            {
+
+                message.Report(ui_msg + "Something went wrong");
+                message.Report(ui_msg + e.Message.ToString() + "\n\n" + e.StackTrace.ToString());
+                message.Report(sys_msg + "Something went wrong");
+                Thread.CurrentThread.Abort();
+            }
+
+            if (success) this.result = "PASS";
+            else this.result = "FAIL";
+
             this.Vent.Disconnect();
-            Thread.Sleep(5000);
+            Thread.Sleep(2000);
             return;
         }
         /************************************************************************************************************
@@ -266,7 +314,7 @@ namespace ControlBoardTest
          *             - message  --> Progress interface variable. Used to update the text in the output box.  
          *             
          * **********************************************************************************************************/
-        public bool Program(IProgress<int> progress, IProgress<string> message)
+        async public void Program(IProgress<int> progress, IProgress<string> message)
         {
             //TODO: add code to Confirm that Flashpro and Uniflash are installed in the correct place
 
@@ -278,42 +326,42 @@ namespace ControlBoardTest
                 if (this.CPLD_Verify(message))
                 {
                     success = true;
-                    message.Report("CPLD programming done");
+                    message.Report(log_msg + "CPLD programming done");
                     if (this.Hercules_Program(message))
                     {
                         success = true;
-                        message.Report("Hercules program successful");
+                        message.Report(log_msg + "Hercules program successful");
                         if (this.SOM_Program(message))
                         {
                             success = true;
-                            message.Report("SOM Programmed okay");
+                            message.Report(log_msg + "SOM Programmed okay");
                         }
                         else
                         {
                             success = false;
-                            message.Report("Failed to program SOM");
+                            message.Report(log_msg + "Failed to program SOM");
                         }
                     }
                     else
                     {
                         success = false;
-                        message.Report("Failed to upload code to herculues");
+                        message.Report(log_msg + "Failed to upload code to herculues");
                     }
                 }
                 else
                 {
                     success = false;
-                    message.Report("CPLD verification failed");
+                    message.Report(log_msg + "CPLD verification failed");
                 }
 
             }
             else
             {
                 success = false;
-                message.Report("CPLD program failed");
+                message.Report(log_msg + "CPLD program failed");
             }
 
-            return success;
+            return;
         }
 
         /******************************************************************************************************************************************
@@ -404,8 +452,9 @@ namespace ControlBoardTest
                     d = cmd.ExecuteNonQuery();
 
                     this.db_con.Close();
-                    if (!File.Exists(".\\Database\\MFG_527.db"))
+                    if (File.Exists(".\\Database\\MFG_527.db"))
                     {
+                        //TODO: Check if tables exist in file
                         success = true;
                     }
 
@@ -475,6 +524,7 @@ namespace ControlBoardTest
             }
             catch
             {
+                //Throw exception to RUN TEST function so say which item failed.
                 this.db_con.Close();
 
             }
