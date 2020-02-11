@@ -35,7 +35,15 @@ namespace ControlBoardTest
     partial class FunctionalTest
     {
 
-        const int VOLTAGE_DELAY = 600;
+        const int DMM_DELAY = 600;
+        const int FREQ_DELAY = 1000;
+
+        private bool dummy_test(IProgress<string> message = null, IProgress<string> log = null, object test = null)
+        {
+            
+
+            return true;
+        }
         /*******************************************************************************************************************************  
          *  CPLD_Verify
          *  
@@ -47,13 +55,14 @@ namespace ControlBoardTest
          *  Returns: bool success - returns true is the verification is successful, returns false if the verification is not successful
          * 
          *******************************************************************************************************************************/
-        private bool CPLD_Verify(IProgress<string> message)
+        private bool Verify_CPLD(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             string VerifyScriptPath;
             string ResultFilePath;
             string Verify_CMD;
             string Verify_Success = "Executing action VERIFY PASSED";
             bool success;
+            errorCode = -1;
             //TODO: Confirm that this is still true when a setup project is used to create the installer.
             //The path to the CPLD_Program script is always two directories up from the executing path.
             VerifyScriptPath = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
@@ -73,20 +82,20 @@ namespace ControlBoardTest
             cpld_cmd.StartInfo = cpld_info;
             cpld_cmd.Start();
             //string output = cpld_cmd.StandardOutput.ReadToEnd();
-            message.Report(ui_msg + "Starting programmer ...");
+            message.Report("Starting programmer ...");
             while (!File.Exists(ResultFilePath))
             {
                 Thread.Sleep(2000);
-                message.Report(ui_msg + "...");
+                message.Report("...");
             }
             if (CPLD_LogRead(ResultFilePath, Verify_Success))
             {
-                message.Report(ui_msg + "CPLD Verify Successful");
+                message.Report("CPLD Verify Successful");
                 success = true;
             }
             else
             {
-                message.Report(ui_msg + "CPLD Verify unsuccessful");
+                message.Report("CPLD Verify unsuccessful");
                 success = false;
             }
 
@@ -105,16 +114,17 @@ namespace ControlBoardTest
          *  Returns: bool success - returns true is the verification is successful, returns false if the verification is not successful
          * 
          ******************************************************************************************************************************/
-        private bool CPLD_Program(IProgress<string> message)
+        private bool Program_CPLD(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             string ProgramScriptPath;
             string ResultFilePath;
             string Program_CMD;
             string Program_Success = "Executing action PROGRAM PASSED";
             bool success;
+            errorCode = -1;
 
 
-            
+
             //TODO: Confirm that this is still true when a setup project is used to create the installer.
             //The path to the CPLD_Program script is always two directories up from the executing path.
             ProgramScriptPath = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
@@ -134,20 +144,20 @@ namespace ControlBoardTest
             cpld_cmd.StartInfo = cpld_info;
             cpld_cmd.Start();
             //string output = cpld_cmd.StandardOutput.ReadToEnd();
-            message.Report(ui_msg + "Starting programmer ...");
+            message.Report("Starting programmer ...");
             while (!File.Exists(ResultFilePath))
             {
                 Thread.Sleep(2000);
-                message.Report(ui_msg + "...");
+                message.Report("...");
             }
             if (CPLD_LogRead(ResultFilePath, Program_Success))
             {
-                message.Report(ui_msg + "CPLD Program Successful");
+                message.Report("CPLD Program Successful");
                 success = true;
             }
             else
             {
-                message.Report(ui_msg + "CPLD Program unsuccessful");
+                message.Report("CPLD Program unsuccessful");
                 success = false;
             }
 
@@ -198,13 +208,14 @@ namespace ControlBoardTest
          *                          returns false if the programming is unsuccessful
          * 
          ******************************************************************************************************************************/
-        private bool Hercules_Program(IProgress<string> message)
+        private bool Program_Hercules(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             string HerculesScriptPath;
             string Hercules_CMD;
             string cmd_output;
 
             bool success;
+            errorCode = -1;
             //TODO: Confirm that this is still true when a setup project is used to create the installer.
             //The path to the Herc_Program script is always two directories up from the executing path.
             HerculesScriptPath = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
@@ -225,13 +236,13 @@ namespace ControlBoardTest
             cmd_info.UseShellExecute = false;
             cmd_info.WorkingDirectory = HerculesScriptPath.Remove(HerculesScriptPath.LastIndexOf("\\")); // TODO: sets the current directory to the directory that the hercules program script is located by removing the file name at the end of the string
             cmd.StartInfo = cmd_info;
-            message.Report(ui_msg + "Starting Hercules programmer ...");
+            message.Report("Starting Hercules programmer ...");
 
 
             cmd.Start(); //Executes the script and pauses until the script has finished executing
 
             cmd_output = cmd.StandardOutput.ReadToEnd();
-            message.Report(ui_msg + "Programmer exit");
+            message.Report("Programmer exit");
 
             //Confirms that the script was successful by comparing the 
             if (cmd_output.Contains("Program verification successful")) // Contains may be somewhat slow for this use case TODO: Determine if there is a better way?
@@ -256,43 +267,70 @@ namespace ControlBoardTest
          *                          returns false if the log file does not contain the pass phrase.
          * 
          ******************************************************************************************************************************/
-        private bool SOM_Program(IProgress<string> message)
+        private bool Program_SOM(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             bool success = false;
-            bool timeout;
-
-
+            errorCode = -1;
+            bool Booted = false;
+            bool Formatted = false;
+            bool IPL_Installed = false;
+            string output;
 
             if (this.SOM.Connected)
             {
                 //Cycle power
-                message.Report(ui_msg + "Cycling Power ...\n");
-                this.GPIO.setPort(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.val);
-                if (!this.SOM.SOM_ReadUntil_UBoot())
+                message.Report("Cycling Power ...\n");
+                this.GPIO.SetBit(GPIO_Defs.AC_EN.port, 0);
+                Thread.Sleep(100);
+                this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+
+                Booted = this.SOM.ReadUntil("U-Boot# ", out output, 10000);
+                //Device needs to boot U-Boot
+                if (!Booted)
                 {
-                    message.Report(ui_msg + "Device did not boot to U-Boot\nCycling power again ...\n");
-                    this.GPIO.setPort(GPIO_Defs.AC_EN.port, 0x00);
+                    message.Report("Device did not boot to U-Boot\nCycling power again ...\n");
+                    this.GPIO.SetBit(GPIO_Defs.AC_EN.port, 0x00);
                     Thread.Sleep(100);
-                    this.GPIO.setPort(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.val);
-                    if (!this.SOM.SOM_ReadUntil_Boot())
+                    this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+
+                    Booted = this.SOM.ReadUntil("U-Boot# ", out output, 10000);
+
+                    if (!Booted)
                     {
-                        message.Report(ui_msg + "Device does not boot properly.\nPowering down ...");
-                        return false;
+                        message.Report("Device does not boot properly.\nPowering down ...");
+                        this.GPIO.SetBit(GPIO_Defs.AC_EN.port, 0);
+                        success = false;
                     }
                 }
-                else
+                else if(Booted)
                 {
-                    message.Report(ui_msg + "Successfully booted to U-Boot\nLoading QNX ...");
-                    this.SOM.SOM_UBoot_CMD("mmc dev; fatload mmc 0 0x81000000 qnxifs; go 0x81000000");
-                    if (!this.SOM.SOM_ReadUntil_Boot())
+                    message.Report("Successfully booted to U-Boot\nLoading QNX ...");
+                    
+                    this.SOM.Command("mmc dev; fatload mmc 0 0x81000000 qnxifs; go 0x81000000",out output, "U-Boot# ", 5000);
+
+                    Booted = false;
+                    Booted = this.SOM.ReadUntil("Welcome to QNX on the Ventec 3000 platform", out output, 20000);
+
+                    if (!Booted)
                     {
-                        message.Report(ui_msg + "Something went wrong ...");
+                        message.Report("Device did not boot correctly");
                     }
                     else
                     {
-                        message.Report(ui_msg + "Formatting NAND");
-                        string output = this.SOM.SOM_WriteCMD("fs-etfs-jacinto5_micron -D gpmc=0x50000000, cache, ipl=4, ifs=1024 -r131072 -e -m /fs/etfs");
-                        //TODO: Add error checking
+                        message.Report("Formatting NAND");
+                        Formatted = this.SOM.Command("fs-etfs-jacinto5_micron -D gpmc=0x50000000, cache, ipl=4, ifs=1024 -r131072 -e -m /fs/etfs", 
+                                                  out output, "# ", 20000);
+                        if (Formatted)
+                        {
+                            IPL_Installed = this.SOM.Command("update_nand -i -f /fs/sd0/ipl_nand.bin", out output, "# ", 10000);
+                            if (IPL_Installed)
+                            {
+                                success = true;
+                            }
+                        }
+
+
+                         
 
                     }
 
@@ -322,38 +360,58 @@ namespace ControlBoardTest
          *                          returns false if the software does not update successfully
          * 
          ******************************************************************************************************************************/
-        private bool test_mfg_install(IProgress<string> message, TestData test)
+        private bool test_mfg_install(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
 
             bool success = false;
-            if(CopySoftware_USB(message, "MFG"))
+            string output;
+            errorCode = -1;
+
+
+            //Check to see if the current version of software is not MFG01.04
+
+            output = this.Vent.CMD_Write("get vcm version");
+            
+
+
+            success = CopySoftware_USB(message, "MFG");
+
+            if (success)
             {   
 
                 //Swap the USB drive to the UUT.
-                message.Report(ui_msg + "Turning on the device ...");
-                this.GPIO.setPort(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.val);
+                message.Report("Turning on the device ...");
+                this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
 
-                if (this.SOM.SOM_ReadUntil("Waiting 3 seconds for /fs/usb", true,  1000)) {
-                    message.Report(ui_msg + "Starting software update ...");
+                success = this.SOM.ReadUntil("Waiting 3 seconds for /fs/usb", out output, 5000);
 
-                    this.GPIO.setPort(GPIO_Defs.AS_BTN_ON.port, GPIO_Defs.AS_BTN_ON.val);
-                    if (this.SOM.SOM_ReadUntil("Update IFS", true, 1000))
+                if (success) {
+                    success = false;
+                    message.Report("Starting software update ...");
+
+                    this.GPIO.SetBit(GPIO_Defs.AS_BTN_ON.port, GPIO_Defs.AS_BTN_ON.pin);
+
+                    success = this.SOM.ReadUntil("Update IFS", out output, 100000);
+                    if (success)
                     {
-                        message.Report(ui_msg + "Updating the NAND flash ...");
+                        success = false;
+                        message.Report("Updating the NAND flash ...");
 
-                        if (this.SOM.SOM_ReadUntil("display_image", true, 1000))
+                        success = this.SOM.ReadUntil("display_image", out output, 100000);
+                        if (success)
                         {
-
+                            success = false;
                             // Turn off device using the power button.
                             Thread.Sleep(500);
-                            message.Report(ui_msg + "Powering down device ...");
-                            this.GPIO.setPort(GPIO_Defs.PB_BTN_ON.port, GPIO_Defs.PB_BTN_ON.val);
+                            message.Report("Powering down device ...");
+                            this.GPIO.SetBit(GPIO_Defs.PB_BTN_ON.port, GPIO_Defs.PB_BTN_ON.pin);
                             Thread.Sleep(500);
-                            this.GPIO.setPort(GPIO_Defs.PB_BTN_ON.port, 0x00);
+                            this.GPIO.SetBit(GPIO_Defs.PB_BTN_ON.port, 0x00);
+                            this.SOM.Booted = false;
 
-                            message.Report(ui_msg + "\nSoftware update successful!");
+                            message.Report("\nSoftware update successful!");
 
-                            //Add test to check if device is on.
+                            
                            
                             success = true;
                         }
@@ -382,39 +440,52 @@ namespace ControlBoardTest
          *                          returns false if the software does not update successfully
          * 
          ******************************************************************************************************************************/
-        private bool test_prd_install(IProgress<string> message, TestData test)
+        private bool test_prd_install(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
 
             bool success = false;
-            if (CopySoftware_USB(message, "PRD"))
+            string output;
+            errorCode = -1;
+
+            success = CopySoftware_USB(message, "PRD");
+
+            if (success)
             {
 
-                //TODO: Swap the USB drive to the UUT.
-                message.Report(ui_msg + "Turning on the device ...");
-                this.GPIO.setPort(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.val);
+                //Swap the USB drive to the UUT.
+                message.Report("Turning on the device ...");
+                this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
 
-                if (this.SOM.SOM_ReadUntil("Waiting 3 seconds for /fs/usb", true, 1000))
+                success = this.SOM.ReadUntil("Waiting 3 seconds for /fs/usb", out output, 5000);
+
+                if (success)
                 {
-                    message.Report(ui_msg + "Starting software update ...");
+                    success = false;
+                    message.Report("Starting software update ...");
 
-                    this.GPIO.setPort(GPIO_Defs.AS_BTN_ON.port, GPIO_Defs.AS_BTN_ON.val);
-                    if (this.SOM.SOM_ReadUntil("Update IFS", true, 1000))
+                    this.GPIO.SetBit(GPIO_Defs.AS_BTN_ON.port, GPIO_Defs.AS_BTN_ON.pin);
+
+                    success = this.SOM.ReadUntil("Update IFS", out output, 100000);
+                    if (success)
                     {
-                        message.Report(ui_msg + "Updating the NAND flash ...");
+                        success = false;
+                        message.Report("Updating the NAND flash ...");
 
-                        if (this.SOM.SOM_ReadUntil("display_image", true, 1000))
+                        success = this.SOM.ReadUntil("display_image", out output, 100000);
+                        if (success)
                         {
-
+                            success = false;
                             // Turn off device using the power button.
                             Thread.Sleep(500);
-                            message.Report(ui_msg + "Powering down device ...");
-                            this.GPIO.setPort(GPIO_Defs.PB_BTN_ON.port, GPIO_Defs.PB_BTN_ON.val);
+                            message.Report("Powering down device ...");
+                            this.GPIO.SetBit(GPIO_Defs.PB_BTN_ON.port, GPIO_Defs.PB_BTN_ON.pin);
                             Thread.Sleep(500);
-                            this.GPIO.setPort(GPIO_Defs.PB_BTN_ON.port, 0x00);
+                            this.GPIO.SetBit(GPIO_Defs.PB_BTN_ON.port, 0x00);
+                            this.SOM.Booted = false;
 
-                            message.Report(ui_msg + "\nSoftware update successful!");
+                            message.Report("\nSoftware update successful!");
 
-                            //Add test to check if device is on.
+
 
                             success = true;
                         }
@@ -458,15 +529,15 @@ namespace ControlBoardTest
                 {
                     if (drive.VolumeLabel == "MFG527")
                     {
-                        message.Report(ui_msg + "Preparing USB drive ...");
+                        message.Report("Preparing USB drive ...");
                         //Delete the current software update files
                         string targetPath = drive.Name;
                         if (Directory.Exists(targetPath + "vswupdate"))
                         {
-                            message.Report(ui_msg + "Deleting directory: " + targetPath + "\\vswupdate");
+                            message.Report("Deleting directory: " + targetPath + "\\vswupdate");
                             Directory.Delete(targetPath + "vswupdate", true);
                         }
-                        message.Report(ui_msg + "Copying software update files to " + targetPath);
+                        message.Report("Copying software update files to " + targetPath);
                         //Copy the update files for the intended software
                         CopyDirectory(filepath, targetPath + "vswupdate");
                         success = true;
@@ -475,13 +546,13 @@ namespace ControlBoardTest
             }
             if(!success && iteration < 4) //Couldn't find the USB drive.
             {
-                message.Report(ui_msg + "Could not find the drive");
+                message.Report("Could not find the drive");
                 ushort initialVal = 1;//this.GPIO.getPort(GPIO_Defs.USB_TGL.port);
-                this.GPIO.setPort(GPIO_Defs.USB_TGL.port, (ushort)(GPIO_Defs.USB_TGL.val | initialVal));
+                this.GPIO.SetBit(GPIO_Defs.USB_TGL.port,GPIO_Defs.USB_TGL.pin);
                 Thread.Sleep(100);
-                this.GPIO.setPort(GPIO_Defs.USB_TGL.port, initialVal);
+                this.GPIO.SetBit(GPIO_Defs.USB_TGL.port, initialVal);
                 Thread.Sleep(1000);
-                this.ClearInput();
+                
                 
                 success = CopySoftware_USB(message, sw_version, ++iteration);
             }
@@ -548,32 +619,28 @@ namespace ControlBoardTest
          *                          returns false if the user selects no
          ******************************************************************************************************************************/
 
-        private bool test_touch_cal(IProgress<string> message, TestData test)
+        private bool test_touch_cal(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             bool success = false;
+            string output;
+            errorCode = -1;
 
-            this.GPIO.setPort(GPIO_Defs.AC_EN.port, 0x00);
-            this.GPIO.setPort(GPIO_Defs.EXT1_BATT_EN.port, 0x00);
-            this.GPIO.setPort(GPIO_Defs.EXT2_BATT_EN.port, 0x00);
-            this.GPIO.setPort(GPIO_Defs.INT_BATT_EN.port, 0x00);
+            this.GPIO.SetBit(GPIO_Defs.AC_EN.port, 0x00);
+            
 
-            this.GPIO.setPort(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.val);
-            this.GPIO.setPort(GPIO_Defs.WDOG_DIS.port, GPIO_Defs.WDOG_DIS.val);
+            this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
 
-
-            message.Report(ui_msg + "Does the device boot to the touchscreen calibration screen?");
-            var input = this.ReceiveInput();
-            if(input == "yes")
+            message.Report("Does the device boot to the touchscreen calibration screen?");
+            
+            if(true)
             {
-                message.Report(ui_msg + "Perform the touchscreen calibration, select \"yes\" when done");
-                if (this.SOM.SOM_ReadUntil("calib-touch").Contains("calib-touch"))
+                message.Report("Perform the touchscreen calibration, select \"yes\" when done");
+
+                success = this.SOM.ReadUntil("calib-touch", out output);
+
+                if (!success)
                 {
-                    success = true;
-                }
-                else
-                {
-                    message.Report(ui_msg + "Device did not power up correctly");
-                    success = false;
+                    message.Report("Device did not power up correctly");
                 }
             }
             else
@@ -597,51 +664,67 @@ namespace ControlBoardTest
          *                          returns false if the device does not power up correctly or connect to Telnet.
          * 
          ******************************************************************************************************************************/
-        private bool test_power_on(IProgress<string> message)
+        public bool test_power_on(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             bool success = false;
-            if (this.SOM.Powered && this.Vent.Connected) return true;
-            else if (this.SOM.Powered && !this.Vent.Connected)
+            errorCode = -1;
+            //Determine if the devices are properly connected
+            if (this.GPIO.Connected && this.SOM.Connected)
             {
-                if (this.Vent.Connect())
-                {
-                    //Once connected, set to MFG mode so that we can begin testing the various functions.
-                    message.Report(ui_msg + "Connected!");
-                    this.Vent.CMD_Write("mfgmode");
-                    success = true;
+                string output;
+                int timeout;
+
+                test.parameters.TryGetValue("timeout", out output);
+                timeout = int.Parse(output, System.Globalization.NumberStyles.Integer);
+
+                //Enables the AC power supply
+                this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+
+                //Toggles the power button in case the device does not begin booting right away (device was successfully powered down by the power button prior to testing).
+                this.GPIO.SetBit(GPIO_Defs.PB_BTN_ON.port, GPIO_Defs.PB_BTN_ON.pin);
+                Thread.Sleep(500);
+                this.GPIO.ClearBit(GPIO_Defs.PB_BTN_ON.port,GPIO_Defs.PB_BTN_ON.pin);
+
+                message.Report("Powering up ... ");
+
+                if (this.SOM.ReadUntil("screen driver", out output, 20000))
+                {   
+                    //May need to calibrate touchscreen, which requires user interaction
+                    if(!this.SOM.ReadUntil("calib-touch", out output, 5000))
+                    {
+                        //Device needs touchscreen calibration
+                        do
+                        {
+                            this.PromptUser_YesNo("Please perform the touch screen calibration\n\nThen press \"OK\"", "Touchscreen Calibration");
+                        } while (!this.SOM.ReadUntil("calib-touch", out output, 5000));
+                    }
+                    if (this.SOM.ReadUntil("Storyboard", out output, 50000))
+                    {
+
+                        this.powered = true;
+                        message.Report("Successfully powered up");
+                        success = true;
+
+
+                    }
                 }
-                return success;
             }
             else
             {
-                if (this.GPIO.Connected)
+                if (!this.SOM.Connected)
                 {
-                    //Enables the AC power supply
-                    this.GPIO.setPort(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.val);
-
-                    //Toggles the power button in case the device does not begin booting right away (device was successfully powered down by the power button prior to testing).
-                    this.GPIO.setPort(GPIO_Defs.PB_BTN_ON.port, GPIO_Defs.PB_BTN_ON.val);
-                    Thread.Sleep(500);
-                    this.GPIO.setPort(GPIO_Defs.PB_BTN_ON.port, 0);
-
-                    message.Report(ui_msg + "Powering up ... ");
-
-                    if (this.SOM.SOM_ReadUntil_Boot())
-                    {
-                        //There's a long delay between the device booting to the VCM app and the device acquiring an IP address.
-                        message.Report(ui_msg + "Connecting to telnet ... ");
-                        Thread.Sleep(15000);
-                        if (this.Vent.Connect())
-                        {
-                            //Once connected, set to MFG mode so that we can begin testing the various functions.
-                            message.Report(ui_msg + "Connected!");
-                            this.Vent.CMD_Write("mfgmode");
-                            success = true;
-                        }
-                    }
-
+                    log.Report("SOM serial port is not connected");
+                    errorCode |= 1;
+                }
+                
+                if (!this.GPIO.Connected)
+                {
+                    log.Report("GPIO device is not connected");
+                   
                 }
             }
+
+           
             return success;
         }
         /******************************************************************************************************************************
@@ -656,19 +739,57 @@ namespace ControlBoardTest
          *                          returns false if the device does not power up correctly or connect to Telnet.
          * 
          ******************************************************************************************************************************/
-        private bool test_power_down(IProgress<string> message, TestData test)
+        public bool test_power_down(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             bool success = false;
+            errorCode = -1;
             if (this.GPIO.Connected)
             {
                 //Disables the AC power supply
-                this.GPIO.setPort(GPIO_Defs.AC_EN.port, 0);
+                this.GPIO.SetBit(GPIO_Defs.AC_EN.port, 0);
 
                 
 
-                message.Report(ui_msg + "Powering down");
+               //message.Report("Powering down");
 
                 this.Vent.Disconnect();
+                
+                success = true;
+
+            }
+
+            return success;
+        }
+        /******************************************************************************************************************************
+         *  test_power_down
+         *  
+         *  Function: Powers down the device using the power button and/or applying power to the device.
+         *  
+         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+         *             TestData test             - Variable that contains all of the necessary test data.
+         *  
+         *  Returns: bool success - returns true if the device powers up correctly and connects to a telnet connection.
+         *                          returns false if the device does not power up correctly or connect to Telnet.
+         * 
+         ******************************************************************************************************************************/
+        public bool test_power_down()
+        {
+            bool success = false;
+            
+            if (this.GPIO.Connected)
+            {
+                //Disables the AC power supply and all battery supplies
+                this.GPIO.ClearBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+                this.GPIO.ClearBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
+                this.GPIO.ClearBit(GPIO_Defs.BAT1_EN.port, GPIO_Defs.BAT1_EN.pin);
+                this.GPIO.ClearBit(GPIO_Defs.BAT2_EN.port, GPIO_Defs.BAT2_EN.pin);
+                if (this.Vent.Connected)
+                {
+                    this.Vent.Disconnect();
+                }
+
+
+                //TODO: Add feedback checking
                 success = true;
 
             }
@@ -690,7 +811,7 @@ namespace ControlBoardTest
          *                          returns false if the software does not update successfully
          * 
          ******************************************************************************************************************************/
-        private bool test_pre_use(IProgress<string> message, TestData test)
+        private bool test_pre_use(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             //Assumptions - Unit has been powered on
             //            - Unit is connected to telemetry
@@ -698,6 +819,7 @@ namespace ControlBoardTest
             //
             string str;
             bool success = false;
+            errorCode = -1;
 
             //Confirm assumptions and correct if wrong
             //Device is powered on
@@ -705,32 +827,29 @@ namespace ControlBoardTest
 
 
             //Clear the queue
-            this.ClearInput();
+
 
             //Blocking until user input is given --> Possible options are: "yes" or "no"
-            message.Report(ui_msg + "Follow the on-screen instructions and click yes when you are done");
-            str = ReceiveInput();
-            if (str == "yes")
+            message.Report("Follow the on-screen instructions and click yes when you are done");
+            
+            if (true)
             {
-                message.Report(ui_msg + "Test Passed!");
+                message.Report("Test Passed!");
                 success = true;
 
             }
             else if (str == "no")
             {
-                message.Report(ui_msg + "Test Failed");
+                message.Report("Test Failed");
                 success = false;
             }
             
             return success;
         }
         /******************************************************************************************************************************
-         *  test_software_install
+         *  test_lcd
          *  
-         *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
-         *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
-         *            to initiate the software update.
-         *            Waits for user input to determine when software has finished updating. //TODO: Update this function to wait for SOM's serial port to tell us that the program updated successfully.
+         *  Function: Prompts the user to inspect the LCD display. 
          *  
          *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
          *             TestData test             - Variable that contains all of the necessary test data.
@@ -739,31 +858,40 @@ namespace ControlBoardTest
          *                          returns false if the software does not update successfully
          * 
          ******************************************************************************************************************************/
-        private bool test_lcd(IProgress<string> message, TestData test)
+        private bool test_lcd(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             //Assumptions - Unit has been powered on
-            string str;
+            bool result;
+            string measured;
             bool success = false;
+            errorCode = -1;
 
             //Clear the queue
-            this.ClearInput();
+
 
             //Blocking until user input is given --> Possible options are: "yes", or "no" 
-            message.Report(ui_msg + "Is the LCD screen clear?");
-            
-            str = ReceiveInput();
-            if (str == "yes")
+            message.Report("Is the LCD screen clear?");
+
+            result = this.PromptUser_YesNo("Is the LCD screen clear?", test.name);
+
+            if (result)
             {
-                message.Report(ui_msg + "Test Passed!");
+                message.Report("Test Passed!");
+                measured = "pass";
                 success = true;
 
             }
-            else if (str == "no")
+            else
             {
-                message.Report(ui_msg + "Test Failed");
+
+                measured = this.PromptUser("Describe the failure", test.name);
+
+                message.Report("Test Failed");
                 success = false;
             }
-            
+
+            test.parameters.Add("measured", measured);
+
             return success;
         }
         /******************************************************************************************************************************
@@ -778,11 +906,12 @@ namespace ControlBoardTest
          *                          returns false if 3V3_HOT is outside the defined limits or the DMM is not connected.
          * 
          ******************************************************************************************************************************/
-        private bool test_3V3_HOT(IProgress<string> message, TestData test)
+        private bool test_3V3_HOT(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             string str_value;
             bool value_available;
             bool success = false;
+            errorCode = -1;
             float upper=0;
             float lower=0;
             
@@ -800,25 +929,34 @@ namespace ControlBoardTest
             }
 
             //Connect the desired voltage node to the DMM and pause for a moment.
-            this.GPIO.setPort(GPIO_Defs.MEAS_3V3_HOT_EN.port, GPIO_Defs.MEAS_3V3_HOT_EN.val);
-            Thread.Sleep(VOLTAGE_DELAY);
+            this.GPIO.SetBit(GPIO_Defs.MEAS_3V3_HOT_EN.port, GPIO_Defs.MEAS_3V3_HOT_EN.pin);
+            Thread.Sleep(DMM_DELAY);
 
             //Read the DMM
             float measured = this.DMM.Get_Volts();
-            test.parameters.Add("measured", measured.ToString());
+            string val;
+            if (!test.parameters.TryGetValue("measured", out val))
+            {
+                test.parameters["measured"] = measured.ToString();
+            }
+            else
+            {
+                test.parameters.Add("measured", measured.ToString());
+            }
             try
             {
-                message.Report(ui_msg + "Measured: " + measured.ToString() + " V\n");
+               
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report(ui_msg + "Test PASS");
+                    message.Report("Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report(ui_msg + "Test FAIL");
+                    message.Report("Test FAIL");
                     success = false;
                 }  
             }
@@ -827,7 +965,7 @@ namespace ControlBoardTest
                 success = false;
                     
             }
-            this.GPIO.setPort(GPIO_Defs.MEAS_3V3_HOT_EN.port, 0);
+            this.GPIO.ClearBit(GPIO_Defs.MEAS_3V3_HOT_EN.port, GPIO_Defs.MEAS_3V3_HOT_EN.pin);
             
             
             if (!test.parameters.ContainsKey("measured"))
@@ -849,11 +987,12 @@ namespace ControlBoardTest
          *  Returns: bool success - returns true if 5V0_HOT is within the upper and lower limits.
          *                          returns false if 5V0_HOT is outside the defined limits or the DMM is not connected.
          ******************************************************************************************************************************/
-        private bool test_5V0_HOT(IProgress<string> message, TestData test)
+        private bool test_5V0_HOT(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             string str_value;
             bool value_available;
             bool success = false;
+            errorCode = -1;
             float upper = 0;
             float lower = 0;
             
@@ -870,24 +1009,32 @@ namespace ControlBoardTest
             }
 
             //Connect the desired voltage node to the DMM
-            this.GPIO.setPort(GPIO_Defs.MEAS_5V0_HOT_EN.port, GPIO_Defs.MEAS_5V0_HOT_EN.val);
-            Thread.Sleep(VOLTAGE_DELAY);
+            this.GPIO.SetBit(GPIO_Defs.MEAS_5V0_HOT_EN.port, GPIO_Defs.MEAS_5V0_HOT_EN.pin);
+            Thread.Sleep(DMM_DELAY);
 
             //Measure the voltage
             float measured = this.DMM.Get_Volts();
-            test.parameters.Add("measured", measured.ToString());
+            string val;
+            if (!test.parameters.TryGetValue("measured", out val))
+            {
+                test.parameters["measured"] = measured.ToString();
+            }
+            else
+            {
+                test.parameters.Add("measured", measured.ToString());
+            }
             try
             {
-                message.Report(ui_msg + "Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report(ui_msg + "Test PASS");
+                    message.Report("Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report(ui_msg + "Test FAIL");
+                    message.Report("Test FAIL");
                     success = false;
                 }
             }
@@ -895,9 +1042,9 @@ namespace ControlBoardTest
             {
                 success = false;
             }
-            this.GPIO.setPort(GPIO_Defs.MEAS_5V0_HOT_EN.port, 0);
-        
-           
+            this.GPIO.ClearBit(GPIO_Defs.MEAS_5V0_HOT_EN.port, GPIO_Defs.MEAS_5V0_HOT_EN.pin);
+
+
 
 
             return success;
@@ -913,11 +1060,12 @@ namespace ControlBoardTest
          *  Returns: bool success - returns true if 5V3 SMPS is within the upper and lower limits.
          *                          returns false if 5V3 SMPS is outside the defined limits or the DMM is not connected.
          ******************************************************************************************************************************/
-        private bool test_5V3_SMPS(IProgress<string> message, TestData test)
+        private bool test_5V3_SMPS(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             string str_value;
             bool value_available;
             bool success = false;
+            errorCode = -1;
             float upper = 0;
             float lower = 0;
             
@@ -934,24 +1082,32 @@ namespace ControlBoardTest
             }
 
             //Connect the desired voltage node to the DMM
-            this.GPIO.setPort(GPIO_Defs.MEAS_5V3_EN.port, GPIO_Defs.MEAS_5V3_EN.val);
-            Thread.Sleep(VOLTAGE_DELAY);
+            this.GPIO.SetBit(GPIO_Defs.MEAS_5V3_EN.port, GPIO_Defs.MEAS_5V3_EN.pin);
+            Thread.Sleep(DMM_DELAY);
 
             //Measure the voltage
             float measured = this.DMM.Get_Volts();
-            test.parameters.Add("measured", measured.ToString());
+            string val;
+            if (!test.parameters.TryGetValue("measured", out val))
+            {
+                test.parameters["measured"] = measured.ToString();
+            }
+            else
+            {
+                test.parameters.Add("measured", measured.ToString());
+            }
             try
             {
-                message.Report(ui_msg + "Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report(ui_msg + "Test PASS");
+                    message.Report("Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report(ui_msg + "Test FAIL");
+                    message.Report("Test FAIL");
                     success = false;
                 }
             }
@@ -959,9 +1115,9 @@ namespace ControlBoardTest
             {
                 success = false;
             }
-            this.GPIO.setPort(GPIO_Defs.MEAS_5V3_EN.port, 0);
-            
-           
+            this.GPIO.ClearBit(GPIO_Defs.MEAS_5V3_EN.port, GPIO_Defs.MEAS_5V3_EN.pin);
+
+
 
             return success;
         }
@@ -976,11 +1132,12 @@ namespace ControlBoardTest
          *  Returns: bool success - returns true if 12V0 SMPS is within the upper and lower limits.
          *                          returns false if 12V0 SMPS is outside the defined limits or the DMM is not connected.
          ******************************************************************************************************************************/
-        private bool test_12V0_SMPS(IProgress<string> message, TestData test)
+        private bool test_12V0_SMPS(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             string str_value;
             bool value_available;
             bool success = false;
+            errorCode = -1;
             float upper = 0;
             float lower = 0;
             
@@ -997,24 +1154,32 @@ namespace ControlBoardTest
             }
 
             //Connect the desired voltage node to the DMM
-            this.GPIO.setPort(GPIO_Defs.MEAS_12V0_EN.port, GPIO_Defs.MEAS_12V0_EN.val);
-            Thread.Sleep(VOLTAGE_DELAY);
+            this.GPIO.SetBit(GPIO_Defs.MEAS_12V0_EN.port, GPIO_Defs.MEAS_12V0_EN.pin);
+            Thread.Sleep(DMM_DELAY);
 
             //Measure the voltage
             float measured = this.DMM.Get_Volts();
-            test.parameters.Add("measured", measured.ToString());
+            string val;
+            if (!test.parameters.TryGetValue("measured", out val))
+            {
+                test.parameters["measured"] = measured.ToString();
+            }
+            else
+            {
+                test.parameters.Add("measured", measured.ToString());
+            }
             try
             {
-                message.Report(ui_msg + "Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report(ui_msg + "Test PASS");
+                    message.Report("Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report(ui_msg + "Test FAIL");
+                    message.Report("Test FAIL");
                     success = false;
                 }
             }
@@ -1022,11 +1187,11 @@ namespace ControlBoardTest
             {
                 success = false;
             }
-            this.GPIO.setPort(GPIO_Defs.MEAS_12V0_EN.port, 0);
-           
-           
+            this.GPIO.ClearBit(GPIO_Defs.MEAS_12V0_EN.port, GPIO_Defs.MEAS_12V0_EN.pin);
 
-            
+
+
+
             return success;
         }
         /******************************************************************************************************************************
@@ -1040,11 +1205,12 @@ namespace ControlBoardTest
          *  Returns: bool success - returns true if 3V3 SMPS is within the upper and lower limits.
          *                          returns false if 3V3 SMPS is outside the defined limits or the DMM is not connected.
          ******************************************************************************************************************************/
-        private bool test_3V3_SMPS(IProgress<string> message, TestData test)
+        private bool test_3V3_SMPS(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             string str_value;
             bool value_available;
             bool success = false;
+            errorCode = -1;
             float upper = 0;
             float lower = 0;
             
@@ -1061,24 +1227,32 @@ namespace ControlBoardTest
             }
 
             //Connect the desired voltage node to the DMM
-            this.GPIO.setPort(GPIO_Defs.MEAS_3V3_EN.port, GPIO_Defs.MEAS_3V3_EN.val);
-            Thread.Sleep(VOLTAGE_DELAY);
+            this.GPIO.SetBit(GPIO_Defs.MEAS_3V3_EN.port, GPIO_Defs.MEAS_3V3_EN.pin);
+            Thread.Sleep(DMM_DELAY);
 
             //Measure the voltage
             float measured = this.DMM.Get_Volts();
-            test.parameters.Add("measured", measured.ToString());
+            string val;
+            if (!test.parameters.TryGetValue("measured", out val))
+            {
+                test.parameters["measured"] = measured.ToString();
+            }
+            else
+            {
+                test.parameters.Add("measured", measured.ToString());
+            }
             try
             {
-                message.Report(ui_msg + "Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report(ui_msg + "Test PASS");
+                    message.Report("Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report(ui_msg + "Test FAIL");
+                    message.Report("Test FAIL");
                     success = false;
                 }
             }
@@ -1086,9 +1260,9 @@ namespace ControlBoardTest
             {
                 success = false;
             }
-            this.GPIO.setPort(GPIO_Defs.MEAS_3V3_EN.port, 0);
-            
-           
+            this.GPIO.ClearBit(GPIO_Defs.MEAS_3V3_EN.port, GPIO_Defs.MEAS_3V3_EN.pin);
+
+
 
             return success;
         }
@@ -1103,11 +1277,12 @@ namespace ControlBoardTest
          *  Returns: bool success - returns true if 1V2 SMPS is within the upper and lower limits.
          *                          returns false if 1V2 SMPS is outside the defined limits or the DMM is not connected.
          ******************************************************************************************************************************/
-        private bool test_1V2_SMPS(IProgress<string> message, TestData test)
+        private bool test_1V2_SMPS(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             string str_value;
             bool value_available;
             bool success = false;
+            errorCode = -1;
             float upper = 0;
             float lower = 0;
         
@@ -1124,24 +1299,32 @@ namespace ControlBoardTest
             }
 
             //Connect the desired voltage node to the DMM
-            this.GPIO.setPort(GPIO_Defs.MEAS_1V2_EN.port, GPIO_Defs.MEAS_1V2_EN.val);
-            Thread.Sleep(VOLTAGE_DELAY);
+            this.GPIO.SetBit(GPIO_Defs.MEAS_1V2_EN.port, GPIO_Defs.MEAS_1V2_EN.pin);
+            Thread.Sleep(DMM_DELAY);
 
             //Measure the voltage
             float measured = this.DMM.Get_Volts();
-            test.parameters.Add("measured", measured.ToString());
+            string val;
+            if (!test.parameters.TryGetValue("measured", out val))
+            {
+                test.parameters["measured"] = measured.ToString();
+            }
+            else
+            {
+                test.parameters.Add("measured", measured.ToString());
+            }
             try
             {
-                message.Report(ui_msg + "Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report(ui_msg + "Test PASS");
+                    message.Report("Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report(ui_msg + "Test FAIL");
+                    message.Report("Test FAIL");
                     success = false;
                 }
             }
@@ -1149,9 +1332,9 @@ namespace ControlBoardTest
             {
                 success = false;
             }
-            this.GPIO.setPort(GPIO_Defs.MEAS_1V2_EN.port, 0);
-            
-           
+            this.GPIO.ClearBit(GPIO_Defs.MEAS_1V2_EN.port, GPIO_Defs.MEAS_1V2_EN.pin);
+
+
 
             return success;
         }
@@ -1166,11 +1349,12 @@ namespace ControlBoardTest
         *  Returns: bool success - returns true if 2V048 LDO is within the upper and lower limits.
         *                          returns false if 2V048 LDO is outside the defined limits or the DMM is not connected.
         ******************************************************************************************************************************/
-        private bool test_VREF(IProgress<string> message, TestData test)
+        private bool test_VREF(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             string str_value;
             bool value_available;
             bool success = false;
+            errorCode = -1;
             float upper = 0;
             float lower = 0;
             
@@ -1187,24 +1371,32 @@ namespace ControlBoardTest
             }
 
             //Connect the desired voltage node to the DMM
-            this.GPIO.setPort(GPIO_Defs.MEAS_VREF_EN.port, GPIO_Defs.MEAS_VREF_EN.val);
-            Thread.Sleep(VOLTAGE_DELAY);
+            this.GPIO.SetBit(GPIO_Defs.MEAS_VREF_EN.port, GPIO_Defs.MEAS_VREF_EN.pin);
+            Thread.Sleep(DMM_DELAY);
 
             //Measure the voltage
             float measured = this.DMM.Get_Volts();
-            test.parameters.Add("measured", measured.ToString());
+            string val;
+            if (!test.parameters.TryGetValue("measured", out val))
+            {
+                test.parameters["measured"] = measured.ToString();
+            }
+            else
+            {
+                test.parameters.Add("measured", measured.ToString());
+            }
             try
             {
-                message.Report(ui_msg + "Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report(ui_msg + "Test PASS");
+                    message.Report("Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report(ui_msg + "Test FAIL");
+                    message.Report("Test FAIL");
                     success = false;
                 }
             }
@@ -1212,8 +1404,8 @@ namespace ControlBoardTest
             {
                 success = false;
             }
-            this.GPIO.setPort(GPIO_Defs.MEAS_VREF_EN.port, 0);
-            
+            this.GPIO.ClearBit(GPIO_Defs.MEAS_VREF_EN.port, GPIO_Defs.MEAS_VREF_EN.pin);
+
 
             return success;
         }
@@ -1228,11 +1420,12 @@ namespace ControlBoardTest
          *  Returns: bool success - returns true if 5V3 SMPS is within the upper and lower limits.
          *                          returns false if 5V3 SMPS is outside the defined limits or the DMM is not connected.
          ******************************************************************************************************************************/
-        private bool test_3V3_LDO(IProgress<string> message, TestData test)
+        private bool test_3V3_LDO(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             string str_value;
             bool value_available;
             bool success = false;
+            errorCode = -1;
             float upper = 0;
             float lower = 0;
             
@@ -1249,24 +1442,32 @@ namespace ControlBoardTest
             }
 
             //Connect the desired voltage node to the DMM
-            this.GPIO.setPort(GPIO_Defs.MEAS_3V3A_EN.port, GPIO_Defs.MEAS_3V3A_EN.val);
-            Thread.Sleep(VOLTAGE_DELAY);
+            this.GPIO.SetBit(GPIO_Defs.MEAS_3V3A_EN.port, GPIO_Defs.MEAS_3V3A_EN.pin);
+            Thread.Sleep(DMM_DELAY);
 
             //Measure the voltage
             float measured = this.DMM.Get_Volts();
-            test.parameters.Add("measured", measured.ToString());
+            string val;
+            if (!test.parameters.TryGetValue("measured", out val))
+            {
+                test.parameters["measured"] = measured.ToString();
+            }
+            else
+            {
+                test.parameters.Add("measured", measured.ToString());
+            }
             try
             {
-                message.Report(ui_msg + "Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report(ui_msg + "Test PASS");
+                    message.Report("Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report(ui_msg + "Test FAIL");
+                    message.Report("Test FAIL");
                     success = false;
                 }
             }
@@ -1274,9 +1475,9 @@ namespace ControlBoardTest
             {
                 success = false;
             }
-            this.GPIO.setPort(GPIO_Defs.MEAS_3V3A_EN.port, 0);
-            
-            
+            this.GPIO.ClearBit(GPIO_Defs.MEAS_3V3A_EN.port, GPIO_Defs.MEAS_3V3A_EN.pin);
+
+
 
             return success;
         }
@@ -1291,11 +1492,12 @@ namespace ControlBoardTest
  *  Returns: bool success - returns true if 5V3 SMPS is within the upper and lower limits.
  *                          returns false if 5V3 SMPS is outside the defined limits or the DMM is not connected.
  ******************************************************************************************************************************/
-        private bool test_30V_SMPS(IProgress<string> message, TestData test)
+        private bool test_30V_SMPS(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             string str_value;
             bool value_available;
             bool success = false;
+            errorCode = -1;
             float upper = 0;
             float lower = 0;
             
@@ -1312,24 +1514,32 @@ namespace ControlBoardTest
             }
 
             //Connect the desired voltage node to the DMM
-            this.GPIO.setPort(GPIO_Defs.MEAS_30V_EN.port, GPIO_Defs.MEAS_30V_EN.val);
-            Thread.Sleep(VOLTAGE_DELAY);
+            this.GPIO.SetBit(GPIO_Defs.MEAS_30V_EN.port, GPIO_Defs.MEAS_30V_EN.pin);
+            Thread.Sleep(DMM_DELAY);
 
             //Measure the voltage
             float measured = this.DMM.Get_Volts();
-            test.parameters.Add("measured", measured.ToString());
+            string val;
+            if (!test.parameters.TryGetValue("measured", out val))
+            {
+                test.parameters["measured"] = measured.ToString();
+            }
+            else
+            {
+                test.parameters.Add("measured", measured.ToString());
+            }
             try
             {
-                message.Report(ui_msg + "Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report(ui_msg + "Test PASS");
+                    message.Report("Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report(ui_msg + "Test FAIL");
+                    message.Report("Test FAIL");
                     success = false;
                 }
             }
@@ -1337,8 +1547,8 @@ namespace ControlBoardTest
             {
                 success = false;
             }
-            this.GPIO.setPort(GPIO_Defs.MEAS_30V_EN.port, 0);
-           
+            this.GPIO.ClearBit(GPIO_Defs.MEAS_30V_EN.port, GPIO_Defs.MEAS_30V_EN.pin);
+
 
             return success;
         }
@@ -1353,11 +1563,12 @@ namespace ControlBoardTest
          *  Returns: bool success - returns true if 36V SMPS is within the upper and lower limits.
          *                          returns false if 36V SMPS is outside the defined limits or the DMM is not connected.
          ******************************************************************************************************************************/
-        private bool test_36V_SMPS(IProgress<string> message, TestData test)
+        private bool test_36V_SMPS(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             string str_value;
             bool value_available;
             bool success = false;
+            errorCode = -1;
             float upper = 0;
             float lower = 0;
             
@@ -1374,24 +1585,32 @@ namespace ControlBoardTest
             }
 
             //Connect the desired voltage node to the DMM
-            this.GPIO.setPort(GPIO_Defs.MEAS_36V_EN.port, GPIO_Defs.MEAS_36V_EN.val);
-            Thread.Sleep(VOLTAGE_DELAY);
+            this.GPIO.SetBit(GPIO_Defs.MEAS_36V_EN.port, GPIO_Defs.MEAS_36V_EN.pin);
+            Thread.Sleep(DMM_DELAY);
 
             //Measure the voltage
             float measured = this.DMM.Get_Volts();
-            test.parameters.Add("measured", measured.ToString());
+            string val;
+            if (!test.parameters.TryGetValue("measured", out val))
+            {
+                test.parameters["measured"] = measured.ToString();
+            }
+            else
+            {
+                test.parameters.Add("measured", measured.ToString());
+            }
             try
             {
-                message.Report(ui_msg + "Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report(ui_msg + "Test PASS");
+                    message.Report("Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report(ui_msg + "Test FAIL");
+                    message.Report("Test FAIL");
                     success = false;
                 }
             }
@@ -1399,179 +1618,159 @@ namespace ControlBoardTest
             {
                 success = false;
             }
-            this.GPIO.setPort(GPIO_Defs.MEAS_36V_EN.port, 0);
-            
-            
+            this.GPIO.ClearBit(GPIO_Defs.MEAS_36V_EN.port, GPIO_Defs.MEAS_36V_EN.pin);
+
+
 
             return success;
         }
-        /******************************************************************************************************************************
-         *  test_software_install
-         *  
-         *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
-         *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
-         *            to initiate the software update.
-         *            Waits for user input to determine when software has finished updating. //TODO: Update this function to wait for SOM's serial port to tell us that the program updated successfully.
-         *  
-         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
-         *             TestData test             - Variable that contains all of the necessary test data.
-         *  
-         *  Returns: bool success - returns true if the software updates successfully
-         *                          returns false if the software does not update successfully
-         * 
-         ******************************************************************************************************************************/
-        private bool test_spi1_bus(IProgress<string> message, TestData test)
-        {
-            bool success = false;
-            return success;
-        }
-        /******************************************************************************************************************************
-         *  test_
-         *  
-         *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
-         *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
-         *            to initiate the software update.
-         *            Waits for user input to determine when software has finished updating. //TODO: Update this function to wait for SOM's serial port to tell us that the program updated successfully.
-         *  
-         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
-         *             TestData test             - Variable that contains all of the necessary test data.
-         *  
-         *  Returns: bool success - returns true if the software updates successfully
-         *                          returns false if the software does not update successfully
-         * 
-         ******************************************************************************************************************************/
-        private bool test_i2c_vent(IProgress<string> message, TestData test)
-        {   
 
-            //TODO: Break into sub-assy specific parts.
-            bool success = false;
-            return success;
-        }
+
         /******************************************************************************************************************************
-         *  test_software_install
+         *  test_blower
          *  
-         *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
-         *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
-         *            to initiate the software update.
-         *            Waits for user input to determine when software has finished updating. //TODO: Update this function to wait for SOM's serial port to tell us that the program updated successfully.
+         *  Function: Tests the blower motor driver by commanding a specific speed, then measuring the frequency out.
          *  
          *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
          *             TestData test             - Variable that contains all of the necessary test data.
+         *             
+         *             parameters: - speed : speed to test blower at
+         *                         - tolerance: tolerance to measure speed to: in percentage
+         *      
          *  
-         *  Returns: bool success - returns true if the software updates successfully
-         *                          returns false if the software does not update successfully
-         * 
+         *  Returns: bool success - returns true if the test passes
          ******************************************************************************************************************************/
-        private bool test_blower(IProgress<string> message, TestData test)
+        private bool test_blower(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             bool success = false;
- 
-            for (int speed = 10000; speed <= 40000; speed+=10000) {
-                this.Vent.CMD_Write("set vcm testmgr speed " + speed.ToString());
-                var x = this.Vent.CMD_Read();
-                message.Report(ui_msg + "Blower speed = " + speed.ToString() + " RPM");
+            errorCode = -1;
+            string ventOutput;
+            float measured;
+
+            //Note: TryParse not used here because in no situation should the user be able to edit the configuration file. Ergo, no need to catch the error unless working in a dev environment, which throwing an exception is more acceptable as it's useful for debugging what the hell happened.
+            int speed = int.Parse(test.parameters["speed"]);            
+            int tolerance = int.Parse(test.parameters["tolerance"]);
+
+            if (this.powered && this.GPIO.Connected && this.Vent.Connected)
+            {
+                message.Report("Setting blower speed  to: " + speed.ToString() + " RPM");
+
+                ventOutput = this.Vent.CMD_Write("set vcm testmgr speed " + speed.ToString());
+
                 Thread.Sleep(500);
+                //Measure value
+
+
+                //Connect the desired voltage node to the DMM
+                this.GPIO.SetBit(GPIO_Defs.MEAS_FREQ_BLOWER.port, GPIO_Defs.MEAS_FREQ_BLOWER.pin);
+                Thread.Sleep(DMM_DELAY);
+
+                //Measure the voltage
+                measured = this.DMM.Get_Freq();
+                this.GPIO.ClearBit(GPIO_Defs.MEAS_FREQ_BLOWER.port, GPIO_Defs.MEAS_FREQ_BLOWER.pin);
+
+                this.Vent.CMD_Write("set vcm testmgr stop");
+
+                if((measured < speed *(1 + (tolerance/10))) && (measured > speed * (1 - (tolerance / 10))))
+                {
+                    success = true;
+                }
+
+
+                //Fill in measurement parameter
+                if (success)
+                {
+                    message.Report(test.name + ": PASS");
+                    test.parameters["measured"] = measured.ToString();
+                }
+                else
+                {
+                    message.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = measured.ToString();
+                }
             }
-            for(int speed = 40000; speed >=10000; speed -= 10000) {
-                this.Vent.CMD_Write("set vcm testmgr speed " + speed.ToString());
-                var x = this.Vent.CMD_Read();
-                message.Report(ui_msg + "Blower speed = " + speed.ToString() + " RPM");
-                Thread.Sleep(250);
+            else
+            {
+                if (!this.powered)
+                {
+                    message.Report("UUT is not powered");
+                }
+                if (!this.Vent.Connected)
+                {
+                    message.Report("UUT is not connected to Telnet");
+                }
+                if (!this.GPIO.Connected)
+                {
+                    message.Report("GPIO Module is not connected");
+                }
             }
-            this.Vent.CMD_Write("set vcm testmgr stop");
-
-            message.Report(ui_msg + "Does the blower run?");
-            var input = this.ReceiveInput();
-            if (input == "yes") success = true;
-            else success = false;
 
 
-            // TODO: Rethro exception so that it can be caught at higher level function
+
+
             return success;
         }
+
+
+        
         /******************************************************************************************************************************
-         *  test_software_install
+         *  test_sov
          *  
-         *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
-         *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
-         *            to initiate the software update.
-         *            Waits for user input to determine when software has finished updating. //TODO: Update this function to wait for SOM's serial port to tell us that the program updated successfully.
+         *  Function: Toggles the Solenoid on the shut off valve and measures the digital input from the device. 
          *  
          *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
          *             TestData test             - Variable that contains all of the necessary test data.
          *  
-         *  Returns: bool success - returns true if the software updates successfully
-         *                          returns false if the software does not update successfully
+         *  Returns: bool success
          * 
          ******************************************************************************************************************************/
-        private bool test_exhalation(IProgress<string> message, TestData test)
+        private bool test_sov(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             bool success = false;
+            errorCode = -1;
+            int on_state;
+            string output;
+
+            int measured;
+
+            test.parameters.TryGetValue("on_state", out output);
+
+            if(output == "high")
+            {
+                on_state = 1;
+            }
+            else if(output == "low")
+            {
+                on_state = 0;
+            }
+
+            this.Vent.CMD_Write("set vcm sv 11 0");
+
+            //Read the input value
+            measured = this.GPIO.GetBit(GPIO_Defs.SOV_SV11.port, GPIO_Defs.SOV_SV11.pin);
+            if(measured == 1)
+            {
+                success = true;
+            }
+
+            this.Vent.CMD_Write("set vcm sv 11 1");
+
+            //Read the input value
+            measured = this.GPIO.GetBit(GPIO_Defs.SOV_SV11.port, GPIO_Defs.SOV_SV11.pin);
+            if (measured == 0)
+            {
+                success = true;
+            }
+            else
+            {
+                success = false;
+            }
+
+
 
             return success;
         }
-        /******************************************************************************************************************************
-         *  test_software_install
-         *  
-         *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
-         *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
-         *            to initiate the software update.
-         *            Waits for user input to determine when software has finished updating. //TODO: Update this function to wait for SOM's serial port to tell us that the program updated successfully.
-         *  
-         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
-         *             TestData test             - Variable that contains all of the necessary test data.
-         *  
-         *  Returns: bool success - returns true if the software updates successfully
-         *                          returns false if the software does not update successfully
-         * 
-         ******************************************************************************************************************************/
-        private bool test_dac(IProgress<string> message, TestData test)
-        {
-            bool success = false;
-
-            
-            return success;
-        }
-        /******************************************************************************************************************************
-         *  test_software_install
-         *  
-         *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
-         *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
-         *            to initiate the software update.
-         *            Waits for user input to determine when software has finished updating. //TODO: Update this function to wait for SOM's serial port to tell us that the program updated successfully.
-         *  
-         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
-         *             TestData test             - Variable that contains all of the necessary test data.
-         *  
-         *  Returns: bool success - returns true if the software updates successfully
-         *                          returns false if the software does not update successfully
-         * 
-         ******************************************************************************************************************************/
-        private bool test_sov(IProgress<string> message, TestData test)
-        {
-            bool success = false;
-            return success;
-        }
-        /******************************************************************************************************************************
-         *  test_software_install
-         *  
-         *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
-         *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
-         *            to initiate the software update.
-         *            Waits for user input to determine when software has finished updating. //TODO: Update this function to wait for SOM's serial port to tell us that the program updated successfully.
-         *  
-         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
-         *             TestData test             - Variable that contains all of the necessary test data.
-         *  
-         *  Returns: bool success - returns true if the software updates successfully
-         *                          returns false if the software does not update successfully
-         * 
-         ******************************************************************************************************************************/
-        private bool test_oxygen(IProgress<string> message, TestData test)
-        {
-            bool success = false;
-            return success;
-        }
+        
         /******************************************************************************************************************************
          *  test_sv9_off
          *  
@@ -1583,11 +1782,12 @@ namespace ControlBoardTest
          *  Returns: bool success - returns true if 5V3 SMPS is within the upper and lower limits.
          *                          returns false if 5V3 SMPS is outside the defined limits or the DMM is not connected.
          ******************************************************************************************************************************/
-        private bool test_sv9_off(IProgress<string> message, TestData test)
+        private bool test_sv9_off(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             string str_value;
             bool value_available;
             bool success = false;
+            errorCode = -1;
             float upper = 0;
             float lower = 0;
 
@@ -1595,15 +1795,15 @@ namespace ControlBoardTest
             {
                 //Need to connect to device.
                 this.Vent.Connect();
-                message.Report(ui_msg + "Connecting to device ...");
+                message.Report("Connecting to device ...");
                 
             }
             try
             {
                 this.Vent.CMD_Write("mfgmode");
-                this.Vent.CMD_Read();
+                
                 this.Vent.CMD_Write("set vcm sv 9 0");
-                this.Vent.CMD_Read();
+                
             }
             catch
             {
@@ -1624,25 +1824,33 @@ namespace ControlBoardTest
             }
 
             //Connect the desired voltage node to the DMM
-            this.GPIO.setPort(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.val);
-            this.GPIO.setPort(GPIO_Defs.MEAS_O2_SV1N_EN.port, GPIO_Defs.MEAS_O2_SV1N_EN.val);
-            Thread.Sleep(VOLTAGE_DELAY);
+            this.GPIO.SetBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
+            this.GPIO.SetBit(GPIO_Defs.MEAS_O2_SV1N_EN.port, GPIO_Defs.MEAS_O2_SV1N_EN.pin);
+            Thread.Sleep(DMM_DELAY);
 
             //Measure the voltage
             float measured = this.DMM.Get_Volts();
-            test.parameters.Add("measured", measured.ToString());
+            string val;
+            if (!test.parameters.TryGetValue("measured", out val))
+            {
+                test.parameters["measured"] = measured.ToString();
+            }
+            else
+            {
+                test.parameters.Add("measured", measured.ToString());
+            }
             try
             {
-                message.Report(ui_msg + "Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report(ui_msg + "SV1 Test PASS");
+                    message.Report("SV1 Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report(ui_msg + "SV1 Test FAIL");
+                    message.Report("SV1 Test FAIL");
                     success = false;
                 }
             }
@@ -1650,12 +1858,12 @@ namespace ControlBoardTest
             {
                 success = false;
             }
-                
 
-            
-           
-            this.GPIO.setPort(GPIO_Defs.EXT_O2_DIS.port, 0);
-            this.GPIO.setPort(GPIO_Defs.MEAS_O2_SV1N_EN.port, 0);
+
+
+
+            this.GPIO.ClearBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
+            this.GPIO.ClearBit(GPIO_Defs.MEAS_O2_SV1N_EN.port, GPIO_Defs.MEAS_O2_SV1N_EN.pin);
 
 
             return success;
@@ -1671,11 +1879,12 @@ namespace ControlBoardTest
          *  Returns: bool success - returns true if the voltage measurement is within the defined limits.
          *                          returns false if voltage measurement is outside the defined limits or the DMM is not connected.
          ******************************************************************************************************************************/
-        private bool test_sv10_off(IProgress<string> message, TestData test)
+        private bool test_sv10_off(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             string str_value;
             bool value_available;
             bool success = false;
+            errorCode = -1;
             float upper = 0;
             float lower = 0;
 
@@ -1683,9 +1892,9 @@ namespace ControlBoardTest
             try
             {
                 this.Vent.CMD_Write("mfgmode");
-                this.Vent.CMD_Read();
+                
                 this.Vent.CMD_Write("set vcm sv 10 0");
-                this.Vent.CMD_Read();
+                
             }
             catch
             {
@@ -1706,25 +1915,33 @@ namespace ControlBoardTest
             }
 
             //Connect the desired voltage node to the DMM
-            this.GPIO.setPort(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.val);
-            this.GPIO.setPort(GPIO_Defs.MEAS_O2_SV2N_EN.port, GPIO_Defs.MEAS_O2_SV2N_EN.val);
-            Thread.Sleep(VOLTAGE_DELAY);
+            this.GPIO.SetBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
+            this.GPIO.SetBit(GPIO_Defs.MEAS_O2_SV2N_EN.port, GPIO_Defs.MEAS_O2_SV2N_EN.pin);
+            Thread.Sleep(DMM_DELAY);
 
             //Measure the voltage
             float measured = this.DMM.Get_Volts();
-            test.parameters.Add("measured", measured.ToString());
+            string val;
+            if (!test.parameters.TryGetValue("measured", out val))
+            {
+                test.parameters["measured"] = measured.ToString();
+            }
+            else
+            {
+                test.parameters.Add("measured", measured.ToString());
+            }
             try
             {
-                message.Report(ui_msg + "Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report(ui_msg + "Test PASS");
+                    message.Report("Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report(ui_msg + "Test FAIL");
+                    message.Report("Test FAIL");
                     success = false;
                 }
             }
@@ -1732,11 +1949,11 @@ namespace ControlBoardTest
             {
                 success = false;
             }
-            this.GPIO.setPort(GPIO_Defs.EXT_O2_DIS.port, 0);
-            this.GPIO.setPort(GPIO_Defs.MEAS_O2_SV2N_EN.port, 0);
+            this.GPIO.ClearBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
+            this.GPIO.ClearBit(GPIO_Defs.MEAS_O2_SV2N_EN.port, GPIO_Defs.MEAS_O2_SV2N_EN.pin);
 
-            
-           
+
+
 
             return success;
         }
@@ -1751,20 +1968,21 @@ namespace ControlBoardTest
          *  Returns: bool success - returns true if 5V3 SMPS is within the upper and lower limits.
          *                          returns false if 5V3 SMPS is outside the defined limits or the DMM is not connected.
          ******************************************************************************************************************************/
-        private bool test_sv9_on(IProgress<string> message, TestData test)
+        private bool test_sv9_on(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             string str_value;
             bool value_available;
             bool success = false;
+            errorCode = -1;
             float upper = 0;
             float lower = 0;
 
             try
             {
                 this.Vent.CMD_Write("mfgmode");
-                this.Vent.CMD_Read();
+                
                 this.Vent.CMD_Write("set vcm sv 9 1");
-                this.Vent.CMD_Read();
+                
             }
             catch
             {
@@ -1784,25 +2002,33 @@ namespace ControlBoardTest
             }
 
             //Connect the desired voltage node to the DMM
-            this.GPIO.setPort(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.val);
-            this.GPIO.setPort(GPIO_Defs.MEAS_O2_SV1N_EN.port, GPIO_Defs.MEAS_O2_SV1N_EN.val);
-            Thread.Sleep(VOLTAGE_DELAY);
+            this.GPIO.SetBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
+            this.GPIO.SetBit(GPIO_Defs.MEAS_O2_SV1N_EN.port, GPIO_Defs.MEAS_O2_SV1N_EN.pin);
+            Thread.Sleep(DMM_DELAY);
 
             //Measure the voltage
             float measured = this.DMM.Get_Volts();
-            test.parameters.Add("measured", measured.ToString());
+            string val;
+            if (!test.parameters.TryGetValue("measured", out val))
+            {
+                test.parameters["measured"] = measured.ToString();
+            }
+            else
+            {
+                test.parameters.Add("measured", measured.ToString());
+            }
             try
             {
-                message.Report(ui_msg + "Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report(ui_msg + "SV9 Test PASS");
+                    message.Report("SV9 Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report(ui_msg + "SV9 Test FAIL");
+                    message.Report("SV9 Test FAIL");
                     success = false;
                 }
             }
@@ -1814,14 +2040,14 @@ namespace ControlBoardTest
             try
             {
                 this.Vent.CMD_Write("set vcm sv 9 0");
-                this.Vent.CMD_Read();
+                
             }
             catch
             {
 
             }
-            this.GPIO.setPort(GPIO_Defs.EXT_O2_DIS.port, 0);
-            this.GPIO.setPort(GPIO_Defs.MEAS_O2_SV1N_EN.port, 0);
+            this.GPIO.ClearBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
+            this.GPIO.ClearBit(GPIO_Defs.MEAS_O2_SV1N_EN.port, GPIO_Defs.MEAS_O2_SV1N_EN.pin);
 
             
             
@@ -1836,23 +2062,23 @@ namespace ControlBoardTest
          *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
          *             TestData test             - Variable that contains all of the necessary test data.
          *  
-         *  Returns: bool success - returns true if 5V3 SMPS is within the upper and lower limits.
-         *                          returns false if 5V3 SMPS is outside the defined limits or the DMM is not connected.
+         *  Returns: bool success
          ******************************************************************************************************************************/
-        private bool test_sv10_on(IProgress<string> message, TestData test)
+        private bool test_sv10_on(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             string str_value;
             bool value_available;
             bool success = false;
+            errorCode = -1;
             float upper = 0;
             float lower = 0;
 
             try
             {
                 this.Vent.CMD_Write("mfgmode");
-                this.Vent.CMD_Read();
+                
                 this.Vent.CMD_Write("set vcm sv 10 1");
-                this.Vent.CMD_Read();
+                
             }
             catch
             {
@@ -1873,25 +2099,33 @@ namespace ControlBoardTest
             }
 
             //Connect the desired voltage node to the DMM
-            this.GPIO.setPort(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.val);
-            this.GPIO.setPort(GPIO_Defs.MEAS_O2_SV2N_EN.port, GPIO_Defs.MEAS_O2_SV2N_EN.val);
-            Thread.Sleep(VOLTAGE_DELAY);
+            this.GPIO.SetBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
+            this.GPIO.SetBit(GPIO_Defs.MEAS_O2_SV2N_EN.port, GPIO_Defs.MEAS_O2_SV2N_EN.pin);
+            Thread.Sleep(DMM_DELAY);
 
             //Measure the voltage
             float measured = this.DMM.Get_Volts();
-            test.parameters.Add("measured", measured.ToString());
+            string val;
+            if (!test.parameters.TryGetValue("measured", out val))
+            {
+                test.parameters["measured"] = measured.ToString();
+            }
+            else
+            {
+                test.parameters.Add("measured", measured.ToString());
+            }
             try
             {
-                message.Report(ui_msg + "Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report(ui_msg + "Test PASS");
+                    message.Report("Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report(ui_msg + "Test FAIL");
+                    message.Report("Test FAIL");
                     success = false;
                 }
             }
@@ -1904,15 +2138,15 @@ namespace ControlBoardTest
             {
                     
                 this.Vent.CMD_Write("set vcm sv 10 0");
-                this.Vent.CMD_Read();
+                
             }
             catch
             {
 
             }
-            this.GPIO.setPort(GPIO_Defs.EXT_O2_DIS.port, 0);
-            this.GPIO.setPort(GPIO_Defs.MEAS_O2_SV2N_EN.port, 0);
-           
+            this.GPIO.ClearBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
+            this.GPIO.ClearBit(GPIO_Defs.MEAS_O2_SV2N_EN.port, GPIO_Defs.MEAS_O2_SV2N_EN.pin);
+
 
             return success;
         }
@@ -1920,83 +2154,58 @@ namespace ControlBoardTest
         /******************************************************************************************************************************
          *  test_cough
          *  
-         *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
-         *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
-         *            to initiate the software update.
-         *            Waits for user input to determine when software has finished updating. //TODO: Update this function to wait for SOM's serial port to tell us that the program updated successfully.
+         *  Function: Actuates the cough valve a set number of times and prompts the user to respond 
          *  
          *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
          *             TestData test             - Variable that contains all of the necessary test data.
          *  
-         *  Returns: bool success - returns true if the software updates successfully
-         *                          returns false if the software does not update successfully
+         *  Returns: bool success
          * 
          ******************************************************************************************************************************/
-        private bool test_cough(IProgress<string> message, TestData test)
+        private bool test_cough_valve(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             bool success = false;
+            errorCode = -1;
+
+            int num;
+
+            test.parameters.TryGetValue("toggle", out var toggle);
+            num = int.Parse(toggle);
+            for (int i = 0; i < num*2; i++)
+            {
+                this.Vent.CMD_Write("set vcm coughv " + (i%2).ToString() );
+                Thread.Sleep(50); //Value doesn't really matter, the device doesn't drive the valve any faster
+                
+            }
+
+            if (this.PromptUser_YesNo("Does the cough valve actuate?", test.name))
+            {   
+                success = true;
+            }
+            else
+            {
+                success = false;
+            }
             return success;
         }
-        /******************************************************************************************************************************
-         *  test_neb
-         *  
-         *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
-         *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
-         *            to initiate the software update.
-         *            Waits for user input to determine when software has finished updating. //TODO: Update this function to wait for SOM's serial port to tell us that the program updated successfully.
-         *  
-         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
-         *             TestData test             - Variable that contains all of the necessary test data.
-         *  
-         *  Returns: bool success - returns true if the software updates successfully
-         *                          returns false if the software does not update successfully
-         * 
-         ******************************************************************************************************************************/
-        private bool test_neb(IProgress<string> message, TestData test)
-        {
-            bool success = false;
-            return success;
-        }
-        /******************************************************************************************************************************
-         *  test_suction
-         *  
-         *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
-         *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
-         *            to initiate the software update.
-         *            Waits for user input to determine when software has finished updating. //TODO: Update this function to wait for SOM's serial port to tell us that the program updated successfully.
-         *  
-         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
-         *             TestData test             - Variable that contains all of the necessary test data.
-         *  
-         *  Returns: bool success - returns true if the software updates successfully
-         *                          returns false if the software does not update successfully
-         * 
-         ******************************************************************************************************************************/
-        private bool test_suction(IProgress<string> message, TestData test)
-        {
-            bool success = false;
-            return success;
-        }
+
         /******************************************************************************************************************************
          *  test_low_fan_volt
          *  
-         *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
-         *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
-         *            to initiate the software update.
-         *            Waits for user input to determine when software has finished updating. //TODO: Update this function to wait for SOM's serial port to tell us that the program updated successfully.
+         *  Function: Measures the fan driver voltage for low speed and reports the value.
          *  
          *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
          *             TestData test             - Variable that contains all of the necessary test data.
          *  
-         *  Returns: bool success - returns true if the software updates successfully
-         *                          returns false if the software does not update successfully
+         *  Returns: bool success
          * 
          ******************************************************************************************************************************/
-        private bool test_low_fan_volt(IProgress<string> message, TestData test)
+        private bool test_low_fan_volt(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             string str_value;
             bool value_available;
             bool success = false;
+            errorCode = -1;
             float upper = 0;
             float lower = 0;
 
@@ -2014,24 +2223,33 @@ namespace ControlBoardTest
             }
 
             //Connect the desired voltage node to the DMM
-            this.GPIO.setPort(GPIO_Defs.MEAS_O2_SV2N_EN.port, GPIO_Defs.MEAS_O2_SV2N_EN.val);
-            Thread.Sleep(VOLTAGE_DELAY);
+            this.GPIO.SetBit(GPIO_Defs.VFAN_MEAS_EN.port, GPIO_Defs.VFAN_MEAS_EN.pin);
+            Thread.Sleep(DMM_DELAY);
 
             //Measure the voltage
             float measured = this.DMM.Get_Volts();
-            test.parameters.Add("measured", measured.ToString());
+            this.GPIO.ClearBit(GPIO_Defs.VFAN_MEAS_EN.port, GPIO_Defs.VFAN_MEAS_EN.pin);
+            string val;
+            if (!test.parameters.TryGetValue("measured", out val))
+            {
+                test.parameters["measured"] = measured.ToString();
+            }
+            else
+            {
+                test.parameters.Add("measured", measured.ToString());
+            }
             try
             {
-                message.Report(ui_msg + "Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report(ui_msg + "Test PASS");
+                    message.Report("Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report(ui_msg + "Test FAIL");
+                    message.Report("Test FAIL");
                     success = false;
                 }
             }
@@ -2055,11 +2273,12 @@ namespace ControlBoardTest
          *                          returns false if the frequency is outside the specified range
          * 
          ******************************************************************************************************************************/
-        private bool test_low_fan_freq(IProgress<string> message, TestData test)
+        private bool test_low_fan_freq(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             string str_value;
             bool value_available;
             bool success = false;
+            errorCode = -1;
             float upper = 0;
             float lower = 0;
 
@@ -2077,24 +2296,33 @@ namespace ControlBoardTest
             }
 
             //Connect the desired voltage node to the DMM
-            this.GPIO.setPort(GPIO_Defs.MEAS_O2_SV2N_EN.port, GPIO_Defs.MEAS_O2_SV2N_EN.val);
-            Thread.Sleep(VOLTAGE_DELAY);
+            this.GPIO.SetBit(GPIO_Defs.FAN_FREQ_MEAS_EN.port, GPIO_Defs.FAN_FREQ_MEAS_EN.pin);
+            Thread.Sleep(DMM_DELAY);
 
             //Measure the voltage
             float measured = this.DMM.Get_Freq();
-            test.parameters.Add("measured", measured.ToString());
+            this.GPIO.ClearBit(GPIO_Defs.FAN_FREQ_MEAS_EN.port, GPIO_Defs.FAN_FREQ_MEAS_EN.pin);
+            string val;
+            if (!test.parameters.TryGetValue("measured", out val))
+            {
+                test.parameters["measured"] = measured.ToString();
+            }
+            else
+            {
+                test.parameters.Add("measured", measured.ToString());
+            }
             try
             {
-                message.Report(ui_msg + "Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " Hz\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report(ui_msg + "Test PASS");
+                    message.Report("Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report(ui_msg + "Test FAIL");
+                    message.Report("Test FAIL");
                     success = false;
                 }
             }
@@ -2110,7 +2338,7 @@ namespace ControlBoardTest
             return success;
         }
         /******************************************************************************************************************************
-         *  test_software_install
+         *  test_high_fan_volt
          *  
          *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
          *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
@@ -2124,15 +2352,39 @@ namespace ControlBoardTest
          *                          returns false if the software does not update successfully
          * 
          ******************************************************************************************************************************/
-        private bool test_high_fan_volt(IProgress<string> message, TestData test)
+        private bool test_high_fan_volt(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             string str_value;
             bool value_available;
             bool success = false;
+            errorCode = -1;
             float upper = 0;
             float lower = 0;
 
-            
+            //Determine if the nebulizer needs to be running.
+            string returnVal = this.Vent.CMD_Write("get vcm monitors");
+            if(returnVal.Contains("nebulizerActive: 0"))
+            {
+               //Prompt user to begin nebulizer therapy.
+                message.Report("Please start Nebulizer therapy by pressing \"Start\"");
+                this.Vent.CMD_Write("set uim screen 5039");  //Nebulizer start screenID = 5039
+                this.Vent.CMD_Write("restart");
+
+                int i = 0;
+                do
+                {
+                    Thread.Sleep(1000);
+                    i++;
+                    returnVal = this.Vent.CMD_Write("get vcm monitors");
+                }
+                while (returnVal.Contains("nebulizerActive: 0") && (i < 15));
+                if (i >= 15)
+                {
+                    message.Report("Test timed out");
+                    return false;
+                }
+            }
+
             //Get parameters from test data object
             value_available = test.parameters.TryGetValue("upper", out str_value);
             if (value_available)
@@ -2146,24 +2398,33 @@ namespace ControlBoardTest
             }
 
             //Connect the desired voltage node to the DMM
-            this.GPIO.setPort(GPIO_Defs.MEAS_O2_SV2N_EN.port, GPIO_Defs.MEAS_O2_SV2N_EN.val);
-            Thread.Sleep(VOLTAGE_DELAY);
+            this.GPIO.SetBit(GPIO_Defs.VFAN_MEAS_EN.port, GPIO_Defs.VFAN_MEAS_EN.pin);
+            Thread.Sleep(DMM_DELAY);
 
             //Measure the voltage
             float measured = this.DMM.Get_Volts();
-            test.parameters.Add("measured", measured.ToString());
+            this.GPIO.ClearBit(GPIO_Defs.VFAN_MEAS_EN.port, GPIO_Defs.VFAN_MEAS_EN.pin);
+            string val;
+            if (!test.parameters.TryGetValue("measured", out val))
+            {
+                test.parameters["measured"] = measured.ToString();
+            }
+            else
+            {
+                test.parameters.Add("measured", measured.ToString());
+            }
             try
             {
-                message.Report(ui_msg + "Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report(ui_msg + "Test PASS");
+                    message.Report("Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report(ui_msg + "Test FAIL");
+                    message.Report("Test FAIL");
                     success = false;
                 }
             }
@@ -2192,13 +2453,41 @@ namespace ControlBoardTest
          *                          returns false if the software does not update successfully
          * 
          ******************************************************************************************************************************/
-        private bool test_high_fan_freq(IProgress<string> message, TestData test)
+        private bool test_high_fan_freq(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             string str_value;
             bool value_available;
             bool success = false;
+            errorCode = -1;
             float upper = 0;
             float lower = 0;
+
+            //Determine if the nebulizer needs to be running.
+            string returnVal = this.Vent.CMD_Write("get vcm monitors");
+            if (returnVal.Contains("nebulizerActive: 0"))
+            {
+                //Prompt user to begin nebulizer therapy.
+                message.Report("Please start Nebulizer therapy by pressing \"Start\"");
+                this.Vent.CMD_Write("set uim screen 5039");  //Nebulizer start screenID = 5039
+                this.Vent.CMD_Write("restart");
+
+                int i = 0;
+                do
+                {
+                    Thread.Sleep(1000);
+                    i++;
+                    returnVal = this.Vent.CMD_Write("get vcm monitors");
+                    this.Vent.CMD_Write("set uim screen 5039");  //Nebulizer start screenID = 5039
+                }
+                while (returnVal.Contains("nebulizerActive: 0") && (i < 15));
+                if (i >= 15)
+                {
+                    message.Report("Test timed out");
+                    return false;
+                }
+
+                this.Vent.CMD_Write("mfgmode");
+            }
 
             //Get parameters from test data object
             value_available = test.parameters.TryGetValue("upper", out str_value);
@@ -2213,24 +2502,33 @@ namespace ControlBoardTest
             }
 
             //Connect the desired voltage node to the DMM
-            this.GPIO.setPort(GPIO_Defs.MEAS_O2_SV2N_EN.port, GPIO_Defs.MEAS_O2_SV2N_EN.val);
-            Thread.Sleep(VOLTAGE_DELAY);
+            this.GPIO.SetBit(GPIO_Defs.FAN_FREQ_MEAS_EN.port, GPIO_Defs.FAN_FREQ_MEAS_EN.pin);
+            Thread.Sleep(DMM_DELAY);
 
             //Measure the voltage
             float measured = this.DMM.Get_Freq();
-            test.parameters.Add("measured", measured.ToString());
+            this.GPIO.ClearBit(GPIO_Defs.FAN_FREQ_MEAS_EN.port, GPIO_Defs.FAN_FREQ_MEAS_EN.pin);
+            string val;
+            if (!test.parameters.TryGetValue("measured", out val))
+            {
+                test.parameters["measured"] = measured.ToString();
+            }
+            else
+            {
+                test.parameters.Add("measured", measured.ToString());
+            }
             try
             {
-                message.Report(ui_msg + "Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " Hz\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report(ui_msg + "Test PASS");
+                    message.Report("Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report(ui_msg + "Test FAIL");
+                    message.Report("Test FAIL");
                     success = false;
                 }
             }
@@ -2268,12 +2566,43 @@ namespace ControlBoardTest
          *                                
          * 
          ******************************************************************************************************************************/
-        private bool test_buttons(IProgress<string> message, TestData test)
+        private bool test_buttons(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             bool success = false;
+            errorCode = -1;
+            string[] output;
+            int initialState=0;
+            string port_str;
+            DigitalPortType port;
+            string pin_str;
+            DigitalPortType pin;
 
-            //TODO: Send tlm command for 'get vcm buttons'
-            //Parse data to get AS state and PB state
+            var available = test.parameters.TryGetValue("port", out port_str); 
+            available = test.parameters.TryGetValue("pin", out pin_str);
+
+            //Get Initial State
+            output = this.Vent.CMD_Write("get vcm buttons").Split('\n');
+
+            for(int i = 1; i < 3; i++)
+            {
+                string[] arr;
+                arr = output[i].Split(',');
+                initialState |= int.Parse(arr[3]) << (i-1); //Only care about whether the button is pressed, index 3
+            }
+
+            if (initialState != 0)
+            {
+                success = false;
+                message.Report("Buttons are not in the correct position\n\rTest failed.");
+            }
+            else
+            {
+                
+            }
+
+            
+
+            
 
             //Build binary num representing measured data.
 
@@ -2288,13 +2617,122 @@ namespace ControlBoardTest
          *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
          *             TestData test             - Variable that contains all of the necessary test data.
          *  
+         *  Returns: bool success - returns true barometer responds with pressure within the range 
+         *                          returns false if the software does not update successfully
+         * 
+         ******************************************************************************************************************************/
+        private bool test_barometer(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
+        {
+            bool success = false;
+            errorCode = -1;
+            string val;
+            int upper;
+            int lower;
+
+            if (this.Vent.Connected)
+            {
+                //Get limits
+                test.parameters.TryGetValue("upper", out val);
+                upper = int.Parse(val);
+                test.parameters.TryGetValue("lower", out val);
+                lower = int.Parse(val);
+
+
+                //Set telemetry channels
+                int channelNum = 85; //TODO: Add ability to search for channel number using channels names from Vent object
+
+                this.Vent.CMD_Write("set vcm telemetry " + channelNum + " 0 0 0");
+
+                var output = this.Vent.CMD_Write("get vcm telemetry");
+
+                string press = output.Substring(53, 8);
+                var pressure = float.Parse(press) * 0.000980665;
+                
+                if (!test.parameters.TryGetValue("measured", out val))
+                {
+                    test.parameters["measured"] = pressure.ToString();
+                }
+                else
+                {
+                    test.parameters.Add("measured", pressure.ToString());
+                }
+
+                if ((pressure < upper) && (pressure > lower))
+                {
+                    success = true;
+
+                }
+                else
+                {
+                    success = false;
+                }
+
+                message.Report("Barometer test: " + success.ToString());
+            }
+            return success;
+        }
+    
+        /******************************************************************************************************************************
+         *  test_software_install
+         *  
+         *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
+         *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
+         *            to initiate the software update.
+         *            Waits for user input to determine when software has finished updating. //TODO: Update this function to wait for SOM's serial port to tell us that the program updated successfully.
+         *  
+         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+         *             TestData test             - Variable that contains all of the necessary test data.
+         *  
          *  Returns: bool success - returns true if the software updates successfully
          *                          returns false if the software does not update successfully
          * 
          ******************************************************************************************************************************/
-        private bool test_ambient_pressure(IProgress<string> message, TestData test)
+        private bool test_ambient_temperature(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             bool success = false;
+            errorCode = -1; //Unused, should remove
+            string val;
+            int upper;
+            int lower;
+            
+
+            if (this.Vent.Connected)
+            {
+                //Get limits
+                test.parameters.TryGetValue("upper", out val);
+                upper = int.Parse(val);
+                test.parameters.TryGetValue("lower", out val);
+                lower = int.Parse(val);
+
+
+                //Set telemetry channels
+                int channelNum = 86; //TODO: Add ability to search for channel number using channels names from Vent object
+
+                this.Vent.CMD_Write("set vcm telemetry " + channelNum + " 0 0 0");
+
+                var output = this.Vent.CMD_Write("get vcm telemetry");
+                var temp = int.Parse(output.Substring(53, 8)) / 100;
+                
+                if (!test.parameters.TryGetValue("measured", out val))
+                {
+                    test.parameters["measured"] = temp.ToString();
+                }
+                else
+                {
+                    test.parameters.Add("measured", temp.ToString());
+                }
+
+                if ((temp < upper) && (temp > lower))
+                {
+                    success = true;
+                }
+                else
+                {
+                    success = false;
+                }
+
+                message.Report("Barometer test: " + success.ToString());
+            }
             return success;
         }
         /******************************************************************************************************************************
@@ -2312,9 +2750,52 @@ namespace ControlBoardTest
          *                          returns false if the software does not update successfully
          * 
          ******************************************************************************************************************************/
-        private bool test_ambient_temperature(IProgress<string> message, TestData test)
+        private bool test_microphone(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             bool success = false;
+            errorCode = -1;
+
+
+            /*TODO: 
+             * - Turn on speaker. Sound an alarm.
+             * - Move USB drive to UUT, copy OUT1.wav and OUT2.wav to USB drive.
+             * - Move USB drive to PC.
+             * - Open OUT1.wav or OUT2.wav and perform an amplitude check on the file. Confirm
+             */
+
+            return success;
+        }
+        /******************************************************************************************************************************
+         *  test_speaker
+         *  
+         *  Function: Connects the speaker to the UUT.  
+         *  
+         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+         *             TestData test             - Variable that contains all of the necessary test data.
+         *  
+         *  Returns: bool success - returns true if the software updates successfully
+         *                          returns false if the software does not update successfully
+         * 
+         ******************************************************************************************************************************/
+        private bool test_speaker(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
+        {
+            bool success = false;
+            errorCode = -1;
+
+            //Enable the speaker
+            this.GPIO.SetBit(GPIO_Defs.SPKR_EN.port, GPIO_Defs.SPKR_EN.pin);
+
+            //Restart the VCM app.
+            this.Vent.CMD_Write("restart");
+
+            //Prompt user for feedback on speaker sound.
+            success = this.PromptUser_YesNo("Wait until the device alarms\nDoes the speaker sound?", test.name);
+
+            //Put device back into MFGmode
+            this.Vent.CMD_Write("mfgmode");
+
+            this.GPIO.ClearBit(GPIO_Defs.SPKR_EN.port, GPIO_Defs.SPKR_EN.pin);
+
             return success;
         }
         /******************************************************************************************************************************
@@ -2332,251 +2813,38 @@ namespace ControlBoardTest
          *                          returns false if the software does not update successfully
          * 
          ******************************************************************************************************************************/
-        private bool test_microphone(IProgress<string> message, TestData test)
+        private bool test_piezo(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             bool success = false;
+            errorCode = -1;
+
+            if (this.GPIO.Connected)
+            {
+                //Connect piezo alarm
+                this.GPIO.SetBit(GPIO_Defs.PIEZO_EN.port, GPIO_Defs.PIEZO_EN.pin);
+
+                //Prompt user to hear piezo.
+
+                if(this.PromptUser_YesNo("Does the piezo alarm?", test.name))
+                {
+                    success = true;
+                    test.result = "PASS";
+                }
+                else
+                {
+                    success = false;
+                    test.result = "FAIL";
+                }
+
+
+                this.GPIO.ClearBit(GPIO_Defs.PIEZO_EN.port, GPIO_Defs.PIEZO_EN.pin);
+            }
+
             return success;
         }
-        /******************************************************************************************************************************
-         *  test_software_install
-         *  
-         *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
-         *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
-         *            to initiate the software update.
-         *            Waits for user input to determine when software has finished updating. //TODO: Update this function to wait for SOM's serial port to tell us that the program updated successfully.
-         *  
-         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
-         *             TestData test             - Variable that contains all of the necessary test data.
-         *  
-         *  Returns: bool success - returns true if the software updates successfully
-         *                          returns false if the software does not update successfully
-         * 
-         ******************************************************************************************************************************/
-        private bool test_speaker(IProgress<string> message, TestData test)
-        {
-            bool success = false;
-            return success;
-        }
-        /******************************************************************************************************************************
-         *  test_software_install
-         *  
-         *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
-         *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
-         *            to initiate the software update.
-         *            Waits for user input to determine when software has finished updating. //TODO: Update this function to wait for SOM's serial port to tell us that the program updated successfully.
-         *  
-         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
-         *             TestData test             - Variable that contains all of the necessary test data.
-         *  
-         *  Returns: bool success - returns true if the software updates successfully
-         *                          returns false if the software does not update successfully
-         * 
-         ******************************************************************************************************************************/
-        private bool test_piezo(IProgress<string> message, TestData test)
-        {
-            bool success = false;
-            return success;
-        }
-        /******************************************************************************************************************************
-         *  test_software_install
-         *  
-         *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
-         *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
-         *            to initiate the software update.
-         *            Waits for user input to determine when software has finished updating. //TODO: Update this function to wait for SOM's serial port to tell us that the program updated successfully.
-         *  
-         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
-         *             TestData test             - Variable that contains all of the necessary test data.
-         *  
-         *  Returns: bool success - returns true if the software updates successfully
-         *                          returns false if the software does not update successfully
-         * 
-         ******************************************************************************************************************************/
-        private bool test_external_ac(IProgress<string> message, TestData test)
-        {
-            bool success = false;
-            return success;
-        }
-        /******************************************************************************************************************************
-         *  test_software_install
-         *  
-         *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
-         *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
-         *            to initiate the software update.
-         *            Waits for user input to determine when software has finished updating. //TODO: Update this function to wait for SOM's serial port to tell us that the program updated successfully.
-         *  
-         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
-         *             TestData test             - Variable that contains all of the necessary test data.
-         *  
-         *  Returns: bool success - returns true if the software updates successfully
-         *                          returns false if the software does not update successfully
-         * 
-         ******************************************************************************************************************************/
-        private bool test_internal_battery(IProgress<string> message, TestData test)
-        {
-            bool success = false;
-            return success;
-        }
-        /******************************************************************************************************************************
-         *  test_software_install
-         *  
-         *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
-         *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
-         *            to initiate the software update.
-         *            Waits for user input to determine when software has finished updating. //TODO: Update this function to wait for SOM's serial port to tell us that the program updated successfully.
-         *  
-         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
-         *             TestData test             - Variable that contains all of the necessary test data.
-         *  
-         *  Returns: bool success - returns true if the software updates successfully
-         *                          returns false if the software does not update successfully
-         * 
-         ******************************************************************************************************************************/
-        private bool test_external_battery_1(IProgress<string> message, TestData test)
-        {
-            bool success = false;
-            return success;
-        }
-        /******************************************************************************************************************************
-         *  test_software_install
-         *  
-         *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
-         *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
-         *            to initiate the software update.
-         *            Waits for user input to determine when software has finished updating. //TODO: Update this function to wait for SOM's serial port to tell us that the program updated successfully.
-         *  
-         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
-         *             TestData test             - Variable that contains all of the necessary test data.
-         *  
-         *  Returns: bool success - returns true if the software updates successfully
-         *                          returns false if the software does not update successfully
-         * 
-         ******************************************************************************************************************************/
-        private bool test_external_battery_2(IProgress<string> message, TestData test)
-        {
-            bool success = false;
-            return success;
-        }
-        /******************************************************************************************************************************
-         *  test_software_install
-         *  
-         *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
-         *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
-         *            to initiate the software update.
-         *            Waits for user input to determine when software has finished updating. //TODO: Update this function to wait for SOM's serial port to tell us that the program updated successfully.
-         *  
-         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
-         *             TestData test             - Variable that contains all of the necessary test data.
-         *  
-         *  Returns: bool success - returns true if the software updates successfully
-         *                          returns false if the software does not update successfully
-         * 
-         ******************************************************************************************************************************/
-        private bool test_internal_chg_cc(IProgress<string> message, TestData test)
-        {
-            bool success = false;
-            return success;
-        }
-        /******************************************************************************************************************************
-         *  test_software_install
-         *  
-         *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
-         *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
-         *            to initiate the software update.
-         *            Waits for user input to determine when software has finished updating. //TODO: Update this function to wait for SOM's serial port to tell us that the program updated successfully.
-         *  
-         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
-         *             TestData test             - Variable that contains all of the necessary test data.
-         *  
-         *  Returns: bool success - returns true if the software updates successfully
-         *                          returns false if the software does not update successfully
-         * 
-         ******************************************************************************************************************************/
-        private bool test_internal_chg_cv(IProgress<string> message, TestData test)
-        {
-            bool success = false;
-            return success;
-        }
-        /******************************************************************************************************************************
-         *  test_software_install
-         *  
-         *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
-         *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
-         *            to initiate the software update.
-         *            Waits for user input to determine when software has finished updating. //TODO: Update this function to wait for SOM's serial port to tell us that the program updated successfully.
-         *  
-         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
-         *             TestData test             - Variable that contains all of the necessary test data.
-         *  
-         *  Returns: bool success - returns true if the software updates successfully
-         *                          returns false if the software does not update successfully
-         * 
-         ******************************************************************************************************************************/
-        private bool test_external1_chg_cc(IProgress<string> message, TestData test)
-        {
-            bool success = false;
-            return success;
-        }
-        /******************************************************************************************************************************
-         *  test_software_install
-         *  
-         *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
-         *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
-         *            to initiate the software update.
-         *            Waits for user input to determine when software has finished updating. //TODO: Update this function to wait for SOM's serial port to tell us that the program updated successfully.
-         *  
-         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
-         *             TestData test             - Variable that contains all of the necessary test data.
-         *  
-         *  Returns: bool success - returns true if the software updates successfully
-         *                          returns false if the software does not update successfully
-         * 
-         ******************************************************************************************************************************/
-        private bool test_external1_chg_cv(IProgress<string> message, TestData test)
-        {
-            bool success = false;
-            return success;
-        }
-        /******************************************************************************************************************************
-         *  test_software_install
-         *  
-         *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
-         *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
-         *            to initiate the software update.
-         *            Waits for user input to determine when software has finished updating. //TODO: Update this function to wait for SOM's serial port to tell us that the program updated successfully.
-         *  
-         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
-         *             TestData test             - Variable that contains all of the necessary test data.
-         *  
-         *  Returns: bool success - returns true if the software updates successfully
-         *                          returns false if the software does not update successfully
-         * 
-         ******************************************************************************************************************************/
-        private bool test_external2_chg_cc(IProgress<string> message, TestData test)
-        {
-            bool success = false;
-            return success;
-        }
-        /******************************************************************************************************************************
-         *  test_software_install
-         *  
-         *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
-         *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
-         *            to initiate the software update.
-         *            Waits for user input to determine when software has finished updating. //TODO: Update this function to wait for SOM's serial port to tell us that the program updated successfully.
-         *  
-         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
-         *             TestData test             - Variable that contains all of the necessary test data.
-         *  
-         *  Returns: bool success - returns true if the software updates successfully
-         *                          returns false if the software does not update successfully
-         * 
-         ******************************************************************************************************************************/
-        private bool test_external2_chg_cv(IProgress<string> message, TestData test)
-        {
-            bool success = false;
-            return success;
-        }
+
+        
+        
         /******************************************************************************************************************************
          *  test_xflow_sv1
          *  
@@ -2589,34 +2857,57 @@ namespace ControlBoardTest
          *                          returns false if the software does not update successfully
          * 
          ******************************************************************************************************************************/
-        private bool test_xflow_sv1 (IProgress<string> message, TestData test)
+        private bool test_xflow_sv1 (IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             bool success = false;
+            errorCode = -1;
             bool available;
             int toggle;
             string str_toggle;
-            try
-            {
-                available = test.parameters.TryGetValue("toggle", out str_toggle);
-                toggle = int.Parse(str_toggle, System.Globalization.NumberStyles.Integer);
-                   
+            int measured = 0;
 
-                for(int i = 0; i < toggle; i++)
+            available = test.parameters.TryGetValue("toggle", out str_toggle);
+            toggle = int.Parse(str_toggle, System.Globalization.NumberStyles.Integer);
+
+            int bit;
+            bit = this.GPIO.GetBit(GPIO_Defs.XFLOW_SV1_2.port, GPIO_Defs.XFLOW_SV1_2.pin);
+            if (bit == 0)
+            {
+                for (int i = 0; i < toggle; i++)
                 {
                     this.Vent.CMD_Write("set vcm sv 1 1");
                     Thread.Sleep(100);
-                    this.Vent.CMD_Write("set vcm sv 1 0");
-                    Thread.Sleep(100);
+                    //Query GPIO to read digital input
+                    bit = this.GPIO.GetBit(GPIO_Defs.XFLOW_SV1_2.port, GPIO_Defs.XFLOW_SV1_2.pin);
+                    if (bit == 1)
+                    {
+                        this.Vent.CMD_Write("set vcm sv 1 0");
+                        Thread.Sleep(100);
+                        bit = this.GPIO.GetBit(GPIO_Defs.XFLOW_SV1_2.port, GPIO_Defs.XFLOW_SV1_2.pin);
+                        if (bit == 0)
+                        {
+                            measured++;
+                        }
+                    }
+                    else
+                    {
+
+                        this.Vent.CMD_Write("set vcm sv 1 0");
+                        break;
+                    }
+
                 }
-                int toggled = toggle;
-                test.parameters.Add("measured", toggled.ToString());
-
             }
-            catch
+            if (measured == toggle) success = true;
+            string val;
+            if (!test.parameters.TryGetValue("measured", out val))
             {
-
+                test.parameters["measured"] = measured.ToString();
             }
-
+            else
+            {
+                test.parameters.Add("measured", measured.ToString());
+            }
 
             return success;
         }
@@ -2632,9 +2923,10 @@ namespace ControlBoardTest
          *                          returns false if the software does not update successfully
          * 
          ******************************************************************************************************************************/
-        private bool test_xflow_sv2(IProgress<string> message, TestData test)
+        private bool test_xflow_sv2(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             bool success = false;
+            errorCode = -1;
             bool available;
             int toggle;
             string str_toggle;
@@ -2652,7 +2944,15 @@ namespace ControlBoardTest
                     Thread.Sleep(100);
                 }
                 int toggled = toggle;
-                test.parameters.Add("measured", toggled.ToString());
+                string val;
+                if (!test.parameters.TryGetValue("measured", out val))
+                {
+                    test.parameters["measured"] = toggled.ToString();
+                }
+                else
+                {
+                    test.parameters.Add("measured", toggled.ToString());
+                }
 
             }
             catch
@@ -2675,9 +2975,10 @@ namespace ControlBoardTest
          *                          returns false if the software does not update successfully
          * 
          ******************************************************************************************************************************/
-        private bool test_xflow_sv3(IProgress<string> message, TestData test)
+        private bool test_xflow_sv3(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             bool success = false;
+            errorCode = -1;
             bool available;
             int toggle;
             string str_toggle;
@@ -2718,9 +3019,10 @@ namespace ControlBoardTest
          *                          returns false if the software does not update successfully
          * 
          ******************************************************************************************************************************/
-        private bool test_xflow_sv4(IProgress<string> message, TestData test)
+        private bool test_xflow_sv4(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             bool success = false;
+            errorCode = -1;
             bool available;
             int toggle;
             string str_toggle;
@@ -2761,9 +3063,10 @@ namespace ControlBoardTest
          *                          returns false if the software does not update successfully
          * 
          ******************************************************************************************************************************/
-        private bool test_exhl_sv6(IProgress<string> message, TestData test)
+        private bool test_exhl_sv6(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             bool success = false;
+            errorCode = -1;
             bool available;
             int toggle;
             string str_toggle;
@@ -2804,9 +3107,10 @@ namespace ControlBoardTest
          *                          returns false if the software does not update successfully
          * 
          ******************************************************************************************************************************/
-        private bool test_exhl_sv7(IProgress<string> message, TestData test)
+        private bool test_exhl_sv7(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             bool success = false;
+            errorCode = -1;
             bool available;
             int toggle;
             string str_toggle;
@@ -2847,9 +3151,10 @@ namespace ControlBoardTest
          *                          returns false if the software does not update successfully
          * 
          ******************************************************************************************************************************/
-        private bool test_exhl_sv8(IProgress<string> message, TestData test)
+        private bool test_exhl_sv8(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             bool success = false;
+            errorCode = -1;
             bool available;
             int toggle;
             string str_toggle;
@@ -2875,13 +3180,15 @@ namespace ControlBoardTest
 
             }
 
+            //TODO: Add command to read from board that is measuring the toggles.
+
 
             return success;
         }
         /******************************************************************************************************************************
          *  test_xflow_sv2
          *  
-         *  Function: Commands UUT to toggle the Solenoid valve x number of times
+         *  Function: Commands UUT to toggle the Solenoid valve x number of times, reads the signal at the GPIO module
          *  
          *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
          *             TestData test             - Variable that contains all of the necessary test data.
@@ -2890,9 +3197,10 @@ namespace ControlBoardTest
          *                          returns false if the software does not update successfully
          * 
          ******************************************************************************************************************************/
-        private bool test_flow_sv9(IProgress<string> message, TestData test)
+        private bool test_flow_sv9(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
         {
             bool success = false;
+            errorCode = -1;
             bool available;
             int toggle;
             string str_toggle;
@@ -2921,9 +3229,431 @@ namespace ControlBoardTest
 
             return success;
         }
+        /******************************************************************************************************************************
+         *  test_as_led
+         *  
+         *  Function: Turns on the alarm silence
+         *  
+         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+         *             TestData test             - Variable that contains all of the necessary test data.
+         *             
+         *             parameters: fs - sample rate in hz
+         *                         time - length of time needed to sample in seconds
+
+         *  Returns: bool success - returns true if alarm silence led lights up
+         *                          returns false if alarm silence led does not light up
+         *  Exceptions: - The calling function is expected to catch any exceptions thrown in this function.
+         *                  - Parameters does not contain Key
+         *                  
+         * 
+         ******************************************************************************************************************************/
+        private bool test_as_led(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
+        {
+            bool success = false;
+            errorCode = -1;
+
+
+            if(this.powered && this.GPIO.Connected)
+            {
+
+                //Measure CN309m.21 --> Alarm Silence LED Cathode --> Should be HIGH
+                var startVal = this.GPIO.GetBit(GPIO_Defs.MEAS_AS_LED.port, GPIO_Defs.MEAS_AS_LED.pin);
+
+                if (startVal == 1)
+                {   
+                    //LED is currently off --> We may continue with test
+
+                    //Toggle Alarm Silence Button
+                    this.GPIO.SetBit(GPIO_Defs.AS_BTN_ON.port, GPIO_Defs.AS_BTN_ON.pin);
+                    Thread.Sleep(500);
+                    this.GPIO.ClearBit(GPIO_Defs.AS_BTN_ON.port, GPIO_Defs.AS_BTN_ON.pin);
+
+                    //Alarm Silence LED toggles at 2Hz --> Will sample to get a reasonable capture of the value
+                    var fs = int.Parse(test.parameters["fs"]);
+                    var time = int.Parse(test.parameters["time"]);
+
+
+                    int[] ledFlash = new int[fs * time]; // List to hold all of
+                    for(int i = 0; i < (fs*time); i++)
+                    {
+                        ledFlash[i] = this.GPIO.GetBit(GPIO_Defs.MEAS_AS_LED.port, GPIO_Defs.MEAS_AS_LED.pin);
+                        if (ledFlash[i] == 1) message.Report("LED is OFF");
+                        else if (ledFlash[i] == 0) message.Report("LED is ON");
+                        else message.Report("Something is wrong with GPIO.GetBit()");
+                        
+                        Thread.Sleep(1000 / fs);
+                    }
+
+                    if (ledFlash.Contains(0))
+                    {
+                        //Get average
+                        var average = ledFlash.Average();
+                        //if (average >= lower && average <= upper) ;
+                        message.Report("Average = " + average);
+                        success = true;
+                        
+                    }
+                    else
+                    {
+                        success = false;
+                    }
+                }
+                else
+                {
+                    success = false;
+                }
+                //Fill in measurement parameter
+                if (success)
+                {
+                    message.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                }
+                else
+                {
+                    message.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = "FAIL";
+                }
+            }
+            else
+            {
+                if (!this.powered)
+                {
+                    message.Report("UUT is not powered");
+                    test.parameters["measured"] = "Device not powered";
+                }
+                
+                if (!this.GPIO.Connected)
+                {
+                    message.Report("GPIO Module is not connected");
+                    test.parameters["measured"] = "GPIO module disconnected";
+                }
+            }
+
+            
+            return success;
+        }
+
+        /******************************************************************************************************************************
+         *  test_batt_comms
+         *  
+         *  Function: Queries the device for the current battery communications lines
+         *  
+         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+         *             TestData test             - Variable that contains all of the necessary test data.
+         *             
+         *             
+
+         *  Returns: bool success - returns true if alarm silence led lights up
+         *                          returns false if alarm silence led does not light up
+         *  Exceptions: - The calling function is expected to catch any exceptions thrown in this function.
+         *                  - Parameters does not contain Key
+         *                  
+         * 
+         ******************************************************************************************************************************/
+        private bool test_batt_comms(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
+        {
+            bool success = false;
+            errorCode = -1;
+            int measured = 0;
+            int retry = 0;
+            string powerOutput = "";
+
+            if (this.powered && this.Vent.Connected && this.GPIO.Connected)
+            {
+                //Command UUT with "get vcm power"
+                do
+                {
+                    
+                    powerOutput = this.Vent.CMD_Write("get vcm power").Replace("\r\n", "\r");
+                    retry++;
+                } while ((powerOutput == "") || (retry > 3));
 
 
 
+                if (!(retry > 3)) // Tried too many times
+                {
+                    var powerArray = powerOutput.Split('\r');
+
+
+                    var BAT0_Data = powerArray[8].Trim().Substring(7).Split(',');
+                    var BAT1_Data = powerArray[6].Trim().Substring(8).Split(',');
+                    var BAT2_Data = powerArray[7].Trim().Substring(8).Split(',');
+
+                    //Get the ASOC and RSOC Values from the power array
+                    if (int.Parse(BAT0_Data[3]) != 0)
+                    {
+                        measured = measured | (1 << 0);
+                        if (int.Parse(BAT1_Data[3]) != 0)
+                        {
+                            measured = measured | (1 << 1);
+                            if (int.Parse(BAT2_Data[3]) != 0)
+                            {
+                                measured = measured | (1 << 2);
+                                success = true;
+                            }
+
+                        }
+                    }
+
+                }
+                else
+                {
+                    measured = -1; //Timeout / tried to talk over telnet too many times
+                }
+
+                //Fill in measurement parameter
+                if (success)
+                {
+                    message.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                }
+                else
+                {
+                    message.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = measured.ToString();
+                }
+            }
+            else
+            {
+                if (!this.powered)
+                {
+                    message.Report("UUT is not powered");
+                }
+                if (!this.Vent.Connected)
+                {
+                    message.Report("UUT is not connected to Telnet");
+                }
+                if (!this.GPIO.Connected)
+                {
+                    message.Report("GPIO Module is not connected");
+                }
+            }
+
+
+            
+            return success;
+        }
+
+        /******************************************************************************************************************************
+         *  test_batt_comms
+         *  
+         *  Function: Queries the device for the current battery communications lines
+         *  
+         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+         *             TestData test             - Variable that contains all of the necessary test data.
+         *             
+         *             
+
+         *  Returns: bool success - returns true if alarm silence led lights up
+         *                          returns false if alarm silence led does not light up
+         *  Exceptions: - The calling function is expected to catch any exceptions thrown in this function.
+         *                  - Parameters does not contain Key
+         *                  
+         * 
+         ******************************************************************************************************************************/
+        private bool test_batt_temp(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
+        {
+            bool success = false;
+            errorCode = -1;
+            int measured = 0;
+            int retry = 0;
+            string powerOutput = "";
+
+
+            int kIndex = int.Parse(test.parameters["index"]);
+            int upper = int.Parse(test.parameters["upper"]);
+            int lower = int.Parse(test.parameters["lower"]);
+
+            if (this.powered && this.Vent.Connected && this.GPIO.Connected)
+            {
+                //Command UUT with "get vcm power"
+                do
+                {
+
+                    powerOutput = this.Vent.CMD_Write("get vcm power").Replace("\r\n", "\r");
+                    retry++;
+                } while ((powerOutput == "") || (retry > 3));
+
+
+
+                if (!(retry > 3)) // Tried too many times
+                {
+                    var powerArray = powerOutput.Split('\r');
+
+
+                    var BAT0_Data = powerArray[8].Trim().Substring(7).Split(',');
+                    var BAT1_Data = powerArray[6].Trim().Substring(8).Split(',');
+                    var BAT2_Data = powerArray[7].Trim().Substring(8).Split(',');
+
+                    //Get the ASOC or RSOC Values from the power array
+                    if ((int.Parse(BAT0_Data[kIndex]) > lower) && (int.Parse(BAT0_Data[kIndex]) < upper))
+                    {
+                        measured = measured | (1 << 0);
+                        if ((int.Parse(BAT1_Data[kIndex]) > lower) && (int.Parse(BAT0_Data[kIndex]) < upper))
+                        {
+                            measured = measured | (1 << 1);
+                            if ((int.Parse(BAT2_Data[kIndex]) > lower) && (int.Parse(BAT0_Data[kIndex]) < upper))
+                            {
+                                measured = measured | (1 << 2);
+                                success = true;
+                            }
+
+                        }
+                    }
+
+                }
+                else
+                {
+                    measured = -1; //Timeout we tried to talk over telnet too many times
+                }
+
+                //Fill in measurement parameter
+                if (success)
+                {
+                    message.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                }
+                else
+                {
+                    message.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = measured.ToString();
+                }
+            }
+            else
+            {
+                if (!this.powered)
+                {
+                    message.Report("UUT is not powered");
+                }
+                if (!this.Vent.Connected)
+                {
+                    message.Report("UUT is not connected to Telnet");
+                }
+                if (!this.GPIO.Connected)
+                {
+                    message.Report("GPIO Module is not connected");
+                }
+            }
+
+
+
+            return success;
+        }
+
+        /******************************************************************************************************************************
+         *  test_batt0_chg
+         *  
+         *  Function: Connects a power supply and a
+         *  
+         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+         *             TestData test             - Variable that contains all of the necessary test data.
+         *             parameters: - resistance - Denotes the sense resistor used to calucalate current from volts
+         *                         - voltage - Denotes the voltag to set the power supply at
+         *                         - current  Denotes the current limit to set the power supply at
+         *                         - upper - Upper limit for passing result
+         *                         - lower - Lower limit for passing result
+         *                         - chg_delay - Delay in milliseconds to wait between connecting load and measuring current through the load
+         *             
+
+         *  Returns: bool success - returns true if alarm silence led lights up
+         *                          returns false if alarm silence led does not light up
+         *  Exceptions: - The calling function is expected to catch any exceptions thrown in this function.
+         *                  - Parameters does not contain Key
+         *                  
+         * 
+         ******************************************************************************************************************************/
+
+            //TODO: Test this before copying to test_batt1_charge and test_batt2_charge
+        private bool test_batt0_charge(IProgress<string> message, IProgress<string> log, TestData test, out int errorCode)
+        {
+            bool success = false;
+            errorCode = -1;
+            float measured = 0;
+
+
+
+            float resistance = float.Parse(test.parameters["resistance"]);
+            double voltage = double.Parse(test.parameters["voltage"]);
+            double current = double.Parse(test.parameters["current"]);
+            int upper = int.Parse(test.parameters["upper"]);
+            int lower = int.Parse(test.parameters["lower"]);
+            int chgDelay = int.Parse(test.parameters["chg_delay"]);
+
+            if (this.powered && this.Vent.Connected && this.GPIO.Connected && this.DMM.Connected && this.PPS.Connected)
+            {
+                //Command GPIO to connect PPS to CN302
+                this.GPIO.SetBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
+
+                //Command GPIO to connect DMM to measure voltage across sense resistor
+                this.GPIO.SetBit(GPIO_Defs.MEAS_BATT_CHG_EN.port, GPIO_Defs.MEAS_BATT_CHG_EN.pin);
+
+                //Command PPS to supply target voltage
+                this.PPS.SetPPSOutput(voltage, current);
+
+                //Connect Load
+                this.GPIO.SetBit(GPIO_Defs.PPS_LOAD_EN.port, GPIO_Defs.PPS_LOAD_EN.pin);
+
+
+
+                //Wait some time until device begins to charge
+                Thread.Sleep(chgDelay);
+
+                measured = this.DMM.Get_Volts() / resistance;
+                
+
+                //Disconenct the power supply, load and DMM
+                
+                this.GPIO.ClearBit(GPIO_Defs.PPS_LOAD_EN.port, GPIO_Defs.PPS_LOAD_EN.pin);
+                this.PPS.SetPPSOff();
+                this.GPIO.ClearBit(GPIO_Defs.MEAS_BATT_CHG_EN.port, GPIO_Defs.MEAS_BATT_CHG_EN.pin);
+                this.GPIO.ClearBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
+
+                if ((measured > lower) && (measured < upper))
+                {
+                    success = true;
+                }
+                    
+
+                //Fill in measurement parameter
+                if (success)
+                {
+                    message.Report(test.name + ": PASS");
+                    test.parameters["measured"] = measured.ToString();
+                }
+                else
+                {
+                    message.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = measured.ToString();
+                }
+            }
+            else
+            {
+                if (!this.powered)
+                {
+                    message.Report("UUT is not powered");
+                }
+                if (!this.Vent.Connected)
+                {
+                    message.Report("UUT is not connected to Telnet");
+                }
+                if (!this.GPIO.Connected)
+                {
+                    message.Report("GPIO Module is not connected");
+                }
+                if (!this.PPS.Connected)
+                {
+                    message.Report("Power supply is not connected");
+                }
+                if (!this.DMM.Connected)
+                {
+                    message.Report("Multimeter is not connected");
+                }
+            }
+
+
+
+            return success;
+        }
 
     }
 }

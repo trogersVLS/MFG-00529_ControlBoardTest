@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using MccDaq;
 using ErrorDefs;
+using System.Windows.Forms;
+
 
 namespace GPIO
 {
@@ -24,46 +26,101 @@ namespace GPIO
         public bool Connected = false;
         public MccDaq_GPIO()
         {
-            InitUL();
+            ConnectDevice();
 
-            //TODO: add error handling for writes to ports when port is disables
-            //dsetPort(DigitalPortType.FirstPortB, 10);
-
-            //short x = getPort(DigitalPortType.FirstPortB);
-        }
-
-        public bool setBit(DigitalPortType port, int bit, DigitalLogicState val)
-        {
-            bool success;
             try
             {
-                this.gpio_board.DBitOut(port, bit, val);
+                this.SetPort_Output(DigitalPortType.FirstPortA);
+                this.SetPort(DigitalPortType.FirstPortA, 0);
+                this.SetPort_Output(DigitalPortType.FirstPortB);
+                this.SetPort(DigitalPortType.FirstPortB, 0);
+                this.SetPort_Output(DigitalPortType.FirstPortCL);
+                this.SetPort(DigitalPortType.FirstPortCL, 0);
+                this.SetPort_Output(DigitalPortType.FirstPortCH);
+                this.SetPort(DigitalPortType.FirstPortCH, 0);
+
+
+                this.SetPort_Output(DigitalPortType.SecondPortA);
+                this.SetPort(DigitalPortType.SecondPortA, 0);
+                this.SetPort_Input(DigitalPortType.SecondPortB);
+                this.SetPort_Output(DigitalPortType.SecondPortCL);
+                this.SetPort(DigitalPortType.SecondPortCL, 0);
+                this.SetPort_Input(DigitalPortType.SecondPortCH);
+
+                this.SetPort_Output(DigitalPortType.ThirdPortA);
+                this.SetPort(DigitalPortType.ThirdPortA, 0);
+                this.SetPort_Output(DigitalPortType.ThirdPortB);
+                this.SetPort(DigitalPortType.ThirdPortB, 0);
+                this.SetPort_Output(DigitalPortType.ThirdPortCL);
+                this.SetPort(DigitalPortType.ThirdPortCL, 0);
+                this.SetPort_Output(DigitalPortType.ThirdPortCH);
+                this.SetPort(DigitalPortType.ThirdPortCH, 0);
+
+
+                this.SetPort_Output(DigitalPortType.FourthPortA);
+                this.SetPort_Output(DigitalPortType.FourthPortB);
+                this.SetPort_Output(DigitalPortType.FourthPortCL);
+                this.SetPort_Output(DigitalPortType.FourthPortCH);
+            }
+            catch(Exception e)
+            {
+                MessageBox.Show("GPIO is not connected\nPlease connect the GPIO module and restart the application", "GPIO ERROR", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+
+
+        }
+
+        public bool SetBit(DigitalPortType port, int bit)
+        {
+            bool success = false;
+            try
+            {
+                this.gpio_board.DOut(port, (short)(1<<bit));
                 success = true;
             }
-            catch
+            catch(Exception e)
             {
-                success = false;
+                throw e;
+                
             }
             return success;
             
         }
-
-        public bool setPort(DigitalPortType port, ushort val)
+        public bool ClearBit(DigitalPortType port, int bit)
         {
-            bool success;
+            bool success=false;
+            try
+            {
+                var currVal = (int)this.GetPort(port);
+                var newVal = (short)(currVal & (0 << bit));
+                this.gpio_board.DOut(port,  newVal);
+                success = true;
+            }
+            catch (Exception e)
+            {
+                throw e;
+                
+            }
+            return success;
+
+        }
+
+        public bool SetPort(DigitalPortType port, ushort val)
+        {
+            bool success=false;
             try
             {
                 this.gpio_board.DOut(port, val);
                 success = true;
             }
-            catch
+            catch(Exception e)
             {
-                success = false;
+                throw e;
             }
             return success;
         }
 
-        public ushort getPort(DigitalPortType port)
+        public ushort GetPort(DigitalPortType port)
         {
             short val = 0;
             try
@@ -78,10 +135,150 @@ namespace GPIO
             return (ushort)val;
         }
 
-        public int getBit(DigitalPortType port, int bit)
+        public int GetBit(DigitalPortType port, int bit)
         {
-            //TODO: Write this function
-            return 5;
+            short ret_val;
+            int val = 0;
+            this.gpio_board.DIn(port, out ret_val);
+
+            val = ((int)ret_val & (1 << bit)) >> bit;
+
+            return val;
+        }
+
+        public void SetPort_Input(DigitalPortType port)
+        {
+            this.gpio_board.DConfigPort(port, DigitalPortDirection.DigitalIn);
+        }
+        public void SetPort_Output(DigitalPortType port)
+        {
+            this.gpio_board.DConfigPort(port, DigitalPortDirection.DigitalOut);
+        }
+
+        /********************************************************************
+         * GPIO_PinParse()
+         * 
+         * Convert string representation of port and pin to digital port type
+         * 
+         * *****************************************************************/
+
+        private bool GPIO_PinParse(string port_str, string pin_str, out DigitalPortType port, out ushort pin)
+        {
+            bool success = false;
+            port = DigitalPortType.AuxPort;
+            pin = 0;
+            switch(port_str){
+                case ("FirstPortA"):
+                    port = DigitalPortType.FirstPortA;
+                    break;
+                case ("SecondPortA"):
+                    port = DigitalPortType.SecondPortA;
+                    break;
+                case ("ThirdPortA"):
+                    port = DigitalPortType.ThirdPortA;
+                    break;
+                case ("FourthPortA"):
+                    port = DigitalPortType.FourthPortA;
+                    break;
+                case ("FifthPortA"):
+                    port = DigitalPortType.FifthPortA;
+                    break;
+                case ("SixthPortA"):
+                    port = DigitalPortType.SixthPortA;
+                    break;
+                case ("SeventhPortA"):
+                    port = DigitalPortType.SeventhPortA;
+                    break;
+                case ("EighthPortA"):
+                    port = DigitalPortType.EighthPortA;
+                    break;
+                case ("FirstPortB"):
+                    port = DigitalPortType.FirstPortB;
+                    break;
+                case ("SecondPortB"):
+                    port = DigitalPortType.SecondPortB;
+                    break;
+                case ("ThirdPortB"):
+                    port = DigitalPortType.ThirdPortB;
+                    break;
+                case ("FourthPortB"):
+                    port = DigitalPortType.FourthPortB;
+                    break;
+                case ("FifthPortB"):
+                    port = DigitalPortType.FifthPortB;
+                    break;
+                case ("SixthPortB"):
+                    port = DigitalPortType.SixthPortB;
+                    break;
+                case ("SeventhPortB"):
+                    port = DigitalPortType.SeventhPortB;
+                    break;
+                case ("EighthPortB"):
+                    port = DigitalPortType.EighthPortB;
+                    break;
+                case ("FirstPortCL"):
+                    port = DigitalPortType.FirstPortCL;
+                    break;
+                case ("SecondPortCL"):
+                    port = DigitalPortType.SecondPortCL;
+                    break;
+                case ("ThirdPortCL"):
+                    port = DigitalPortType.ThirdPortCL;
+                    break;
+                case ("FourthPortCL"):
+                    port = DigitalPortType.FourthPortCL;
+                    break;
+                case ("FifthPortCL"):
+                    port = DigitalPortType.FifthPortCL;
+                    break;
+                case ("SixthPortCL"):
+                    port = DigitalPortType.SixthPortCL;
+                    break;
+                case ("SeventhPortCL"):
+                    port = DigitalPortType.SeventhPortCL;
+                    break;
+                case ("EighthPortCL"):
+                    port = DigitalPortType.EighthPortCL;
+                    break;
+                case ("FirstPortCH"):
+                    port = DigitalPortType.FirstPortCH;
+                    break;
+                case ("SecondPortCH"):
+                    port = DigitalPortType.SecondPortCH;
+                    break;
+                case ("ThirdPortCH"):
+                    port = DigitalPortType.ThirdPortCH;
+                    break;
+                case ("FourthPortCH"):
+                    port = DigitalPortType.FourthPortCH;
+                    break;
+                case ("FifthPortCH"):
+                    port = DigitalPortType.FifthPortCH;
+                    break;
+                case ("SixthPortCH"):
+                    port = DigitalPortType.SixthPortCH;
+                    break;
+                case ("SeventhPortCH"):
+                    port = DigitalPortType.SeventhPortCH;
+                    break;
+                case ("EighthPortCH"):
+                    port = DigitalPortType.EighthPortCH;
+                    break;
+                default:
+                    break;
+            }
+            int val;
+            if (int.TryParse(pin_str, out val))
+            {
+                pin = (ushort)val;
+                success = true;
+            }
+            else
+            {
+                success = false;
+            }
+
+            return success;
         }
 
         private void InitUL()
@@ -108,11 +305,6 @@ namespace GPIO
             if (this.numChannels != 0)
             {
                 this.Connected = true;
-                for (int i = 0; i < (numChannels - 1); i++)
-                {
-                    err = this.gpio_board.DConfigPort(Ports[i], DigitalPortDirection.DigitalOut);
-                    this.setPort(Ports[i], 0);
-                }
             }
             else
             {

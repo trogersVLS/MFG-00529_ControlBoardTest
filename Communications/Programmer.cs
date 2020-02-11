@@ -16,7 +16,7 @@ namespace ControlBoardTest
     {
         HERCULES = 1,
         CPLD = 2,
-        SOM = 3,
+        
     }
 
     
@@ -29,14 +29,10 @@ namespace ControlBoardTest
         public Programmer(ProgrammerType target, string comport = null)
         {
             this.target = target;
-            if (target != ProgrammerType.SOM)
-            {
-                ConnectProgrammer();
-            }
-            else
-            {
-                ConnectSOM(comport);
-            }
+            
+            ConnectProgrammer();
+            
+            
         }
 
         public bool ConnectProgrammer()
@@ -61,11 +57,7 @@ namespace ControlBoardTest
                 name = cpld_name;
                 search = cpld_search;
             }
-            else if(this.target == ProgrammerType.SOM)
-            {
-                name = som_name;
-                search = som_search;
-            }
+            
 
             
 

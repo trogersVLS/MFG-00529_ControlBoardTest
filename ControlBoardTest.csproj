@@ -90,6 +90,19 @@
   <ItemGroup>
     <Compile Include="Communications\GPIO_Defs.cs" />
     <Compile Include="Communications\Programmer.cs" />
+    <Compile Include="Communications\VOCSN_Serial.cs" />
+    <Compile Include="Forms\AddUserForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\AddUserForm.Designer.cs">
+      <DependentUpon>AddUserForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\ChangePassForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\ChangePassForm.Designer.cs">
+      <DependentUpon>ChangePassForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="FunctionalTest\Tests.cs" />
     <Compile Include="Communications\GPIO.cs" />
     <Compile Include="Communications\Test_Equip.cs" />
@@ -111,6 +124,12 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="Forms\AddUserForm.resx">
+      <DependentUpon>AddUserForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\ChangePassForm.resx">
+      <DependentUpon>ChangePassForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Forms\GUI_Main.resx">
       <DependentUpon>GUI_Main.cs</DependentUpon>
     </EmbeddedResource>
@@ -5316,6 +5335,7 @@
   <ItemGroup>
     <Content Include="Assets\vlslogo.ico" />
     <Content Include="Configuration\settings.xml" />
+    <Content Include="Configuration\TextFile1.txt" />
     <Content Include="ProgramLoad\HerculesErase\ccs_base\common\bin\CCReg.dll" />
     <Content Include="ProgramLoad\HerculesErase\ccs_base\common\bin\fsutil.dll" />
     <Content Include="ProgramLoad\HerculesErase\ccs_base\common\bin\MiniDump.dll" />

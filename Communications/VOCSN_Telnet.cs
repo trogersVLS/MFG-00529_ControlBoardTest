@@ -1,7 +1,16 @@
-﻿using System;
+﻿/* VOCSN_Telnet.cs
+ * 
+ * C# class for communication with VOCSN device
+ * 
+ * Author: Taylor Rogers
+ * Date: 1/29/2020
+ */
+
+using System;
 using System.Text;
 using System.Net.Sockets;
 using System.Threading;
+using System.Collections.Generic;
 
 namespace VLS
 {
@@ -32,7 +41,9 @@ namespace VLS
 
         int TimeOutMs = 100;
 
-        string _ip_address;
+        private string _ip_address;
+
+        public Dictionary<int, string> TLMChannels = new Dictionary<int, string>();
 
 
         public VLS_Tlm(string _ip_address)
@@ -40,19 +51,6 @@ namespace VLS
             this._ip_address = _ip_address;
             this.Connected = false;
         }
-
-        ~VLS_Tlm()
-        {
-            try
-            {
-                this.Disconnect();
-            }
-            catch
-            {
-            }
-        }
-
-
 
         /********************************************************************************************************************************
          * Public Connect Methods
@@ -66,53 +64,92 @@ namespace VLS
          *                         Returns false if any of the three were unsuccessful
          * 
          * ******************************************************************************************************************************/
-        public bool Connect()
+        public bool Connect(string ip = null, string initialcmd = null, bool getTLM = true)
         {
             bool success;
+            bool cmd_connect;
+            bool qnx_connect;
+            bool tlm_connect;
+
+            if(ip != null)
+            {
+                this._ip_address = ip;
+            }
             try
             {
 
-                qnx_shell = new TcpClient();
-                cmd_shell = new TcpClient();
-                tlm_shell = new TcpClient();
-
-                Thread.Sleep(1000);
-                var result = qnx_shell.BeginConnect(this._ip_address, this.qnx_port, null, null);
-                var connect = result.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(0.5));
-
-                if (connect)
+                cmd_connect = this.CMD_Connect();
+                tlm_connect = this.TLM_Connect();
+                qnx_connect = this.QNX_Connect();
+                
+                if(cmd_connect & tlm_connect & qnx_connect)
                 {
-                    this.QNX_Login("root", "", 500);
-
-                    Thread.Sleep(1000);
-                    result = cmd_shell.BeginConnect(this._ip_address, this.cmd_port, null, null);
-                    connect = result.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(0.5));
-                    if (connect)
+                    success = true;
+                    this.Connected = true;
+                    if(initialcmd != null)
                     {
-                        this.CMD_Login();
-                        this.Connected = true;
-                        success = true;
-                    }
-                    else
-                    {
-                        success = false;
-                        this.Disconnect();
+                        this.CMD_Write(initialcmd);
                     }
                 }
                 else
                 {
                     success = false;
-                    this.Disconnect();
                 }
 
             }
             catch
             {
                 success = false;
-                //throw new Exception();
+                this.Connected = false;
+            }
+
+            //This will obtain the telemetry table in a dictionary.
+            if (this.Connected & getTLM)
+            {
+                
+                if (!this.GetTlmTable()) {
+                    success = false;
+                }
             }
             return success;
         }
+
+
+        //Gets the TLM table from the device. Each new version of software
+        public bool GetTlmTable()
+        {
+            bool success=false;
+            string table;
+
+            if (this.Connected)
+            {
+                table = CMD_Write("get vcm table telemetry", "$vserver> "); //This command takes a long time
+                table = table.Replace("\r", "");
+                
+                //Parse the output and create the dictionary
+                string[] tableArray = table.Split('\n');               
+                
+                for(int i = 0; i < tableArray.Length - 1; i++)
+                {
+                    int channelNum = int.Parse(tableArray[i].Substring(1,3));;
+                    string channelName = tableArray[i].Substring(5);
+
+                    this.TLMChannels.Add(channelNum, channelName);
+
+
+                }
+                success = true;
+
+            }
+            else
+            {
+                success = false;
+            }
+
+            return success;
+        }
+
+        
         /********************************************************************************************************************************
          * CMD_Connect() - Connects the object to the CMD shell on port 5000 
          * 
@@ -125,12 +162,12 @@ namespace VLS
             bool success;
             try
             {
-                cmd_shell = new TcpClient();
-               
-                var result = cmd_shell.BeginConnect(this._ip_address, this.cmd_port, null, null);
-                var connect = result.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(0.1));
+                this.cmd_shell = new TcpClient();
 
-                    
+                var result = this.cmd_shell.BeginConnect(this._ip_address, this.cmd_port, null, null);
+                var connect = result.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(0.5));
+
+
                 if (connect)
                 {
                     this.CMD_Login();
@@ -147,7 +184,7 @@ namespace VLS
             catch
             {
                 success = false;
-                
+
             }
             return success;
         }
@@ -158,11 +195,11 @@ namespace VLS
             try
             {
 
-                qnx_shell = new TcpClient();
-               
+                this.qnx_shell = new TcpClient();
+
 
                 var result = qnx_shell.BeginConnect(this._ip_address, this.qnx_port, null, null);
-                var connect = result.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(0.1));
+                var connect = result.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(0.5));
 
                 if (connect)
                 {
@@ -180,7 +217,40 @@ namespace VLS
             catch
             {
                 success = false;
-                
+
+            }
+            return success;
+        }
+        public bool TLM_Connect()
+        {
+            bool success;
+            try
+            {
+
+                this.tlm_shell = new TcpClient();
+
+
+                var result = tlm_shell.BeginConnect(this._ip_address, this.tlm_port, null, null);
+                var connect = result.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(0.5));
+
+                if (connect)
+                {
+                    Thread.Sleep(500);
+                    this.TLM_Login();
+                    success = true;
+
+                }
+                else
+                {
+                    success = false;
+                    //this.Disconnect();
+                }
+
+            }
+            catch
+            {
+                success = false;
+
             }
             return success;
         }
@@ -190,6 +260,7 @@ namespace VLS
             {
                 this.qnx_shell.Close();
                 this.cmd_shell.Close();
+                this.tlm_shell.Close();
             }
             catch
             {
@@ -218,14 +289,43 @@ namespace VLS
         }
 
 
-        public void CMD_Write(string cmd)
+        /* Writes a command to the cmd port and returns the response
+         * 
+         */
+        public string CMD_Write(string cmd)
         {
-            if (!cmd_shell.Connected) return;
-            byte[] buf = System.Text.ASCIIEncoding.ASCII.GetBytes(cmd.Replace("\0xFF", "\0xFF\0xFF"));
-            cmd_shell.GetStream().Write(buf, 0, buf.Length);
+            string output = "";
+            if (this.Connected)
+            {
+                byte[] buf = System.Text.ASCIIEncoding.ASCII.GetBytes(cmd.Replace("\0xFF", "\0xFF\0xFF"));
+                cmd_shell.GetStream().Write(buf, 0, buf.Length);
+
+                output = this.CMD_Read();
+            }
+            return output;
+        }
+        /* Writes a command and reads until the specified end string is present, then returns the output.
+         * 
+         */
+
+        public string CMD_Write(string cmd, string end)
+        {
+            string output = "";
+            if (this.Connected)
+            {
+                byte[] buf = System.Text.ASCIIEncoding.ASCII.GetBytes(cmd.Replace("\0xFF", "\0xFF\0xFF"));
+                cmd_shell.GetStream().Write(buf, 0, buf.Length);
+
+                while (!output.EndsWith(end))
+                {
+                    output += this.CMD_Read();
+                }
+                
+            }
+            return output;
         }
 
-        public string CMD_Read()
+        private string CMD_Read()
         {
             if (!cmd_shell.Connected) return null;
             StringBuilder sb = new StringBuilder();
@@ -286,7 +386,107 @@ namespace VLS
                 }
             }
         }
+        /********************************************************************************************************************************
+         * TLM Shell Methods
+         * 
+         * 
+         * ******************************************************************************************************************************/
+        public bool TLM_Login()
+        {
 
+            string s = TLM_Read();
+            s += TLM_Read();
+            if (!s.TrimEnd().EndsWith("$status>"))
+                throw new Exception("Failed to connect");
+            else
+            {
+                this.Connected = true;
+            }
+
+            return this.tlm_shell.Connected;
+        }
+
+
+
+        public string TLM_Write(string cmd)
+        {
+            string output = "";
+            if (this.Connected)
+            {
+                byte[] buf = System.Text.ASCIIEncoding.ASCII.GetBytes(cmd.Replace("\0xFF", "\0xFF\0xFF"));
+                tlm_shell.GetStream().Write(buf, 0, buf.Length);
+
+                output = this.TLM_Read();
+            }
+            return output;
+        }
+
+
+        //TODO: Update this method to read only a set number of lines --> This method will read continuously as it is now if the stream command is specified with "-1" samples
+        //TODO: TODO: Create an event handler that will store all TLM data in buffer to be read
+
+            //NOTE: DO NOT USE COMMAND WITHOUT FIXING PROBLEMS FIRST --> Instead, use CMD_Write("get vcm telemetry 'n'")
+        public string TLM_Read()
+        {
+            if (!tlm_shell.Connected) return null;
+            StringBuilder sb = new StringBuilder();
+            do
+            {
+                TLM_ParseTelnet(sb);
+                System.Threading.Thread.Sleep(TimeOutMs);
+            } while (tlm_shell.Available > 0);
+            string str = sb.ToString();
+            return str;
+        }
+
+        public bool TLM_IsConnected()
+        {
+            return tlm_shell.Connected;
+        }
+
+        void TLM_ParseTelnet(StringBuilder sb)
+        {
+            while (tlm_shell.Available > 0)
+            {
+                int input = tlm_shell.GetStream().ReadByte();
+                switch (input)
+                {
+                    case -1:
+                        break;
+                    case (int)Verbs.IAC:
+                        // interpret as command
+                        int inputverb = tlm_shell.GetStream().ReadByte();
+                        if (inputverb == -1) break;
+                        switch (inputverb)
+                        {
+                            case (int)Verbs.IAC:
+                                //literal IAC = 255 escaped, so append char 255 to string
+                                sb.Append(inputverb);
+                                break;
+                            case (int)Verbs.DO:
+                            case (int)Verbs.DONT:
+                            case (int)Verbs.WILL:
+                            case (int)Verbs.WONT:
+                                // reply to all commands with "WONT", unless it is SGA (suppres go ahead)
+                                int inputoption = tlm_shell.GetStream().ReadByte();
+                                if (inputoption == -1) break;
+                                tlm_shell.GetStream().WriteByte((byte)Verbs.IAC);
+                                if (inputoption == (int)Options.SGA)
+                                    tlm_shell.GetStream().WriteByte(inputverb == (int)Verbs.DO ? (byte)Verbs.WILL : (byte)Verbs.DO);
+                                else
+                                    tlm_shell.GetStream().WriteByte(inputverb == (int)Verbs.DO ? (byte)Verbs.WONT : (byte)Verbs.DONT);
+                                tlm_shell.GetStream().WriteByte((byte)inputoption);
+                                break;
+                            default:
+                                break;
+                        }
+                        break;
+                    default:
+                        sb.Append((char)input);
+                        break;
+                }
+            }
+        }
 
         /********************************************************************************************************************************
          * QNX Shell Methods
@@ -392,138 +592,7 @@ namespace VLS
         }
 
 
-       
-        /*read_until:
-         * Reads from the telnet stream until the specified string.
-         * 
-         */
-        //private String read_until(string str)
-        //{
-        //    String response = "";
-        //    int tempByte;
 
-        //    if (this.Connected)
-        //    {
-        //        while (true)
-        //        {
-        //            tempByte = this.cmd_shell.ReadByte();
-        //            if (tempByte != (-1))
-        //            {
-
-        //                response += (char)tempByte;
-        //            }
-        //            if (response.Contains(str))
-        //            {
-        //                break;
-        //            }
-
-        //        }
-        //    }
-        //    else
-        //    {
-        //        response = null;
-        //    }
-        //    return response;
-
-        //}
-        /****************************************************************
-         * Command
-         * Sends a command over port 5000;
-         * 
-         * **************************************************************/
-        //public List<String> Command(string message)
-        //{
-        //    List<String> responseData = new List<String>();
-        //    Byte[] command = System.Text.Encoding.ASCII.GetBytes(message);
-        //    if (message == "exit")
-        //    {
-        //        this.stream_cmd.Write(command, 0, command.Length); //Send the command
-        //        responseData.Add("Successful Exit");
-        //    }
-        //    else
-        //    {
-        //        this.stream_cmd.Write(command, 0, command.Length); //Send the command
-        //        responseData.AddRange(this.read_until("$vserver>").Split(new string[] { "\r","\n" }, StringSplitOptions.None)); // Wait and receive the response.
-        //        responseData.ForEach(i => i.Trim());
-        //    }
-        //    return responseData;
-        //}
-
-
-
-        ///* Connect
-        // * Connects to the telnet port at the specificied ip address
-        // */
-        //private bool Connect_CMD(String _ip_address)
-        //{
-        //    string responseString;
-        //    Byte[] response = new Byte[256];
-        //    int bytes;
-        //    try
-        //    {
-        //        // Create a TcpClient connection to VOCSN
-        //        this.cmd_shell = new TcpClient(_ip_address, this.cmd_port);
-
-        //        //Get the VOCSN network stream.
-        //        this.stream_cmd = this.vocsn_cmd.GetStream();
-        //        bytes = this.stream_cmd.Read(response, 0, response.Length);
-        //        responseString = System.Text.Encoding.ASCII.GetString(response, 0, bytes);
-
-
-        //        if (bytes == 0 || responseString != "$vserver> ")
-        //        {
-        //            Console.WriteLine("Unable to connect");
-        //            this.Connected = false;
-        //        }
-        //        else
-        //        {
-        //            this.Connected = true;
-        //        }
-        //    }
-        //    catch 
-        //    {
-        //    }
-
-        //    return true;
-        //}
-        //private bool Connect_QNX(string _ip_address)
-        //{
-
-        //    return true;
-        //}
-        //public List<String> Command_QNX(string message)
-        //{
-        //    List<String> responseData = new List<String>();
-        //    Byte[] command = System.Text.Encoding.ASCII.GetBytes(message);
-        //    if (message == "exit")
-        //    {
-        //        this.stream_cmd.Write(command, 0, command.Length); //Send the command
-        //        responseData.Add("Successful Exit");
-        //    }
-        //    else
-        //    {
-        //        this.stream_cmd.Write(command, 0, command.Length); //Send the command
-        //        responseData.AddRange(this.read_until("#").Split(new string[] { "\r", "\n" }, StringSplitOptions.None)); // Wait and receive the response.
-        //        responseData.ForEach(i => i.Trim());
-        //    }
-        //    return responseData;
-        //}
-
-
-
-        //private void Close()
-        //{
-        //    try
-        //    {
-        //        this.Command("exit");
-        //        this.Command_QNX("exit");
-        //        this.vocsn_cmd.Close();
-        //        this.Connected = false;
-        //    }
-        //    catch 
-        //    {
-
-        //    }
-        //}
     }
+
 }

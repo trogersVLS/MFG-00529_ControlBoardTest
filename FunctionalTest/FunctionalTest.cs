@@ -9,12 +9,6 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Diagnostics;
-using MccDaq;
-using ErrorDefs;
-using Microsoft.VisualBasic;
-using Microsoft.VisualBasic.FileIO;
-using System.Xml;
 using GPIO;
 using VLS;
 using System.Data.SQLite;
@@ -43,7 +37,8 @@ namespace ControlBoardTest
             this.method_name = method_name;
             this.testinfo = function;
             this.parameters = parameters;
-            this.result = "n/a";
+            this.parameters.Add("measured", "Not tested");
+            this.result = null;
 
         }
     }
@@ -58,30 +53,31 @@ namespace ControlBoardTest
         private int eqid;
         private string user_id;
         private string timestamp;
-        public string result = "FAIL";
+        public string result;
+        public bool test;
         private Hashtable Parameters;
 
 
         private MccDaq_GPIO GPIO;
         private Test_Equip DMM;
         private Test_Equip PPS;
-        private Programmer SOM;
+        private VOCSN_Serial SOM;
         private VLS_Tlm Vent;
         
 
         public List<TestData> Tests = new List<TestData>();
-        private readonly ConcurrentQueue<string> Rx_Queue;
+        
 
-        const string sys_msg = "sys:";
-        const string ui_msg = "msg:";
-        const string log_msg = "log:";
+        
 
-        private bool cancel_request = false;
-        private bool log_data;
+        
 
         //SQLite Variables
         SQLiteConnection db_con;
         private long test_id;
+
+
+        private bool powered = true;
 
 
 
@@ -97,121 +93,97 @@ namespace ControlBoardTest
         {
             //This constructor is used for collecting methods from this data type
         }
-         public FunctionalTest(ConcurrentQueue<string> _rx)
-        {   
-            //This constructor is used for development
-            this.log_data = false;
-            //Create the queue used for passing messages between threads
-            this.Rx_Queue = _rx;
-
-            //Create Telemetry connection object
-            this.Vent = new VLS_Tlm("10.10.2.204");
-        }
-        public FunctionalTest(ConcurrentQueue<string> _rx, Hashtable Parameters)
+         
+        public FunctionalTest(SQLiteConnection DB_CON, MccDaq_GPIO GPIO, Test_Equip DMM, Test_Equip PPS, VOCSN_Serial SOM, VLS_Tlm VENT)
         {
             //This constructor is used for production
-            this.Parameters = Parameters;
-            this.log_data = true;
-            this.DatabaseExist();
 
 
             try
             {
-                this.GPIO = (MccDaq_GPIO)Parameters["gpio"];
-                this.DMM = (Test_Equip)Parameters["dmm"];
-                this.PPS = (Test_Equip)Parameters["pps"];
-                this.SOM = (Programmer)Parameters["som"];
-
-                this.serial = (string)Parameters["serial"];
-                this.location = (string)Parameters["location"];
-                this.eqid = (int)Parameters["eqid"];
-                this.user_id = (string)Parameters["user_id"];
-                this.timestamp = (string)Parameters["timestamp"];
-
-                this.LogTestInstance();
+                this.GPIO = GPIO;
+                this.GPIO.ConnectDevice();
+                this.DMM = DMM;
+                this.DMM.Connect();
+                this.PPS = PPS;
+                this.PPS.Connect();
+                this.SOM = SOM;
+                this.SOM.Connect();
 
             }
             catch
             {
                 //Something didn't work. Update user
+
+                System.Windows.Forms.MessageBox.Show("Error! Something happened", "Error");
+                
             }
 
-            //Create the queue used for passing messages between threads
-            this.Rx_Queue = _rx;
-            //Create Telemetry connection object
-            this.Vent = new VLS_Tlm("10.10.2.204");
-
-
         }
-        /************************************************************************************************************
-         * Functional Test Class Destructor
-         * 
-         * - Disconnects from the GPIO module, Power Supply, and Multimeter so that the next test can use the resources
-         * 
-         * **********************************************************************************************************/
-        ~FunctionalTest()
+
+        public bool ConnectToTelnet(string _ip_address)
+        {   
+
+            
+            if (_ip_address != null)
+            {   
+                this.Vent = new VLS_Tlm(_ip_address);
+            }
+
+            //There's a long delay between the device booting to the VCM app and the device acquiring an IP address.
+            //message.Report("Connecting to telnet ... ");
+            //Thread.Sleep(timeout);
+            //if (this.Vent.Connect())
+            //{
+            //    //Once connected, set to MFG mode so that we can begin testing the various functions.
+            //    message.Report("Connected!");
+            //    this.Vent.CMD_Write("mfgmode");
+            //    success = true;
+            //    errorCode = 0;
+            //}
+            return this.Vent.Connect();
+        }
+        public bool DisconnectTelnet()
         {
-            //TODO: Add the destructor tasks
             try
             {
-                //this.GPIO.setPort(GPIO_Defs.AC_EN.port, 0);
+                this.Vent.Disconnect();
             }
             catch
             {
 
             }
-
-            //Destructor is obsolete after moving resource management to the GUI thread
+            return !this.Vent.Connected;
         }
 
         /******************************************************************************************************************************************
          *                  MESSAGE PASSING UTILITIES
          ******************************************************************************************************************************************/
 
-        /************************************************************************************************************
-         * ClearInput
-         * 
-         * Function: Clears the message buffer between the main thread and the test thread. 
-         * 
-         * Arguments: None
-         * 
-         * Returns: None
-         * 
-         * **********************************************************************************************************/
-        private void ClearInput()
+
+
+        private string PromptUser(string question, string TestName)
         {
-            string message;
-            while (!this.Rx_Queue.IsEmpty)
-            {
-                this.Rx_Queue.TryDequeue(out message);
-                if (message == "cancel") cancel_request = true;
-            }
-            return;
+            string input = Microsoft.VisualBasic.Interaction.InputBox(question, TestName, "", 0, 0);
+
+            return input;
         }
-        /************************************************************************************************************
-         * ReceiveInput
-         * 
-         * Function: Pops a message from the queue or waits until the queue has received a message.
-         * 
-         * Arguments: None
-         * 
-         * Returns: string message - message popped from the queue.
-         * 
-         * **********************************************************************************************************/
-        private string ReceiveInput()
+        private bool PromptUser_YesNo(string question, string TestName)
         {
-            string message;
+            bool result;
+            var output = System.Windows.Forms.MessageBox.Show(question, TestName, System.Windows.Forms.MessageBoxButtons.YesNo, System.Windows.Forms.MessageBoxIcon.Question);
 
-            while (this.Rx_Queue.IsEmpty)
+            if(output == System.Windows.Forms.DialogResult.Yes)
             {
-                //Do nothing, block until a message is received.
+                result = true;
             }
-            this.Rx_Queue.TryDequeue(out message);
+            else
+            {
+                result = false;
+            }
 
-            return message;
-
+            return result;
         }
-
 
         /******************************************************************************************************************************************
         *                                               TEST RUNNING FUNCTIONS
@@ -224,41 +196,19 @@ namespace ControlBoardTest
          *             - message  --> Progress interface variable. Used to update the text in the output box.  
          *             - TestList --> List of TestStep. Used to tell RunTest which tests need to be run.
          * **********************************************************************************************************/
-        async public void RunTest(IProgress<int> progress, IProgress<string> message, List<TestData> TestList)
+        async public void RunTest(IProgress<int> progress, IProgress<string> message, IProgress<string> logs, List<TestData> TestList)
         {
             int i = 0;
             bool success = true;
 
             try
             {
-                // For each test in the test list, run the function
-                // Pass the message object to each test so that the tests can update the display as needed
-                if (TestList.Count == 0)
-                {
-                    message.Report(log_msg + "Test is undefined");
-                    return;
-                }
-                if (!this.SOM.Powered)
-                {
-                    if(!this.test_power_on(message)) return;
-                }
-
+               
 
                 foreach (TestData test in TestList)
                 {
-                    this.ClearInput();
-                    if (cancel_request)
-                    {
-
-                        message.Report(ui_msg + "Test Cancelled");
-                        Thread.Sleep(1000);
-                        return;
-                    }
-
-                    //TODO: Remove this delay when tests are added
-
                     var param = new object[] { message, test };
-                    message.Report(ui_msg + "Starting " + test.name);   //Indicate which test is being run
+                    message.Report("Starting " + test.name);   //Indicate which test is being run
                     progress.Report((i * 100) / (TestList.Count)); // Indicate the progress made
 
 
@@ -266,27 +216,23 @@ namespace ControlBoardTest
                     var result = (bool)test.testinfo.Invoke(this, param);
                     if (result)
                     {
-                        message.Report(ui_msg + "\nTest: " + test.name + " - PASS\n");
+                        message.Report("\nTest: " + test.name + " - PASS\n");
 
                     }
                     else
                     {
-                        message.Report(ui_msg + "\nTest: " + test.name + " - FAIL\n");
+                        message.Report("\nTest: " + test.name + " - FAIL\n");
                         if (success) success = false;
                     }
 
-                    //Build hashtable for logging data.
-                    if (this.log_data)
-                    {
-                        Hashtable data = this.CreateData(test, (bool)result);
-                        this.LogTestData(data);
-                    }
-
+                    ////Build hashtable for logging data.
+                    //if (this.Log_Data)
+                    //{
+                    //    Hashtable data = this.CreateData(test, (bool)result);
+                    //    this.LogTestData(data);
+                    //}
 
                     i++;
-
-
-
                 }
                 
                 
@@ -294,75 +240,20 @@ namespace ControlBoardTest
             catch (Exception e)
             {
 
-                message.Report(ui_msg + "Something went wrong");
-                message.Report(ui_msg + e.Message.ToString() + "\n\n" + e.StackTrace.ToString());
-                message.Report(sys_msg + "Something went wrong");
+                message.Report( "Something went wrong");
+                message.Report(e.Message.ToString() + "\n\n" + e.StackTrace.ToString());
+               
                 Thread.CurrentThread.Abort();
             }
 
             if (success) this.result = "PASS";
             else this.result = "FAIL";
 
-            this.Vent.Disconnect();
+            
             Thread.Sleep(2000);
             return;
         }
-        /************************************************************************************************************
-         * Program() - Runs the programming section only
-         * 
-         * Parameters: - progress --> Progress interface variable. Indicates the percentage of the test that is complete
-         *             - message  --> Progress interface variable. Used to update the text in the output box.  
-         *             
-         * **********************************************************************************************************/
-        async public void Program(IProgress<int> progress, IProgress<string> message)
-        {
-            //TODO: add code to Confirm that Flashpro and Uniflash are installed in the correct place
 
-
-            bool success;
-            if (this.CPLD_Program(message))
-            {
-                success = true;
-                if (this.CPLD_Verify(message))
-                {
-                    success = true;
-                    message.Report(log_msg + "CPLD programming done");
-                    if (this.Hercules_Program(message))
-                    {
-                        success = true;
-                        message.Report(log_msg + "Hercules program successful");
-                        if (this.SOM_Program(message))
-                        {
-                            success = true;
-                            message.Report(log_msg + "SOM Programmed okay");
-                        }
-                        else
-                        {
-                            success = false;
-                            message.Report(log_msg + "Failed to program SOM");
-                        }
-                    }
-                    else
-                    {
-                        success = false;
-                        message.Report(log_msg + "Failed to upload code to herculues");
-                    }
-                }
-                else
-                {
-                    success = false;
-                    message.Report(log_msg + "CPLD verification failed");
-                }
-
-            }
-            else
-            {
-                success = false;
-                message.Report(log_msg + "CPLD program failed");
-            }
-
-            return;
-        }
 
         /******************************************************************************************************************************************
          *                                               DATA LOGGING FUNCTIONS
@@ -413,6 +304,8 @@ namespace ControlBoardTest
             SQLiteCommand cmd;
             SQLiteDataReader dr;
             bool success = false;
+            
+
             try
             {
 
@@ -482,6 +375,7 @@ namespace ControlBoardTest
         private bool LogTestInstance()
         {   
             bool success = false;
+            
             try
             {
 
@@ -512,7 +406,7 @@ namespace ControlBoardTest
         private bool LogTestData(Hashtable table)
         {
             bool success = true;
-
+            
                
             try
             {
@@ -534,11 +428,12 @@ namespace ControlBoardTest
 
         private Hashtable CreateData(TestData test, bool result)
         {
-            Hashtable data = new Hashtable();
-
-            data.Add("test_id", this.test_id);
-            data.Add("serial_number", this.serial);
-            data.Add("test_name", test.name);
+            Hashtable data = new Hashtable
+            {
+                { "test_id", this.test_id },
+                { "serial_number", this.serial },
+                { "test_name", test.name }
+            };
 
             if (test.parameters["qual"] != "true")
             {
