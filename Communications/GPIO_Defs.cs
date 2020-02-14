@@ -81,6 +81,7 @@ namespace GPIO
         public static readonly GPIO_PIN MEAS_ON_LED;
         public static readonly GPIO_PIN MEAS_AS_LED;
         public static readonly GPIO_PIN MEAS_INOP_LED;
+        public static readonly GPIO_PIN MEAS_XDC_LED;
 
 
         public static readonly GPIO_PIN MEAS_MV_HOME;
@@ -96,8 +97,8 @@ namespace GPIO
         static GPIO_Defs()
         {   //FirstPortA -> 8 bits wide --> OUTPUTS
             BAT0_EN =           new GPIO_PIN(DigitalPortType.FirstPortA, 0); //Bit 0
-            BAT1_EN =           new GPIO_PIN(DigitalPortType.FirstPortA, 2); //Bit 2
-            BAT2_EN =           new GPIO_PIN(DigitalPortType.FirstPortA, 4); //Bit 4
+            BAT1_EN =           new GPIO_PIN(DigitalPortType.FirstPortA, 1); //Bit 2
+            BAT2_EN =           new GPIO_PIN(DigitalPortType.FirstPortA, 2); //Bit 4
             AC_EN   =           new GPIO_PIN(DigitalPortType.FirstPortA, 5); //Bit 5
             PPS_LOAD_EN =       new GPIO_PIN(DigitalPortType.FirstPortA, 7); //Bit 7
 
@@ -124,7 +125,7 @@ namespace GPIO
 
             //SecondPortA -> 8 bits wide --> OUTPUTS
             FAN_FAULT_EN =      new GPIO_PIN(DigitalPortType.SecondPortA, 0); //Bit 0
-            EXT_O2_DIS =        new GPIO_PIN(DigitalPortType.SecondPortA, 1); //Bit 1&2
+            EXT_O2_DIS =        new GPIO_PIN(DigitalPortType.SecondPortA, 1); //Bit 1
             PIEZO_EN =          new GPIO_PIN(DigitalPortType.SecondPortA, 2); //Bit 6
             WDOG_DIS =          new GPIO_PIN(DigitalPortType.SecondPortA, 3); //Bit 3
             USB_TGL =           new GPIO_PIN(DigitalPortType.SecondPortA, 4); //Bit 5
@@ -133,13 +134,13 @@ namespace GPIO
             SPKR_EN =           new GPIO_PIN(DigitalPortType.SecondPortA, 7); //Bit 1
 
             //SecondPortB -> 8 bits wide --> INPUTS
-            XFLOW_SV1_2 =       new GPIO_PIN(DigitalPortType.SecondPortB, 0);
-            XFLOW_SV3_4 =       new GPIO_PIN(DigitalPortType.SecondPortB, 1);
-            FLOW_SV5 =          new GPIO_PIN(DigitalPortType.SecondPortB, 2);
-            EXHL_SV6 =          new GPIO_PIN(DigitalPortType.SecondPortB, 3);
-            EXHL_SV7 =          new GPIO_PIN(DigitalPortType.SecondPortB, 4);
-            EXHL_SV8 =          new GPIO_PIN(DigitalPortType.SecondPortB, 5);
-            SOV_SV11 =          new GPIO_PIN(DigitalPortType.SecondPortB, 6);
+            XFLOW_SV1_2 =       new GPIO_PIN(DigitalPortType.SecondPortB, 0); //Measure with GPIO 
+            XFLOW_SV3_4 =       new GPIO_PIN(DigitalPortType.SecondPortB, 1); //Measure with GPIO
+            FLOW_SV5 =          new GPIO_PIN(DigitalPortType.SecondPortB, 2); //Measure with GPIO
+            EXHL_SV6 =          new GPIO_PIN(DigitalPortType.SecondPortB, 3); //Measure with GPIO
+            EXHL_SV7 =          new GPIO_PIN(DigitalPortType.SecondPortB, 4); //Measure with GPIO
+            EXHL_SV8 =          new GPIO_PIN(DigitalPortType.SecondPortB, 5); //Measure with GPIO
+            SOV_SV11 =          new GPIO_PIN(DigitalPortType.SecondPortB, 6); //Measure with GPIO
 
             //SecondPortCL -> 4 bits wide --> OUTPUTS
             MV_HOME_EN =        new GPIO_PIN(DigitalPortType.SecondPortCL, 0);
@@ -153,14 +154,18 @@ namespace GPIO
 
             
             //ThirdPortA -> 8 bits wide --> OUTPUTS
-            MEAS_FREQ_BLOWER = new GPIO_PIN(DigitalPortType.ThirdPortA, 0);
-            MEAS_FREQ_PUMP = new GPIO_PIN(DigitalPortType.ThirdPortA, 1);
-            MEAS_NC_NO = new GPIO_PIN(DigitalPortType.ThirdPortA, 2);
-            MEAS_NC_NC = new GPIO_PIN(DigitalPortType.ThirdPortA, 3);
-            MEAS_CHG_LED = new GPIO_PIN(DigitalPortType.ThirdPortA, 4);
-            MEAS_ON_LED = new GPIO_PIN(DigitalPortType.ThirdPortA, 5);
-            MEAS_AS_LED = new GPIO_PIN(DigitalPortType.ThirdPortA, 6);
-            MEAS_INOP_LED = new GPIO_PIN(DigitalPortType.ThirdPortA, 7);
+            MEAS_FREQ_BLOWER =  new GPIO_PIN(DigitalPortType.ThirdPortA, 0);
+            MEAS_FREQ_PUMP =    new GPIO_PIN(DigitalPortType.ThirdPortA, 1);
+            MEAS_NC_NO =        new GPIO_PIN(DigitalPortType.ThirdPortA, 2); 
+            MEAS_NC_NC =        new GPIO_PIN(DigitalPortType.ThirdPortA, 3);
+
+
+            //ThirdPortB -> 8 bits wide --> INPUTS
+            MEAS_XDC_LED =      new GPIO_PIN(DigitalPortType.ThirdPortB, 3); //Measure with GPIO
+            MEAS_CHG_LED =      new GPIO_PIN(DigitalPortType.ThirdPortB, 4); //MEasure with GPIO
+            MEAS_ON_LED =       new GPIO_PIN(DigitalPortType.ThirdPortB, 5); //Measure with GPIO
+            MEAS_AS_LED =       new GPIO_PIN(DigitalPortType.ThirdPortB, 6); //MEasure with GPIO
+            MEAS_INOP_LED =     new GPIO_PIN(DigitalPortType.ThirdPortB, 7); //MEasure with GPIO
 
 
 
