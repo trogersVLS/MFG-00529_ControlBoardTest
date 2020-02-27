@@ -171,7 +171,7 @@
     <test name="Audio Pause LED Test" method_name="test_as_led" qual="true" fs="10" time="10"/>
     <test name="Button Test" method_name="test_buttons" qual="true" port="FirstPortCH" pin="5"/>
     <test name="Speaker Test" method_name="test_speaker" qual="true"/>
-    <test name="Charge LED Test"  method_name="test_charge_led" qual="true"/>
+    <test name="Charge LED Test"  method_name="test_charge_led" qual="true" timeout="60"/>
     <test name="Ext LED Test"  method_name="test_ext_led" qual="true"/>
     <test name="INOP LED Test"  method_name="test_inop_led" qual="true"/>
     

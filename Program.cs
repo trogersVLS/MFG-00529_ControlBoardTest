@@ -19,6 +19,7 @@ using System.IO.Ports;
 using VLS;
 using System.IO;
 using MccDaq;
+using System.Diagnostics;
 
 namespace ControlBoardTest
 {
@@ -27,18 +28,26 @@ namespace ControlBoardTest
         [STAThread]
         static void Main()
         {
-
+            int ms = 100;
             GUIConsoleWriter log_console = new GUIConsoleWriter();
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-
-            //TestTelemetry(log_console);
+            //TestPowerRelayA(ms);
+            //TestSignalRelayA(ms);
+            //TestSignalRelayB(ms);
+            //TestSignalRelayC(ms);
+            //TestSignalRelayD(ms);
+            //TestUSBSwitch(ms, 3);
+            TestTelemetry(log_console);
             //TestGPIO();
 
+
+
+
             Application.Run(new ControlBoardTest(log_console));
-            
-           
+
+
         }
 
 
@@ -51,143 +60,159 @@ namespace ControlBoardTest
         private static void TestTelemetry(GUIConsoleWriter console)
         {
 
-            VLS_Tlm Vent = new VLS_Tlm("10.10.2.204");
+            VLS_Tlm Vent = new VLS_Tlm("");
+            string _ip_address = Microsoft.VisualBasic.Interaction.InputBox("Enter IP Address");
+            Vent.Connect(_ip_address, "mfgmode", false);
 
-            if (Vent.Connect())
+            if (Vent.Connected)
             {
-                Vent.CMD_Write("mfgmode");
-
-
-
-                Vent.CMD_Write("set vcm testmgr o2speed 1000");
-                Vent.CMD_Write("set vcm testmgr speed 20000");
-
-                Vent.CMD_Write("stream vcm 1");
-
-                string tlm = Vent.TLM_Read();
-
-                string str = Vent.CMD_Write("get vcm table telemetry");
-
-                console.WriteLine(str);
-
+                //Vent.CMD_Write("mfgmode");
+                test_cpld_rev(Vent);
+            
             }
 
 
 
             Application.Exit();
         }
-        private static void TestGPIO()
+
+        private static void test_cpld_rev(VLS_Tlm vent)
+        {
+            bool success = false;
+            string response;
+            string revision;
+            string revision_meas;
+
+        
+           
+
+            response = vent.CMD_Write("get vcm cpld 9");
+
+            Debug.WriteLine(response[20]);
+
+
+
+            
+        }
+
+        private static void TestPower()
         {
             MccDaq_GPIO test = new MccDaq_GPIO();
-            int delay = 250;
-            for (int j = 0; j < 20; j++)
+
+            test.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+
+            while (true)
             {
-                for (int i = 0; i < 8; i++)
-                {
-                    test.SetBit(DigitalPortType.FirstPortA, i);
-                    Thread.Sleep(200);
-                    test.ClearBit(DigitalPortType.FirstPortA, i);
-                }
-                for (int i = 0; i < 8; i++)
-                {
-                    test.SetBit(DigitalPortType.FirstPortB, i);
-                    Thread.Sleep(200);
-                    test.ClearBit(DigitalPortType.FirstPortB, i);
-                }
-                for (int i = 0; i < 4; i++)
-                {
-                    test.SetBit(DigitalPortType.FirstPortCL, i);
-                    Thread.Sleep(200);
-                    test.ClearBit(DigitalPortType.FirstPortCL, i);
-                }
-                for (int i = 0; i < 4; i++)
-                {
-                    test.SetBit(DigitalPortType.FirstPortCH, i);
-                    Thread.Sleep(200);
-                    test.ClearBit(DigitalPortType.FirstPortCH, i);
-                }
-                for (int i = 0; i < 8; i++)
-                {
-                    test.SetBit(DigitalPortType.SecondPortA, i);
-                    Thread.Sleep(200);
-                    test.ClearBit(DigitalPortType.SecondPortA, i);
-                }
-                for (int i = 0; i < 8; i++)
-                {
-                    test.SetBit(DigitalPortType.SecondPortB, i);
-                    Thread.Sleep(200);
-                    test.ClearBit(DigitalPortType.SecondPortB, i);
-                }
-                for (int i = 0; i < 4; i++)
-                {
-                    test.SetBit(DigitalPortType.SecondPortCL, i);
-                    Thread.Sleep(200);
-                    test.ClearBit(DigitalPortType.SecondPortCL, i);
-                }
-                for (int i = 0; i < 4; i++)
-                {
-                    test.SetBit(DigitalPortType.SecondPortCH, i);
-                    Thread.Sleep(200);
-                    test.ClearBit(DigitalPortType.SecondPortCH, i);
-                }
-                for (int i = 0; i < 8; i++)
-                {
-                    test.SetBit(DigitalPortType.ThirdPortA, i);
-                    Thread.Sleep(200);
-                    test.ClearBit(DigitalPortType.ThirdPortA, i);
-                }
-                for (int i = 0; i < 8; i++)
-                {
-                    test.SetBit(DigitalPortType.ThirdPortB, i);
-                    Thread.Sleep(200);
-                    test.ClearBit(DigitalPortType.ThirdPortB, i);
-                }
-                for (int i = 0; i < 4; i++)
-                {
-                    test.SetBit(DigitalPortType.ThirdPortCL, i);
-                    Thread.Sleep(200);
-                    test.ClearBit(DigitalPortType.ThirdPortCL, i);
-                }
-                for (int i = 0; i < 4; i++)
-                {
-                    test.SetBit(DigitalPortType.ThirdPortCH, i);
-                    Thread.Sleep(200);
-                    test.ClearBit(DigitalPortType.ThirdPortCH, i);
-                }
-                for (int i = 0; i < 8; i++)
-                {
-                    test.SetBit(DigitalPortType.FourthPortA, i);
-                    Thread.Sleep(200);
-                    test.ClearBit(DigitalPortType.FourthPortA, i);
-                }
-                for (int i = 0; i < 8; i++)
-                {
-                    test.SetBit(DigitalPortType.FourthPortB, i);
-                    Thread.Sleep(200);
-                    test.ClearBit(DigitalPortType.FourthPortB, i);
-                }
-                for (int i = 0; i < 4; i++)
-                {
-                    test.SetBit(DigitalPortType.FourthPortCL, i);
-                    Thread.Sleep(200);
-                    test.ClearBit(DigitalPortType.FourthPortCL, i);
-                }
-                for (int i = 0; i < 4; i++)
-                {
-                    test.SetBit(DigitalPortType.FourthPortCH, i);
-                    Thread.Sleep(200);
-                    test.ClearBit(DigitalPortType.FourthPortCH, i);
-
-                }
+                break;
             }
+            test.ClearBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
 
+            return;
 
-
-            Application.Exit();
         }
 
+        private static void TestPowerRelayA(int ms)
+        {
+            MccDaq_GPIO test = new MccDaq_GPIO();
 
+            test.SetPort_Output(DigitalPortType.FirstPortA);
+
+            for (int i = 0; i < 8; i++)
+            {
+                if (i != 5)
+                {
+                    test.SetBit(DigitalPortType.FirstPortA, i);
+                    Thread.Sleep(ms);
+                    test.ClearBit(DigitalPortType.FirstPortA, i);
+                }
+            }
+        }
+        private static void TestSignalRelayA(int ms)
+        {
+            MccDaq_GPIO test = new MccDaq_GPIO();
+
+            test.SetPort_Output(DigitalPortType.FirstPortB);
+
+            for (int i = 0; i < 8; i++)
+            {
+                test.SetBit(DigitalPortType.FirstPortB, i);
+                Thread.Sleep(ms);
+                test.ClearBit(DigitalPortType.FirstPortB, i);
+            }
+        }
+        private static void TestSignalRelayB(int ms)
+        {
+            MccDaq_GPIO test = new MccDaq_GPIO();
+
+            test.SetPort_Output(DigitalPortType.FirstPortCL);
+            test.SetPort_Output(DigitalPortType.FirstPortCH);
+
+            for (int i = 0; i < 4; i++)
+            {
+                test.SetBit(DigitalPortType.FirstPortCL, i);
+                Thread.Sleep(ms);
+                test.ClearBit(DigitalPortType.FirstPortCL, i);
+            }
+            for (int i = 0; i < 4; i++)
+            {
+                test.SetBit(DigitalPortType.FirstPortCH, i);
+                Thread.Sleep(ms);
+                test.ClearBit(DigitalPortType.FirstPortCH, i);
+            }
+        }
+        private static void TestSignalRelayC(int ms)
+        {
+            MccDaq_GPIO test = new MccDaq_GPIO();
+
+            test.SetPort_Output(DigitalPortType.SecondPortA);
+
+            for (int i = 0; i < 8; i++)
+            {
+                test.SetBit(DigitalPortType.SecondPortA, i);
+                Thread.Sleep(ms);
+                test.ClearBit(DigitalPortType.SecondPortA, i);
+            }
+        }
+        private static void TestSignalRelayD(int ms)
+        {
+            MccDaq_GPIO test = new MccDaq_GPIO();
+
+            test.SetPort_Output(DigitalPortType.SecondPortCL);
+            test.SetPort_Output(DigitalPortType.SecondPortCH);
+
+            for (int i = 0; i < 4; i++)
+            {
+                test.SetBit(DigitalPortType.SecondPortCL, i);
+                Thread.Sleep(ms);
+                test.ClearBit(DigitalPortType.SecondPortCL, i);
+            }
+            for (int i = 0; i < 4; i++)
+            {
+                test.SetBit(DigitalPortType.SecondPortCH, i);
+                Thread.Sleep(ms);
+                test.ClearBit(DigitalPortType.SecondPortCH, i);
+            }
+        }
+        private static void TestUSBSwitch(int ms, int toggles)
+        {
+            MccDaq_GPIO test = new MccDaq_GPIO();
+
+            test.SetPort_Output(GPIO_Defs.USB_TGL.port);
+            
+
+            for (int i = 0; i < toggles; i++)
+            {
+                test.SetBit(GPIO_Defs.USB_TGL.port, GPIO_Defs.USB_TGL.pin);
+                Thread.Sleep(ms);
+                test.ClearBit(GPIO_Defs.USB_TGL.port, GPIO_Defs.USB_TGL.pin);
+                Thread.Sleep(ms);
+            }
+           
+        }
     }
+
+
+       
 
     public class GUIConsoleWriter 
     {

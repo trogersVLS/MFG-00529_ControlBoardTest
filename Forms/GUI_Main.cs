@@ -1044,20 +1044,20 @@ namespace ControlBoardTest
         }
         private async void Button_PowerUp_Click(object sender, EventArgs e)
         {
-            if (true)
-            {
-                this.Powered = true;
-                this.Button_PowerUp.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(128)))), ((int)(((byte)(255)))), ((int)(((byte)(128)))));
-                return;
-            }
+            //if (true)
+            //{
+            //    this.Powered = true;
+            //    this.Button_PowerUp.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(128)))), ((int)(((byte)(255)))), ((int)(((byte)(128)))));
+            //    return;
+            //}
             bool success = false;
             if (!this.Powered)
             {
                 Progress<int> progress = new Progress<int>(i => this.ProgressBar.Value = i);
                 Progress<string> message = new Progress<string>(s => this.DisplayMessage(s));
                 Progress<string> log = new Progress<string>(s => this.LogMessage(s));
-                int error;
-                await Task.Factory.StartNew(() => (success = this.FCT.test_power_on(message, log, this.Startup_Steps[0], out error)));
+                
+                await Task.Factory.StartNew(() => (success = this.FCT.test_power_on(message, log, this.Startup_Steps[0])));
                 if (success)
                 {
                     this.Powered = true;

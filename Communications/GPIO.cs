@@ -42,19 +42,21 @@ namespace GPIO
 
                 this.SetPort_Output(DigitalPortType.SecondPortA);
                 this.SetPort(DigitalPortType.SecondPortA, 0);
-                this.SetPort_Input(DigitalPortType.SecondPortB);
+                this.SetPort_Output(DigitalPortType.SecondPortB);
+                this.SetPort(DigitalPortType.SecondPortB, 0);
                 this.SetPort_Output(DigitalPortType.SecondPortCL);
                 this.SetPort(DigitalPortType.SecondPortCL, 0);
-                this.SetPort_Input(DigitalPortType.SecondPortCH);
+                this.SetPort_Output(DigitalPortType.SecondPortCH);
+                this.SetPort(DigitalPortType.SecondPortCH, 0);
 
-                this.SetPort_Output(DigitalPortType.ThirdPortA);
-                this.SetPort(DigitalPortType.ThirdPortA, 0);
-                this.SetPort_Output(DigitalPortType.ThirdPortB);
-                this.SetPort(DigitalPortType.ThirdPortB, 0);
-                this.SetPort_Output(DigitalPortType.ThirdPortCL);
-                this.SetPort(DigitalPortType.ThirdPortCL, 0);
-                this.SetPort_Output(DigitalPortType.ThirdPortCH);
-                this.SetPort(DigitalPortType.ThirdPortCH, 0);
+                this.SetPort_Input(DigitalPortType.ThirdPortA);
+                //this.SetPort(DigitalPortType.ThirdPortA, 0);
+                this.SetPort_Input(DigitalPortType.ThirdPortB);
+                //this.SetPort(DigitalPortType.ThirdPortB, 0);
+                this.SetPort_Input(DigitalPortType.ThirdPortCL);
+                //this.SetPort(DigitalPortType.ThirdPortCL, 0);
+                this.SetPort_Input(DigitalPortType.ThirdPortCH);
+                //this.SetPort(DigitalPortType.ThirdPortCH, 0);
 
 
                 this.SetPort_Output(DigitalPortType.FourthPortA);

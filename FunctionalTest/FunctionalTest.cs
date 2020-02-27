@@ -131,17 +131,14 @@ namespace ControlBoardTest
             }
 
             //There's a long delay between the device booting to the VCM app and the device acquiring an IP address.
-            //message.Report("Connecting to telnet ... ");
-            //Thread.Sleep(timeout);
-            //if (this.Vent.Connect())
-            //{
-            //    //Once connected, set to MFG mode so that we can begin testing the various functions.
-            //    message.Report("Connected!");
-            //    this.Vent.CMD_Write("mfgmode");
-            //    success = true;
-            //    errorCode = 0;
-            //}
-            return this.Vent.Connect();
+            
+            Thread.Sleep(500);
+            if (this.Vent.Connect(_ip_address, "mfgmode", false))
+            {
+                //Once connected, set to MFG mode so that we can begin testing the various functions
+          
+            }
+            return this.Vent.Connected;
         }
         public bool DisconnectTelnet()
         {

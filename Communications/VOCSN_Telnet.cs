@@ -295,7 +295,7 @@ namespace VLS
         public string CMD_Write(string cmd)
         {
             string output = "";
-            if (this.Connected)
+            if (this.cmd_shell.Connected)
             {
                 byte[] buf = System.Text.ASCIIEncoding.ASCII.GetBytes(cmd.Replace("\0xFF", "\0xFF\0xFF"));
                 cmd_shell.GetStream().Write(buf, 0, buf.Length);
@@ -311,7 +311,7 @@ namespace VLS
         public string CMD_Write(string cmd, string end)
         {
             string output = "";
-            if (this.Connected)
+            if (this.cmd_shell.Connected)
             {
                 byte[] buf = System.Text.ASCIIEncoding.ASCII.GetBytes(cmd.Replace("\0xFF", "\0xFF\0xFF"));
                 cmd_shell.GetStream().Write(buf, 0, buf.Length);
