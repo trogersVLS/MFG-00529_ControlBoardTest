@@ -66,8 +66,8 @@ namespace ControlBoardTest
         
 
         public List<TestData> Tests = new List<TestData>();
-        
 
+        bool DEBUG;
         
 
         
@@ -94,11 +94,11 @@ namespace ControlBoardTest
             //This constructor is used for collecting methods from this data type
         }
          
-        public FunctionalTest(SQLiteConnection DB_CON, MccDaq_GPIO GPIO, Test_Equip DMM, Test_Equip PPS, VOCSN_Serial SOM, VLS_Tlm VENT)
+        public FunctionalTest(MccDaq_GPIO GPIO, Test_Equip DMM, Test_Equip PPS, VOCSN_Serial SOM, VLS_Tlm VENT, bool debug = false)
         {
             //This constructor is used for production
 
-
+            this.DEBUG = debug;
             try
             {
                 this.GPIO = GPIO;
@@ -121,30 +121,41 @@ namespace ControlBoardTest
 
         }
 
-        public bool ConnectToTelnet(string _ip_address)
+        public bool ConnectToTelnet(string _ip_address, IProgress<string> message, IProgress<string> logs)
         {   
 
             
             if (_ip_address != null)
             {   
                 this.Vent = new VLS_Tlm(_ip_address);
+                message.Report("Connecting to telemetry ...");
             }
 
             //There's a long delay between the device booting to the VCM app and the device acquiring an IP address.
+            var success = this.Vent.Connect(_ip_address, "mfgmode", true);
             
-            Thread.Sleep(500);
-            if (this.Vent.Connect(_ip_address, "mfgmode", false))
+            if (success)
             {
+                message.Report("Connected!");
                 //Once connected, set to MFG mode so that we can begin testing the various functions
           
             }
-            return this.Vent.Connected;
+            else
+            {
+                message.Report("Connection failed!");
+                this.Vent = null;
+            }
+
+            return success;
         }
         public bool DisconnectTelnet()
         {
             try
             {
-                this.Vent.Disconnect();
+                if (this.Vent != null)
+                {
+                    this.Vent.Disconnect();
+                }
             }
             catch
             {
@@ -250,7 +261,12 @@ namespace ControlBoardTest
             Thread.Sleep(2000);
             return;
         }
-
+        public void EndTest()
+        {
+            this.GPIO.ClearAll();
+            this.PPS.Set_Output(false);
+            this.DisconnectTelnet();
+        }
 
         /******************************************************************************************************************************************
          *                                               DATA LOGGING FUNCTIONS

@@ -39,11 +39,11 @@ namespace VLS
 
         public bool Connected = false;
 
-        int TimeOutMs = 100;
+        int TimeOutMs = 50;
 
         private string _ip_address;
 
-        public Dictionary<int, string> TLMChannels = new Dictionary<int, string>();
+        public Dictionary<string, int> TLMChannels = new Dictionary<string, int>();
 
 
         public VLS_Tlm(string _ip_address)
@@ -82,7 +82,7 @@ namespace VLS
                 tlm_connect = this.TLM_Connect();
                 qnx_connect = this.QNX_Connect();
                 
-                if(cmd_connect & tlm_connect & qnx_connect)
+                if(cmd_connect && tlm_connect && qnx_connect)
                 {
                     success = true;
                     this.Connected = true;
@@ -127,14 +127,19 @@ namespace VLS
                 table = table.Replace("\r", "");
                 
                 //Parse the output and create the dictionary
-                string[] tableArray = table.Split('\n');               
-                
-                for(int i = 0; i < tableArray.Length - 1; i++)
+                string[] tableArray = table.Split('\n');
+
+                for (int i = 0; i < tableArray.Length - 1; i++)
                 {
-                    int channelNum = int.Parse(tableArray[i].Substring(1,3));;
+                    int channelNum = int.Parse(tableArray[i].Substring(1, 3)); ;
                     string channelName = tableArray[i].Substring(5);
 
-                    this.TLMChannels.Add(channelNum, channelName);
+
+                    if (!this.TLMChannels.ContainsKey(channelName))
+                    {
+                        this.TLMChannels.Add(channelName, channelNum);
+                    }
+                    
 
 
                 }
@@ -299,8 +304,14 @@ namespace VLS
             {
                 byte[] buf = System.Text.ASCIIEncoding.ASCII.GetBytes(cmd.Replace("\0xFF", "\0xFF\0xFF"));
                 cmd_shell.GetStream().Write(buf, 0, buf.Length);
-
-                output = this.CMD_Read();
+                var cnt = 0;
+                while ((!output.EndsWith("$vserver> ")))
+                {   
+                    output += this.CMD_Read();
+                    
+                    cnt++;
+                }
+                
             }
             return output;
         }
@@ -315,7 +326,12 @@ namespace VLS
             {
                 byte[] buf = System.Text.ASCIIEncoding.ASCII.GetBytes(cmd.Replace("\0xFF", "\0xFF\0xFF"));
                 cmd_shell.GetStream().Write(buf, 0, buf.Length);
-
+                int cnt = 0;
+                while (!(cmd_shell.Available > 0) && (cnt<TimeOutMs))
+                {
+                    Thread.Sleep(1);
+                    cnt++;
+                }
                 while (!output.EndsWith(end))
                 {
                     output += this.CMD_Read();
@@ -501,9 +517,9 @@ namespace VLS
             s += QNX_Read();
             if (!s.TrimEnd().EndsWith(":"))
                 throw new Exception("Failed to connect : no login prompt");
-            QNX_WriteLine(Username);
+            s = QNX_Write(Username);
 
-            s += QNX_Read();
+            
             if (!s.TrimEnd().EndsWith("#"))
                 throw new Exception("Failed to connect : no password prompt");
             else
@@ -517,16 +533,31 @@ namespace VLS
             return s;
         }
 
-        public void QNX_WriteLine(string cmd)
+        public string QNX_WriteLine(string cmd)
         {
-            QNX_Write(cmd + "\n");
+            var response = QNX_Write(cmd + "\n");
+            return response;
         }
 
-        public void QNX_Write(string cmd)
+         
+        public string QNX_Write(string cmd)
         {
-            if (!qnx_shell.Connected) return;
-            byte[] buf = System.Text.ASCIIEncoding.ASCII.GetBytes(cmd.Replace("\0xFF", "\0xFF\0xFF"));
-            qnx_shell.GetStream().Write(buf, 0, buf.Length);
+            string output = "";
+            cmd += "\n";
+            if (qnx_shell.Connected)
+            {
+                byte[] buf = System.Text.ASCIIEncoding.ASCII.GetBytes(cmd.Replace("\0xFF", "\0xFF\0xFF"));
+                qnx_shell.GetStream().Write(buf, 0, buf.Length);
+                var cnt = 0;
+                while ((!output.EndsWith("# ")) && (cnt < 50))
+                {
+                    output += this.QNX_Read();
+
+                    cnt++;
+                }
+
+            }
+            return output;
         }
 
         public string QNX_Read()

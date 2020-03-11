@@ -42,7 +42,6 @@
             this.Panel_Settings = new System.Windows.Forms.FlowLayoutPanel();
             this.Field_SerialNumber = new System.Windows.Forms.TextBox();
             this.Check_FCT = new System.Windows.Forms.CheckBox();
-            this.Check_Program = new System.Windows.Forms.CheckBox();
             this.Check_SingleTest = new System.Windows.Forms.CheckBox();
             this.MenuBar = new System.Windows.Forms.MainMenu(this.components);
             this.Menu_File = new System.Windows.Forms.MenuItem();
@@ -82,7 +81,7 @@
             this.MainPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.MainPanel.Location = new System.Drawing.Point(0, 0);
             this.MainPanel.Name = "MainPanel";
-            this.MainPanel.Size = new System.Drawing.Size(478, 333);
+            this.MainPanel.Size = new System.Drawing.Size(478, 397);
             this.MainPanel.TabIndex = 31;
             // 
             // Output_Window
@@ -93,7 +92,7 @@
             this.Output_Window.Location = new System.Drawing.Point(3, 240);
             this.Output_Window.Name = "Output_Window";
             this.Output_Window.ReadOnly = true;
-            this.Output_Window.Size = new System.Drawing.Size(472, 90);
+            this.Output_Window.Size = new System.Drawing.Size(472, 154);
             this.Output_Window.TabIndex = 9;
             this.Output_Window.Text = "";
             this.Output_Window.TextChanged += new System.EventHandler(this.Output_Window_TextChanged);
@@ -144,11 +143,13 @@
             this.Dropdown_Test_List.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.Dropdown_Test_List.Enabled = false;
+            this.Dropdown_Test_List.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Dropdown_Test_List.FormattingEnabled = true;
             this.Dropdown_Test_List.Location = new System.Drawing.Point(3, 5);
             this.Dropdown_Test_List.Name = "Dropdown_Test_List";
-            this.Dropdown_Test_List.Size = new System.Drawing.Size(303, 21);
+            this.Dropdown_Test_List.Size = new System.Drawing.Size(303, 22);
             this.Dropdown_Test_List.TabIndex = 15;
+            this.Dropdown_Test_List.SelectedIndexChanged += new System.EventHandler(this.Dropdown_Test_List_SelectedIndexChanged);
             // 
             // Button_Run
             // 
@@ -191,7 +192,6 @@
             // 
             this.Panel_Settings.Controls.Add(this.Field_SerialNumber);
             this.Panel_Settings.Controls.Add(this.Check_FCT);
-            this.Panel_Settings.Controls.Add(this.Check_Program);
             this.Panel_Settings.Controls.Add(this.Check_SingleTest);
             this.Panel_Settings.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
             this.Panel_Settings.Location = new System.Drawing.Point(3, 126);
@@ -216,29 +216,18 @@
             this.Check_FCT.AutoSize = true;
             this.Check_FCT.Location = new System.Drawing.Point(3, 29);
             this.Check_FCT.Name = "Check_FCT";
-            this.Check_FCT.Size = new System.Drawing.Size(128, 33);
+            this.Check_FCT.Size = new System.Drawing.Size(99, 17);
             this.Check_FCT.TabIndex = 7;
             this.Check_FCT.Text = "Functional Test";
             this.Check_FCT.UseVisualStyleBackColor = true;
             this.Check_FCT.CheckedChanged += new System.EventHandler(this.Check_Functional_CheckedChanged);
             // 
-            // Check_Program
-            // 
-            this.Check_Program.AutoSize = true;
-            this.Check_Program.Location = new System.Drawing.Point(3, 68);
-            this.Check_Program.Name = "Check_Program";
-            this.Check_Program.Size = new System.Drawing.Size(93, 33);
-            this.Check_Program.TabIndex = 8;
-            this.Check_Program.Text = "Program";
-            this.Check_Program.UseVisualStyleBackColor = true;
-            this.Check_Program.CheckedChanged += new System.EventHandler(this.Check_Program_CheckedChanged);
-            // 
             // Check_SingleTest
             // 
             this.Check_SingleTest.AutoSize = true;
-            this.Check_SingleTest.Location = new System.Drawing.Point(159, 3);
+            this.Check_SingleTest.Location = new System.Drawing.Point(3, 52);
             this.Check_SingleTest.Name = "Check_SingleTest";
-            this.Check_SingleTest.Size = new System.Drawing.Size(106, 33);
+            this.Check_SingleTest.Size = new System.Drawing.Size(79, 17);
             this.Check_SingleTest.TabIndex = 13;
             this.Check_SingleTest.Text = "Single Test";
             this.Check_SingleTest.UseVisualStyleBackColor = true;
@@ -336,10 +325,10 @@
             this.Status_ToolTag,
             this.Status_UserLabel,
             this.Status_UserTag});
-            this.StatusBar.Location = new System.Drawing.Point(0, 333);
+            this.StatusBar.Location = new System.Drawing.Point(0, 397);
             this.StatusBar.Name = "StatusBar";
             this.StatusBar.Padding = new System.Windows.Forms.Padding(0, 0, 5, 0);
-            this.StatusBar.Size = new System.Drawing.Size(478, 54);
+            this.StatusBar.Size = new System.Drawing.Size(478, 22);
             this.StatusBar.TabIndex = 27;
             this.StatusBar.Text = "StatusStrip";
             // 
@@ -347,52 +336,52 @@
             // 
             this.Status_RevLabel.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.Status_RevLabel.Name = "Status_RevLabel";
-            this.Status_RevLabel.Size = new System.Drawing.Size(144, 41);
+            this.Status_RevLabel.Size = new System.Drawing.Size(57, 17);
             this.Status_RevLabel.Text = "Revision:";
             // 
             // Status_RevTag
             // 
             this.Status_RevTag.Name = "Status_RevTag";
-            this.Status_RevTag.Size = new System.Drawing.Size(162, 41);
+            this.Status_RevTag.Size = new System.Drawing.Size(64, 17);
             this.Status_RevTag.Text = "<revision>";
             // 
             // Status_LocLabel
             // 
             this.Status_LocLabel.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.Status_LocLabel.Name = "Status_LocLabel";
-            this.Status_LocLabel.Size = new System.Drawing.Size(146, 41);
+            this.Status_LocLabel.Size = new System.Drawing.Size(57, 17);
             this.Status_LocLabel.Text = "Location:";
             // 
             // Status_LocTag
             // 
             this.Status_LocTag.Name = "Status_LocTag";
-            this.Status_LocTag.Size = new System.Drawing.Size(166, 41);
+            this.Status_LocTag.Size = new System.Drawing.Size(66, 17);
             this.Status_LocTag.Text = "<location>";
             // 
             // Status_ToolLabel
             // 
             this.Status_ToolLabel.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.Status_ToolLabel.Name = "Status_ToolLabel";
-            this.Status_ToolLabel.Size = new System.Drawing.Size(126, 41);
+            this.Status_ToolLabel.Size = new System.Drawing.Size(49, 17);
             this.Status_ToolLabel.Text = "Tool ID:";
             // 
             // Status_ToolTag
             // 
             this.Status_ToolTag.Name = "Status_ToolTag";
-            this.Status_ToolTag.Size = new System.Drawing.Size(113, 41);
+            this.Status_ToolTag.Size = new System.Drawing.Size(44, 17);
             this.Status_ToolTag.Text = "<tool>";
             // 
             // Status_UserLabel
             // 
             this.Status_UserLabel.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.Status_UserLabel.Name = "Status_UserLabel";
-            this.Status_UserLabel.Size = new System.Drawing.Size(90, 41);
+            this.Status_UserLabel.Size = new System.Drawing.Size(36, 17);
             this.Status_UserLabel.Text = "User:";
             // 
             // Status_UserTag
             // 
             this.Status_UserTag.Name = "Status_UserTag";
-            this.Status_UserTag.Size = new System.Drawing.Size(116, 41);
+            this.Status_UserTag.Size = new System.Drawing.Size(45, 17);
             this.Status_UserTag.Text = "<user>";
             // 
             // ControlBoardTest
@@ -402,7 +391,7 @@
             this.AutoSize = true;
             this.BackColor = System.Drawing.Color.Gainsboro;
             this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
-            this.ClientSize = new System.Drawing.Size(478, 387);
+            this.ClientSize = new System.Drawing.Size(478, 419);
             this.Controls.Add(this.MainPanel);
             this.Controls.Add(this.StatusBar);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
@@ -443,7 +432,6 @@
         private System.Windows.Forms.MenuItem Settings_LoggingLabel;
         private System.Windows.Forms.CheckBox Check_SingleTest;
         private System.Windows.Forms.CheckBox Check_FCT;
-        private System.Windows.Forms.CheckBox Check_Program;
         private System.Windows.Forms.FlowLayoutPanel Panel_Settings;
         private System.Windows.Forms.MenuItem File_ChangeUser;
 

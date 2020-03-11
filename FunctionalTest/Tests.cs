@@ -16,6 +16,7 @@ using System.Threading;
 using System.Diagnostics;
 using MccDaq;
 using GPIO;
+using System.Text.RegularExpressions;
 
 namespace ControlBoardTest
 {
@@ -74,20 +75,20 @@ namespace ControlBoardTest
             cpld_cmd.StartInfo = cpld_info;
             cpld_cmd.Start();
             //string output = cpld_cmd.StandardOutput.ReadToEnd();
-            message.Report("Starting programmer ...");
+            log.Report("Starting programmer ...");
             while (!File.Exists(ResultFilePath))
             {
                 Thread.Sleep(2000);
-                message.Report("...");
+                log.Report("...");
             }
             if (CPLD_LogRead(ResultFilePath, Verify_Success))
             {
-                message.Report("CPLD Verify Successful");
+                log.Report("CPLD Verify Successful");
                 success = true;
             }
             else
             {
-                message.Report("CPLD Verify unsuccessful");
+                log.Report("CPLD Verify unsuccessful");
                 success = false;
             }
 
@@ -136,20 +137,20 @@ namespace ControlBoardTest
             cpld_cmd.StartInfo = cpld_info;
             cpld_cmd.Start();
             //string output = cpld_cmd.StandardOutput.ReadToEnd();
-            message.Report("Starting programmer ...");
+            log.Report("Starting programmer ...");
             while (!File.Exists(ResultFilePath))
             {
                 Thread.Sleep(2000);
-                message.Report("...");
+                log.Report("...");
             }
             if (CPLD_LogRead(ResultFilePath, Program_Success))
             {
-                message.Report("CPLD Program Successful");
+                log.Report("CPLD Program Successful");
                 success = true;
             }
             else
             {
-                message.Report("CPLD Program unsuccessful");
+                log.Report("CPLD Program unsuccessful");
                 success = false;
             }
 
@@ -228,13 +229,13 @@ namespace ControlBoardTest
             cmd_info.UseShellExecute = false;
             cmd_info.WorkingDirectory = HerculesScriptPath.Remove(HerculesScriptPath.LastIndexOf("\\")); // TODO: sets the current directory to the directory that the hercules program script is located by removing the file name at the end of the string
             cmd.StartInfo = cmd_info;
-            message.Report("Starting Hercules programmer ...");
+            log.Report("Starting Hercules programmer ...");
 
 
             cmd.Start(); //Executes the script and pauses until the script has finished executing
 
             cmd_output = cmd.StandardOutput.ReadToEnd();
-            message.Report("Programmer exit");
+            log.Report("Programmer exit");
 
             //Confirms that the script was successful by comparing the 
             if (cmd_output.Contains("Program verification successful")) // Contains may be somewhat slow for this use case TODO: Determine if there is a better way?
@@ -271,7 +272,7 @@ namespace ControlBoardTest
             if (this.SOM.Connected)
             {
                 //Cycle power
-                message.Report("Cycling Power ...\n");
+                log.Report("Cycling Power ...\n");
                 this.GPIO.SetBit(GPIO_Defs.AC_EN.port, 0);
                 Thread.Sleep(100);
                 this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
@@ -280,7 +281,7 @@ namespace ControlBoardTest
                 //Device needs to boot U-Boot
                 if (!Booted)
                 {
-                    message.Report("Device did not boot to U-Boot\nCycling power again ...\n");
+                    log.Report("Device did not boot to U-Boot\nCycling power again ...\n");
                     this.GPIO.SetBit(GPIO_Defs.AC_EN.port, 0x00);
                     Thread.Sleep(100);
                     this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
@@ -289,14 +290,14 @@ namespace ControlBoardTest
 
                     if (!Booted)
                     {
-                        message.Report("Device does not boot properly.\nPowering down ...");
+                        log.Report("Device does not boot properly.\nPowering down ...");
                         this.GPIO.SetBit(GPIO_Defs.AC_EN.port, 0);
                         success = false;
                     }
                 }
                 else if(Booted)
                 {
-                    message.Report("Successfully booted to U-Boot\nLoading QNX ...");
+                    log.Report("Successfully booted to U-Boot\nLoading QNX ...");
                     
                     this.SOM.Command("mmc dev; fatload mmc 0 0x81000000 qnxifs; go 0x81000000",out output, "U-Boot# ", 5000);
 
@@ -305,11 +306,11 @@ namespace ControlBoardTest
 
                     if (!Booted)
                     {
-                        message.Report("Device did not boot correctly");
+                        log.Report("Device did not boot correctly");
                     }
                     else
                     {
-                        message.Report("Formatting NAND");
+                        log.Report("Formatting NAND");
                         Formatted = this.SOM.Command("fs-etfs-jacinto5_micron -D gpmc=0x50000000, cache, ipl=4, ifs=1024 -r131072 -e -m /fs/etfs", 
                                                   out output, "# ", 20000);
                         if (Formatted)
@@ -372,14 +373,14 @@ namespace ControlBoardTest
             {   
 
                 //Swap the USB drive to the UUT.
-                message.Report("Turning on the device ...");
+                log.Report("Turning on the device ...");
                 this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
 
                 success = this.SOM.ReadUntil("Waiting 3 seconds for /fs/usb", out output, 5000);
 
                 if (success) {
                     success = false;
-                    message.Report("Starting software update ...");
+                    log.Report("Starting software update ...");
 
                     this.GPIO.SetBit(GPIO_Defs.AS_BTN_ON.port, GPIO_Defs.AS_BTN_ON.pin);
 
@@ -387,7 +388,7 @@ namespace ControlBoardTest
                     if (success)
                     {
                         success = false;
-                        message.Report("Updating the NAND flash ...");
+                        log.Report("Updating the NAND flash ...");
 
                         success = this.SOM.ReadUntil("display_image", out output, 100000);
                         if (success)
@@ -395,13 +396,13 @@ namespace ControlBoardTest
                             success = false;
                             // Turn off device using the power button.
                             Thread.Sleep(500);
-                            message.Report("Powering down device ...");
+                            log.Report("Powering down device ...");
                             this.GPIO.SetBit(GPIO_Defs.PB_BTN_ON.port, GPIO_Defs.PB_BTN_ON.pin);
                             Thread.Sleep(500);
                             this.GPIO.SetBit(GPIO_Defs.PB_BTN_ON.port, 0x00);
                             this.SOM.Booted = false;
 
-                            message.Report("\nSoftware update successful!");
+                            log.Report("\nSoftware update successful!");
 
                             
                            
@@ -445,7 +446,7 @@ namespace ControlBoardTest
             {
 
                 //Swap the USB drive to the UUT.
-                message.Report("Turning on the device ...");
+                log.Report("Turning on the device ...");
                 this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
 
                 success = this.SOM.ReadUntil("Waiting 3 seconds for /fs/usb", out output, 5000);
@@ -453,7 +454,7 @@ namespace ControlBoardTest
                 if (success)
                 {
                     success = false;
-                    message.Report("Starting software update ...");
+                    log.Report("Starting software update ...");
 
                     this.GPIO.SetBit(GPIO_Defs.AS_BTN_ON.port, GPIO_Defs.AS_BTN_ON.pin);
 
@@ -461,7 +462,7 @@ namespace ControlBoardTest
                     if (success)
                     {
                         success = false;
-                        message.Report("Updating the NAND flash ...");
+                        log.Report("Updating the NAND flash ...");
 
                         success = this.SOM.ReadUntil("display_image", out output, 100000);
                         if (success)
@@ -469,13 +470,13 @@ namespace ControlBoardTest
                             success = false;
                             // Turn off device using the power button.
                             Thread.Sleep(500);
-                            message.Report("Powering down device ...");
+                            log.Report("Powering down device ...");
                             this.GPIO.SetBit(GPIO_Defs.PB_BTN_ON.port, GPIO_Defs.PB_BTN_ON.pin);
                             Thread.Sleep(500);
                             this.GPIO.SetBit(GPIO_Defs.PB_BTN_ON.port, 0x00);
                             this.SOM.Booted = false;
 
-                            message.Report("\nSoftware update successful!");
+                            log.Report("\nSoftware update successful!");
 
 
 
@@ -502,7 +503,7 @@ namespace ControlBoardTest
          *                          returns false if the usb drive is not correctly prepared.
          * 
          ******************************************************************************************************************************/
-        private bool CopySoftware_USB(IProgress<string> message, string sw_version = "MFG", int iteration = 0)
+        private bool CopySoftware_USB(IProgress<string> log, string sw_version = "MFG", int iteration = 0)
         {
             bool success = false;
             string filepath;
@@ -521,15 +522,15 @@ namespace ControlBoardTest
                 {
                     if (drive.VolumeLabel == "MFG527")
                     {
-                        message.Report("Preparing USB drive ...");
+                        log.Report("Preparing USB drive ...");
                         //Delete the current software update files
                         string targetPath = drive.Name;
                         if (Directory.Exists(targetPath + "vswupdate"))
                         {
-                            message.Report("Deleting directory: " + targetPath + "\\vswupdate");
+                            log.Report("Deleting directory: " + targetPath + "\\vswupdate");
                             Directory.Delete(targetPath + "vswupdate", true);
                         }
-                        message.Report("Copying software update files to " + targetPath);
+                        log.Report("Copying software update files to " + targetPath);
                         //Copy the update files for the intended software
                         CopyDirectory(filepath, targetPath + "vswupdate");
                         success = true;
@@ -538,7 +539,7 @@ namespace ControlBoardTest
             }
             if(!success && iteration < 4) //Couldn't find the USB drive.
             {
-                message.Report("Could not find the drive");
+                log.Report("Could not find the drive");
                 ushort initialVal = 1;//this.GPIO.getPort(GPIO_Defs.USB_TGL.port);
                 this.GPIO.SetBit(GPIO_Defs.USB_TGL.port,GPIO_Defs.USB_TGL.pin);
                 Thread.Sleep(100);
@@ -546,7 +547,7 @@ namespace ControlBoardTest
                 Thread.Sleep(1000);
                 
                 
-                success = CopySoftware_USB(message, sw_version, ++iteration);
+                success = CopySoftware_USB(log, sw_version, ++iteration);
             }
 
             Thread.Sleep(500);
@@ -622,17 +623,17 @@ namespace ControlBoardTest
 
             this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
 
-            message.Report("Does the device boot to the touchscreen calibration screen?");
+            log.Report("Does the device boot to the touchscreen calibration screen?");
             
             if(true)
             {
-                message.Report("Perform the touchscreen calibration, select \"yes\" when done");
+                log.Report("Perform the touchscreen calibration, select \"yes\" when done");
 
                 success = this.SOM.ReadUntil("calib-touch", out output);
 
                 if (!success)
                 {
-                    message.Report("Device did not power up correctly");
+                    log.Report("Device did not power up correctly");
                 }
             }
             else
@@ -677,7 +678,7 @@ namespace ControlBoardTest
                 Thread.Sleep(500);
                 this.GPIO.ClearBit(GPIO_Defs.PB_BTN_ON.port,GPIO_Defs.PB_BTN_ON.pin);
 
-                message.Report("Powering up ... ");
+                log.Report("Powering up ... ");
 
                 if (this.SOM.ReadUntil("screen driver", out output, 20000))
                 {   
@@ -694,7 +695,7 @@ namespace ControlBoardTest
                     {
 
                         this.powered = true;
-                        message.Report("Successfully powered up");
+                        log.Report("Successfully powered up");
                         success = true;
 
 
@@ -738,11 +739,11 @@ namespace ControlBoardTest
             if (this.GPIO.Connected)
             {
                 //Disables the AC power supply
-                this.GPIO.SetBit(GPIO_Defs.AC_EN.port, 0);
+                this.GPIO.ClearBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
 
                 
 
-               //message.Report("Powering down");
+               log.Report("Powering down");
 
                 this.Vent.Disconnect();
                 
@@ -813,13 +814,13 @@ namespace ControlBoardTest
 
 
             //Blocking until user input is given --> Possible options are: "yes", or "no" 
-            message.Report("Is the LCD screen clear?");
+            //log.Report("Is the LCD screen clear?");
 
             result = this.PromptUser_YesNo("Is the LCD screen clear?", test.name);
 
             if (result)
             {
-                message.Report("Test Passed!");
+                //log.Report("Test Passed!");
                 measured = "pass";
                 success = true;
 
@@ -829,11 +830,21 @@ namespace ControlBoardTest
 
                 measured = this.PromptUser("Describe the failure", test.name);
 
-                message.Report("Test Failed");
+                //log.Report("Test Failed");
                 success = false;
             }
 
-            test.parameters.Add("measured", measured);
+            //Fill in measurement parameter
+            if (success)
+            {
+                log.Report(test.name + ": PASS");
+                test.parameters["measured"] = "PASS";
+            }
+            else
+            {
+                log.Report(test.name + ": FAIL");
+                test.parameters["measured"] = "FAIL";
+            }
 
             return success;
         }
@@ -872,27 +883,27 @@ namespace ControlBoardTest
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_3V3_HOT_EN.port, GPIO_Defs.MEAS_3V3_HOT_EN.pin);
 
 
-                message.Report("Measured: " + measured.ToString() + " V\n");
+                log.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report("Test PASS");
+                    
                     success = true;
                 }
                 else
                 {
-                    message.Report("Test FAIL");
+                    
                     success = false;
                 }
                 //Fill in measurement parameter
                 if (success)
                 {
-                    message.Report(test.name + ": PASS");
+                    log.Report(test.name + ": PASS");
                     test.parameters["measured"] = measured.ToString();
                 }
                 else
                 {
-                    message.Report(test.name + ": FAIL");
+                    log.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
             }
@@ -933,27 +944,25 @@ namespace ControlBoardTest
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_5V0_HOT_EN.port, GPIO_Defs.MEAS_5V0_HOT_EN.pin);
 
 
-                message.Report("Measured: " + measured.ToString() + " V\n");
+                log.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report("Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report("Test FAIL");
                     success = false;
                 }
                 //Fill in measurement parameter
                 if (success)
                 {
-                    message.Report(test.name + ": PASS");
+                    log.Report(test.name + ": PASS");
                     test.parameters["measured"] = measured.ToString();
                 }
                 else
                 {
-                    message.Report(test.name + ": FAIL");
+                    log.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
             }
@@ -993,27 +1002,25 @@ namespace ControlBoardTest
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_5V3_EN.port, GPIO_Defs.MEAS_5V3_EN.pin);
 
 
-                message.Report("Measured: " + measured.ToString() + " V\n");
+                log.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report("Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report("Test FAIL");
                     success = false;
                 }
                 //Fill in measurement parameter
                 if (success)
                 {
-                    message.Report(test.name + ": PASS");
+                    log.Report(test.name + ": PASS");
                     test.parameters["measured"] = measured.ToString();
                 }
                 else
                 {
-                    message.Report(test.name + ": FAIL");
+                    log.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
             }
@@ -1053,27 +1060,25 @@ namespace ControlBoardTest
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_12V0_EN.port, GPIO_Defs.MEAS_12V0_EN.pin);
 
 
-                message.Report("Measured: " + measured.ToString() + " V\n");
+                log.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report("Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report("Test FAIL");
                     success = false;
                 }
                 //Fill in measurement parameter
                 if (success)
                 {
-                    message.Report(test.name + ": PASS");
+                    log.Report(test.name + ": PASS");
                     test.parameters["measured"] = measured.ToString();
                 }
                 else
                 {
-                    message.Report(test.name + ": FAIL");
+                    log.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
             }
@@ -1113,27 +1118,25 @@ namespace ControlBoardTest
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_3V3_EN.port, GPIO_Defs.MEAS_3V3_EN.pin);
 
 
-                message.Report("Measured: " + measured.ToString() + " V\n");
+                log.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report("Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report("Test FAIL");
                     success = false;
                 }
                 //Fill in measurement parameter
                 if (success)
                 {
-                    message.Report(test.name + ": PASS");
+                    log.Report(test.name + ": PASS");
                     test.parameters["measured"] = measured.ToString();
                 }
                 else
                 {
-                    message.Report(test.name + ": FAIL");
+                    log.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
             }
@@ -1173,27 +1176,25 @@ namespace ControlBoardTest
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_1V2_EN.port, GPIO_Defs.MEAS_1V2_EN.pin);
 
 
-                message.Report("Measured: " + measured.ToString() + " V\n");
+                log.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report("Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report("Test FAIL");
                     success = false;
                 }
                 //Fill in measurement parameter
                 if (success)
                 {
-                    message.Report(test.name + ": PASS");
+                    log.Report(test.name + ": PASS");
                     test.parameters["measured"] = measured.ToString();
                 }
                 else
                 {
-                    message.Report(test.name + ": FAIL");
+                    log.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
             }
@@ -1233,27 +1234,25 @@ namespace ControlBoardTest
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_VREF_EN.port, GPIO_Defs.MEAS_VREF_EN.pin);
 
 
-                message.Report("Measured: " + measured.ToString() + " V\n");
+                log.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report("Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report("Test FAIL");
                     success = false;
                 }
                 //Fill in measurement parameter
                 if (success)
                 {
-                    message.Report(test.name + ": PASS");
+                    log.Report(test.name + ": PASS");
                     test.parameters["measured"] = measured.ToString();
                 }
                 else
                 {
-                    message.Report(test.name + ": FAIL");
+                    log.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
             }
@@ -1293,27 +1292,25 @@ namespace ControlBoardTest
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_3V3A_EN.port, GPIO_Defs.MEAS_3V3A_EN.pin);
 
 
-                message.Report("Measured: " + measured.ToString() + " V\n");
+                log.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report("Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report("Test FAIL");
                     success = false;
                 }
                 //Fill in measurement parameter
                 if (success)
                 {
-                    message.Report(test.name + ": PASS");
+                    log.Report(test.name + ": PASS");
                     test.parameters["measured"] = measured.ToString();
                 }
                 else
                 {
-                    message.Report(test.name + ": FAIL");
+                    log.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
             }
@@ -1353,27 +1350,25 @@ namespace ControlBoardTest
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_30V_EN.port, GPIO_Defs.MEAS_30V_EN.pin);
 
 
-                message.Report("Measured: " + measured.ToString() + " V\n");
+                log.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report("Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report("Test FAIL");
                     success = false;
                 }
                 //Fill in measurement parameter
                 if (success)
                 {
-                    message.Report(test.name + ": PASS");
+                    log.Report(test.name + ": PASS");
                     test.parameters["measured"] = measured.ToString();
                 }
                 else
                 {
-                    message.Report(test.name + ": FAIL");
+                    log.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
             }
@@ -1413,27 +1408,25 @@ namespace ControlBoardTest
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_36V_EN.port, GPIO_Defs.MEAS_36V_EN.pin);
 
 
-                message.Report("Measured: " + measured.ToString() + " V\n");
+                log.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report("Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report("Test FAIL");
                     success = false;
                 }
                 //Fill in measurement parameter
                 if (success)
                 {
-                    message.Report(test.name + ": PASS");
+                    log.Report(test.name + ": PASS");
                     test.parameters["measured"] = measured.ToString();
                 }
                 else
                 {
-                    message.Report(test.name + ": FAIL");
+                    log.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
             }
@@ -1468,24 +1461,25 @@ namespace ControlBoardTest
 
             if (this.powered && this.GPIO.Connected && this.Vent.Connected)
             {
-                message.Report("Setting blower speed  to: " + speed.ToString() + " RPM");
+                log.Report("Setting blower speed  to: " + speed.ToString() + " RPM");
 
                 ventOutput = this.Vent.CMD_Write("set vcm testmgr speed " + speed.ToString());
 
                 Thread.Sleep(500);
-                //Measure value
+                
 
 
                 //Connect the desired voltage node to the DMM
                 this.GPIO.SetBit(GPIO_Defs.MEAS_FREQ_BLOWER.port, GPIO_Defs.MEAS_FREQ_BLOWER.pin);
-                Thread.Sleep(DMM_DELAY);
+                Thread.Sleep(1000);
 
                 //Measure the voltage
-                measured = this.DMM.Get_Freq();
+                measured = this.DMM.Get_Freq() * 60; //Convert to RPM
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_FREQ_BLOWER.port, GPIO_Defs.MEAS_FREQ_BLOWER.pin);
 
                 this.Vent.CMD_Write("set vcm testmgr stop");
 
+                log.Report("Measured: " + measured.ToString());
                 if((measured <= (speed * (1 + (tolerance/100)))) && (measured >= (speed * (1 - (tolerance / 100)))))
                 {
                     success = true;
@@ -1495,30 +1489,91 @@ namespace ControlBoardTest
                 //Fill in measurement parameter
                 if (success)
                 {
-                    message.Report(test.name + ": PASS");
+                    log.Report(test.name + ": PASS");
                     test.parameters["measured"] = measured.ToString();
                 }
                 else
                 {
-                    message.Report(test.name + ": FAIL");
+                    log.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
             }
-            else
+           
+
+
+
+
+            return success;
+        }
+        /******************************************************************************************************************************
+         *  test_pump
+         *  
+         *  Function: Tests the pump motor driver by commanding a specific speed, then measuring the frequency out.
+         *  
+         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+         *             TestData test             - Variable that contains all of the necessary test data.
+         *             
+         *             parameters: - speed : speed to test pump at
+         *                         - tolerance: tolerance to measure speed to: in percentage
+         *      
+         *  
+         *  Returns: bool success - returns true if the test passes
+         ******************************************************************************************************************************/
+        private bool test_pump(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+
+            string ventOutput;
+            float measured;
+
+            //Note: TryParse not used here because in no situation should the user be able to edit the configuration file. Ergo, no need to catch the error unless working in a dev environment, which throwing an exception is more acceptable as it's useful for debugging what happened.
+            float speed = int.Parse(test.parameters["speed"]);
+            float tolerance = int.Parse(test.parameters["tolerance"]);
+
+            if (this.powered && this.GPIO.Connected && this.Vent.Connected)
             {
-                if (!this.powered)
+
+                float upper = float.Parse(test.parameters["upper"]);
+                float lower = float.Parse(test.parameters["lower"]);
+
+                log.Report("Setting pump speed  to: " + speed.ToString() + " RPM");
+
+                ventOutput = this.Vent.CMD_Write("set vcm testmgr o2speed " + speed.ToString());
+
+                Thread.Sleep(500);
+                //Measure value
+
+
+                //Connect the desired voltage node to the DMM
+                this.GPIO.SetBit(GPIO_Defs.MEAS_FREQ_PUMP.port, GPIO_Defs.MEAS_FREQ_PUMP.pin);
+                Thread.Sleep(DMM_DELAY);
+
+                //Measure the voltage
+                measured = this.DMM.Get_Freq(); //Convert to RPM
+                this.GPIO.ClearBit(GPIO_Defs.MEAS_FREQ_PUMP.port, GPIO_Defs.MEAS_FREQ_PUMP.pin);
+
+                measured = measured * 6;
+                this.Vent.CMD_Write("set vcm testmgr o2stop");
+
+                if ((measured <= upper) && (measured >= lower))
                 {
-                    message.Report("UUT is not powered");
+                    success = true;
                 }
-                if (!this.Vent.Connected)
+
+                log.Report("Measured: " + measured.ToString());
+                //Fill in measurement parameter
+                if (success)
                 {
-                    message.Report("UUT is not connected to Telnet");
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = measured.ToString();
                 }
-                if (!this.GPIO.Connected)
+                else
                 {
-                    message.Report("GPIO Module is not connected");
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = measured.ToString();
                 }
             }
+            
 
 
 
@@ -1526,8 +1581,6 @@ namespace ControlBoardTest
             return success;
         }
 
-
-        
         /******************************************************************************************************************************
          *  test_sov
          *  
@@ -1543,42 +1596,45 @@ namespace ControlBoardTest
         {
             bool success = false;
             
-            int on_state;
+           
             string output;
 
             int measured;
 
             test.parameters.TryGetValue("on_state", out output);
 
-            if(output == "high")
-            {
-                on_state = 1;
-            }
-            else if(output == "low")
-            {
-                on_state = 0;
+            
+
+            this.Vent.CMD_Write("set vcm sv 11 1");
+
+            //Read the input value
+            measured = this.GPIO.GetBit(GPIO_Defs.SOV_SV11.port, GPIO_Defs.SOV_SV11.pin);
+            if(measured == 0) { 
+                success = true;
             }
 
             this.Vent.CMD_Write("set vcm sv 11 0");
 
             //Read the input value
             measured = this.GPIO.GetBit(GPIO_Defs.SOV_SV11.port, GPIO_Defs.SOV_SV11.pin);
-            if(measured == 1)
-            {
-                success = true;
-            }
-
-            this.Vent.CMD_Write("set vcm sv 11 1");
-
-            //Read the input value
-            measured = this.GPIO.GetBit(GPIO_Defs.SOV_SV11.port, GPIO_Defs.SOV_SV11.pin);
-            if (measured == 0)
+            if (measured == 1)
             {
                 success = true;
             }
             else
             {
                 success = false;
+            }
+            //Fill in measurement parameter
+            if (success)
+            {
+                log.Report(test.name + ": PASS");
+                test.parameters["measured"] = "PASS";
+            }
+            else
+            {
+                log.Report(test.name + ": FAIL");
+                test.parameters["measured"] = "FAIL";
             }
 
 
@@ -1599,88 +1655,57 @@ namespace ControlBoardTest
          ******************************************************************************************************************************/
         private bool test_sv9_off(IProgress<string> message, IProgress<string> log, TestData test)
         {
-            string str_value;
-            bool value_available;
+
             bool success = false;
-            
+            float measured;
             float upper = 0;
             float lower = 0;
 
-            if (!this.Vent.Connected)
+            if (this.powered && this.DMM.Connected && this.Vent.Connected)
             {
-                //Need to connect to device.
-                this.Vent.Connect();
-                message.Report("Connecting to device ...");
-                
-            }
-            try
-            {
-                this.Vent.CMD_Write("mfgmode");
-                
+
+                upper = float.Parse(test.parameters["upper"]);
+                lower = float.Parse(test.parameters["lower"]);
+                //Get parameters from test data object
+
                 this.Vent.CMD_Write("set vcm sv 9 0");
-                
-            }
-            catch
-            {
+                //Connect the desired voltage node to the DMM
+                this.GPIO.SetBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
+                this.GPIO.SetBit(GPIO_Defs.MEAS_O2_SV1N_EN.port, GPIO_Defs.MEAS_O2_SV1N_EN.pin);
+                Thread.Sleep(DMM_DELAY);
 
-            }
-          
-            
-            //Get parameters from test data object
-            value_available = test.parameters.TryGetValue("upper", out str_value);
-            if (value_available)
-            {
-                upper = float.Parse(str_value, System.Globalization.NumberStyles.Float);
-            }
-            value_available = test.parameters.TryGetValue("lower", out str_value);
-            if (value_available)
-            {
-                lower = float.Parse(str_value, System.Globalization.NumberStyles.Float);
-            }
+                //Measure the voltage
+                measured = this.DMM.Get_Volts();
+                this.GPIO.ClearBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
+                this.GPIO.ClearBit(GPIO_Defs.MEAS_O2_SV1N_EN.port, GPIO_Defs.MEAS_O2_SV1N_EN.pin);
+                this.Vent.CMD_Write("set vcm sv 9 0");
 
-            //Connect the desired voltage node to the DMM
-            this.GPIO.SetBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
-            this.GPIO.SetBit(GPIO_Defs.MEAS_O2_SV1N_EN.port, GPIO_Defs.MEAS_O2_SV1N_EN.pin);
-            Thread.Sleep(DMM_DELAY);
 
-            //Measure the voltage
-            float measured = this.DMM.Get_Volts();
-            string val;
-            if (!test.parameters.TryGetValue("measured", out val))
-            {
-                test.parameters["measured"] = measured.ToString();
-            }
-            else
-            {
-                test.parameters.Add("measured", measured.ToString());
-            }
-            try
-            {
-                message.Report("Measured: " + measured.ToString() + " V\n");
+                log.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report("SV1 Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report("SV1 Test FAIL");
                     success = false;
                 }
+
+                //Fill in measurement parameter
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = measured.ToString();
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = measured.ToString();
+                }
+
+
             }
-            catch
-            {
-                success = false;
-            }
-
-
-
-
-            this.GPIO.ClearBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
-            this.GPIO.ClearBit(GPIO_Defs.MEAS_O2_SV1N_EN.port, GPIO_Defs.MEAS_O2_SV1N_EN.pin);
-
-
             return success;
         }
         /******************************************************************************************************************************
@@ -1695,81 +1720,57 @@ namespace ControlBoardTest
          *                          returns false if voltage measurement is outside the defined limits or the DMM is not connected.
          ******************************************************************************************************************************/
         private bool test_sv10_off(IProgress<string> message, IProgress<string> log, TestData test)
-        {
-            string str_value;
-            bool value_available;
+        { 
+
             bool success = false;
-            
+            float measured;
             float upper = 0;
             float lower = 0;
 
-           
-            try
+            if (this.powered && this.DMM.Connected && this.Vent.Connected)
             {
-                this.Vent.CMD_Write("mfgmode");
-                
+
+                upper = float.Parse(test.parameters["upper"]);
+                lower = float.Parse(test.parameters["lower"]);
+                //Get parameters from test data object
+
                 this.Vent.CMD_Write("set vcm sv 10 0");
-                
-            }
-            catch
-            {
+                //Connect the desired voltage node to the DMM
+                this.GPIO.SetBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
+                this.GPIO.SetBit(GPIO_Defs.MEAS_O2_SV2N_EN.port, GPIO_Defs.MEAS_O2_SV2N_EN.pin);
+                Thread.Sleep(DMM_DELAY);
 
-            }
+                //Measure the voltage
+                measured = this.DMM.Get_Volts();
+                this.GPIO.ClearBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
+                this.GPIO.ClearBit(GPIO_Defs.MEAS_O2_SV2N_EN.port, GPIO_Defs.MEAS_O2_SV2N_EN.pin);
+                this.Vent.CMD_Write("set vcm sv 10 0");
 
-            
-            //Get parameters from test data object
-            value_available = test.parameters.TryGetValue("upper", out str_value);
-            if (value_available)
-            {
-                upper = float.Parse(str_value, System.Globalization.NumberStyles.Float);
-            }
-            value_available = test.parameters.TryGetValue("lower", out str_value);
-            if (value_available)
-            {
-                lower = float.Parse(str_value, System.Globalization.NumberStyles.Float);
-            }
 
-            //Connect the desired voltage node to the DMM
-            this.GPIO.SetBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
-            this.GPIO.SetBit(GPIO_Defs.MEAS_O2_SV2N_EN.port, GPIO_Defs.MEAS_O2_SV2N_EN.pin);
-            Thread.Sleep(DMM_DELAY);
-
-            //Measure the voltage
-            float measured = this.DMM.Get_Volts();
-            string val;
-            if (!test.parameters.TryGetValue("measured", out val))
-            {
-                test.parameters["measured"] = measured.ToString();
-            }
-            else
-            {
-                test.parameters.Add("measured", measured.ToString());
-            }
-            try
-            {
-                message.Report("Measured: " + measured.ToString() + " V\n");
+                log.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report("Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report("Test FAIL");
                     success = false;
                 }
+                //Fill in measurement parameter
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = measured.ToString();
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = measured.ToString();
+                }
+
+
             }
-            catch
-            {
-                success = false;
-            }
-            this.GPIO.ClearBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
-            this.GPIO.ClearBit(GPIO_Defs.MEAS_O2_SV2N_EN.port, GPIO_Defs.MEAS_O2_SV2N_EN.pin);
-
-
-
-
             return success;
         }
         /******************************************************************************************************************************
@@ -1785,88 +1786,55 @@ namespace ControlBoardTest
          ******************************************************************************************************************************/
         private bool test_sv9_on(IProgress<string> message, IProgress<string> log, TestData test)
         {
-            string str_value;
-            bool value_available;
             bool success = false;
-            
+            float measured;
             float upper = 0;
             float lower = 0;
 
-            try
+            if (this.powered && this.DMM.Connected && this.Vent.Connected)
             {
-                this.Vent.CMD_Write("mfgmode");
-                
+
+                upper = float.Parse(test.parameters["upper"]);
+                lower = float.Parse(test.parameters["lower"]);
+                //Get parameters from test data object
+
                 this.Vent.CMD_Write("set vcm sv 9 1");
-                
-            }
-            catch
-            {
+                //Connect the desired voltage node to the DMM
+                this.GPIO.SetBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
+                this.GPIO.SetBit(GPIO_Defs.MEAS_O2_SV1N_EN.port, GPIO_Defs.MEAS_O2_SV1N_EN.pin);
+                Thread.Sleep(DMM_DELAY);
 
-            }
+                //Measure the voltage
+                measured = this.DMM.Get_Volts();
+                this.GPIO.ClearBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
+                this.GPIO.ClearBit(GPIO_Defs.MEAS_O2_SV1N_EN.port, GPIO_Defs.MEAS_O2_SV1N_EN.pin);
+                this.Vent.CMD_Write("set vcm sv 9 0");
 
-            //Get parameters from test data object
-            value_available = test.parameters.TryGetValue("upper", out str_value);
-            if (value_available)
-            {
-                upper = float.Parse(str_value, System.Globalization.NumberStyles.Float);
-            }
-            value_available = test.parameters.TryGetValue("lower", out str_value);
-            if (value_available)
-            {
-                lower = float.Parse(str_value, System.Globalization.NumberStyles.Float);
-            }
 
-            //Connect the desired voltage node to the DMM
-            this.GPIO.SetBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
-            this.GPIO.SetBit(GPIO_Defs.MEAS_O2_SV1N_EN.port, GPIO_Defs.MEAS_O2_SV1N_EN.pin);
-            Thread.Sleep(DMM_DELAY);
-
-            //Measure the voltage
-            float measured = this.DMM.Get_Volts();
-            string val;
-            if (!test.parameters.TryGetValue("measured", out val))
-            {
-                test.parameters["measured"] = measured.ToString();
-            }
-            else
-            {
-                test.parameters.Add("measured", measured.ToString());
-            }
-            try
-            {
-                message.Report("Measured: " + measured.ToString() + " V\n");
+                log.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report("SV9 Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report("SV9 Test FAIL");
                     success = false;
                 }
-            }
-            catch
-            {
-                success = false;
-            }
-                
-            try
-            {
-                this.Vent.CMD_Write("set vcm sv 9 0");
-                
-            }
-            catch
-            {
+                //Fill in measurement parameter
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = measured.ToString();
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = measured.ToString();
+                }
+
 
             }
-            this.GPIO.ClearBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
-            this.GPIO.ClearBit(GPIO_Defs.MEAS_O2_SV1N_EN.port, GPIO_Defs.MEAS_O2_SV1N_EN.pin);
-
-            
-            
-
             return success;
         }
         /******************************************************************************************************************************
@@ -1881,88 +1849,57 @@ namespace ControlBoardTest
          ******************************************************************************************************************************/
         private bool test_sv10_on(IProgress<string> message, IProgress<string> log, TestData test)
         {
-            string str_value;
-            bool value_available;
             bool success = false;
-            
+            float measured;
             float upper = 0;
             float lower = 0;
 
-            try
+            if (this.powered && this.DMM.Connected && this.Vent.Connected)
             {
-                this.Vent.CMD_Write("mfgmode");
+
+                upper = float.Parse(test.parameters["upper"]);
+                lower = float.Parse(test.parameters["lower"]);
+                //Get parameters from test data object
                 
                 this.Vent.CMD_Write("set vcm sv 10 1");
-                
-            }
-            catch
-            {
+                //Connect the desired voltage node to the DMM
+                this.GPIO.SetBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
+                this.GPIO.SetBit(GPIO_Defs.MEAS_O2_SV2N_EN.port, GPIO_Defs.MEAS_O2_SV2N_EN.pin);
+                Thread.Sleep(DMM_DELAY);
 
-            }
+                //Measure the voltage
+                measured = this.DMM.Get_Volts();
+                this.GPIO.ClearBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
+                this.GPIO.ClearBit(GPIO_Defs.MEAS_O2_SV2N_EN.port, GPIO_Defs.MEAS_O2_SV2N_EN.pin);
+                this.Vent.CMD_Write("set vcm sv 10 0");
 
-            
-            //Get parameters from test data object
-            value_available = test.parameters.TryGetValue("upper", out str_value);
-            if (value_available)
-            {
-                upper = float.Parse(str_value, System.Globalization.NumberStyles.Float);
-            }
-            value_available = test.parameters.TryGetValue("lower", out str_value);
-            if (value_available)
-            {
-                lower = float.Parse(str_value, System.Globalization.NumberStyles.Float);
-            }
 
-            //Connect the desired voltage node to the DMM
-            this.GPIO.SetBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
-            this.GPIO.SetBit(GPIO_Defs.MEAS_O2_SV2N_EN.port, GPIO_Defs.MEAS_O2_SV2N_EN.pin);
-            Thread.Sleep(DMM_DELAY);
-
-            //Measure the voltage
-            float measured = this.DMM.Get_Volts();
-            string val;
-            if (!test.parameters.TryGetValue("measured", out val))
-            {
-                test.parameters["measured"] = measured.ToString();
-            }
-            else
-            {
-                test.parameters.Add("measured", measured.ToString());
-            }
-            try
-            {
-                message.Report("Measured: " + measured.ToString() + " V\n");
+                log.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
-                    message.Report("Test PASS");
                     success = true;
                 }
                 else
                 {
-                    message.Report("Test FAIL");
                     success = false;
                 }
-            }
-            catch
-            {
-                success = false;
-            }
-                
-            try
-            {
-                    
-                this.Vent.CMD_Write("set vcm sv 10 0");
-                
-            }
-            catch
-            {
+                //Fill in measurement parameter
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = measured.ToString();
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = measured.ToString();
+                }
+
+                this.GPIO.ClearBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
+                this.GPIO.ClearBit(GPIO_Defs.MEAS_O2_SV2N_EN.port, GPIO_Defs.MEAS_O2_SV2N_EN.pin);
 
             }
-            this.GPIO.ClearBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
-            this.GPIO.ClearBit(GPIO_Defs.MEAS_O2_SV2N_EN.port, GPIO_Defs.MEAS_O2_SV2N_EN.pin);
-
-
             return success;
         }
 
@@ -2001,6 +1938,19 @@ namespace ControlBoardTest
             {
                 success = false;
             }
+
+            //Fill in measurement parameter
+            if (success)
+            {
+                log.Report(test.name + ": PASS");
+                test.parameters["measured"] ="PASS";
+            }
+            else
+            {
+                log.Report(test.name + ": FAIL");
+                test.parameters["measured"] = "FAIL";
+            }
+
             return success;
         }
 
@@ -2020,22 +1970,14 @@ namespace ControlBoardTest
             string str_value;
             bool value_available;
             bool success = false;
-            
-            float upper = 0;
-            float lower = 0;
+
+            // Get parameters from test data object
+            float upper = float.Parse(test.parameters["upper"]);
+            float lower = float.Parse(test.parameters["lower"]);
+
 
             
-            //Get parameters from test data object
-            value_available = test.parameters.TryGetValue("upper", out str_value);
-            if (value_available)
-            {
-                upper = float.Parse(str_value, System.Globalization.NumberStyles.Float);
-            }
-            value_available = test.parameters.TryGetValue("lower", out str_value);
-            if (value_available)
-            {
-                lower = float.Parse(str_value, System.Globalization.NumberStyles.Float);
-            }
+            
 
             //Connect the desired voltage node to the DMM
             this.GPIO.SetBit(GPIO_Defs.VFAN_MEAS_EN.port, GPIO_Defs.VFAN_MEAS_EN.pin);
@@ -2045,34 +1987,27 @@ namespace ControlBoardTest
             float measured = this.DMM.Get_Volts();
             this.GPIO.ClearBit(GPIO_Defs.VFAN_MEAS_EN.port, GPIO_Defs.VFAN_MEAS_EN.pin);
             string val;
-            if (!test.parameters.TryGetValue("measured", out val))
+
+            log.Report("Measured: " + measured.ToString());
+
+            if ((measured > lower) && (measured < upper))
             {
-                test.parameters["measured"] = measured.ToString();
+                success = true;
+            }
+
+
+            if (success)
+            {
+                log.Report(test.name + ": PASS");
+                
             }
             else
             {
-                test.parameters.Add("measured", measured.ToString());
+                log.Report(test.name + ": FAIL");
             }
-            try
-            {
-                message.Report("Measured: " + measured.ToString() + " V\n");
+            test.parameters["measured"] = measured.ToString();
 
-                if ((measured < (upper)) && (measured > (lower)))
-                {
-                    message.Report("Test PASS");
-                    success = true;
-                }
-                else
-                {
-                    message.Report("Test FAIL");
-                    success = false;
-                }
-            }
-            catch
-            {
-                success = false;
-            }
-           
+
 
             return success;
         }
@@ -2090,66 +2025,43 @@ namespace ControlBoardTest
          ******************************************************************************************************************************/
         private bool test_low_fan_freq(IProgress<string> message, IProgress<string> log, TestData test)
         {
-            string str_value;
-            bool value_available;
+            
             bool success = false;
             
-            float upper = 0;
-            float lower = 0;
+            float upper = float.Parse(test.parameters["upper"]);
+            float lower = float.Parse(test.parameters["lower"]);
 
-            
-            //Get parameters from test data object
-            value_available = test.parameters.TryGetValue("upper", out str_value);
-            if (value_available)
+            if (this.powered && this.DMM.Connected && this.GPIO.Connected)
             {
-                upper = float.Parse(str_value, System.Globalization.NumberStyles.Float);
-            }
-            value_available = test.parameters.TryGetValue("lower", out str_value);
-            if (value_available)
-            {
-                lower = float.Parse(str_value, System.Globalization.NumberStyles.Float);
-            }
 
-            //Connect the desired voltage node to the DMM
-            this.GPIO.SetBit(GPIO_Defs.FAN_FREQ_MEAS_EN.port, GPIO_Defs.FAN_FREQ_MEAS_EN.pin);
-            Thread.Sleep(DMM_DELAY);
 
-            //Measure the voltage
-            float measured = this.DMM.Get_Freq();
-            this.GPIO.ClearBit(GPIO_Defs.FAN_FREQ_MEAS_EN.port, GPIO_Defs.FAN_FREQ_MEAS_EN.pin);
-            string val;
-            if (test.parameters.TryGetValue("measured", out val))
-            {
-                test.parameters["measured"] = measured.ToString();
-            }
-            else
-            {
-                test.parameters.Add("measured", measured.ToString());
-            }
-            try
-            {
-                message.Report("Measured: " + measured.ToString() + " Hz\n");
+                //Connect the desired voltage node to the DMM
+                this.GPIO.SetBit(GPIO_Defs.FAN_FREQ_MEAS_EN.port, GPIO_Defs.FAN_FREQ_MEAS_EN.pin);
+                Thread.Sleep(DMM_DELAY);
 
-                if ((measured < (upper)) && (measured > (lower)))
+                //Measure the voltage
+                float measured = this.DMM.Get_Freq();
+                this.GPIO.ClearBit(GPIO_Defs.FAN_FREQ_MEAS_EN.port, GPIO_Defs.FAN_FREQ_MEAS_EN.pin);
+                
+
+                log.Report("Measured: " + measured.ToString());
+
+                if ((measured > lower) && (measured < upper))
                 {
-                    message.Report("Test PASS");
                     success = true;
+                }
+
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
                 }
                 else
                 {
-                    message.Report("Test FAIL");
-                    success = false;
+                    log.Report(test.name + ": FAIL");
                 }
-            }
-            catch(Exception e)
-            {
-                message.Report("Error");
-                message.Report(e.Message);
-                message.Report(e.StackTrace);
-                success = false;
-            }
-            
+                test.parameters["measured"] = measured.ToString();
 
+            }
             return success;
         }
         /******************************************************************************************************************************
@@ -2169,97 +2081,78 @@ namespace ControlBoardTest
          ******************************************************************************************************************************/
         private bool test_high_fan_volt(IProgress<string> message, IProgress<string> log, TestData test)
         {
-            string str_value;
-            bool value_available;
-            bool success = false;
             
-            float upper = 0;
-            float lower = 0;
+            bool success = false;
 
-            //Determine if the nebulizer needs to be running.
-            string returnVal = this.Vent.CMD_Write("get vcm monitors");
-            if(returnVal.Contains("nebulizerActive: 0"))
+
+            if (this.powered && this.Vent.Connected && this.DMM.Connected && this.GPIO.Connected)
             {
-               //Prompt user to begin nebulizer therapy.
-                message.Report("Please start Nebulizer therapy by pressing \"Start\"");
-                this.Vent.CMD_Write("set uim screen 5039");  //Nebulizer start screenID = 5039
-                this.Vent.CMD_Write("restart");
+                float upper = float.Parse(test.parameters["upper"]);
+                float lower = float.Parse(test.parameters["lower"]);
 
-                int i = 0;
-                do
+                //Determine if the nebulizer needs to be running.
+                string returnVal = this.Vent.CMD_Write("get vcm monitors");
+                if (returnVal.Contains("nebulizerActive: 0"))
                 {
-                    Thread.Sleep(1000);
-                    i++;
-                    returnVal = this.Vent.CMD_Write("get vcm monitors");
+                    //Prompt user to begin nebulizer therapy.
+                    PromptUser_YesNo("Please start nebulizer therapy on screen and hit enter", test.name);
+                    log.Report("Please start Nebulizer therapy by pressing \"Start\"");
+                    this.Vent.CMD_Write("set uim screen 5039");  //Nebulizer start screenID = 5039
+                    this.Vent.CMD_Write("restart");
+
+                    int i = 0;
+                    do
+                    {
+                        Thread.Sleep(1000);
+                        i++;
+                        returnVal = this.Vent.CMD_Write("get vcm monitors");
+                    }
+                    while (returnVal.Contains("nebulizerActive: 0") && (i < 15));
+                    if (i >= 15)
+                    {
+                        log.Report("Test timed out");
+                        this.Vent.CMD_Write("mfgmode");
+                        return false;
+                    }
                 }
-                while (returnVal.Contains("nebulizerActive: 0") && (i < 15));
-                if (i >= 15)
+                //Connect the desired voltage node to the DMM
+                this.GPIO.SetBit(GPIO_Defs.VFAN_MEAS_EN.port, GPIO_Defs.VFAN_MEAS_EN.pin);
+                Thread.Sleep(DMM_DELAY);
+
+                //Measure the voltage
+                float measured = this.DMM.Get_Volts();
+                this.GPIO.ClearBit(GPIO_Defs.VFAN_MEAS_EN.port, GPIO_Defs.VFAN_MEAS_EN.pin);
+
+                var response = this.Vent.CMD_Write("mfgmode");
+
+
+
+                log.Report("Measured: " + measured.ToString());
+
+                if ((measured > lower) && (measured < upper))
                 {
-                    message.Report("Test timed out");
-                    return false;
-                }
-            }
-
-            //Get parameters from test data object
-            value_available = test.parameters.TryGetValue("upper", out str_value);
-            if (value_available)
-            {
-                upper = float.Parse(str_value, System.Globalization.NumberStyles.Float);
-            }
-            value_available = test.parameters.TryGetValue("lower", out str_value);
-            if (value_available)
-            {
-                lower = float.Parse(str_value, System.Globalization.NumberStyles.Float);
-            }
-
-            //Connect the desired voltage node to the DMM
-            this.GPIO.SetBit(GPIO_Defs.VFAN_MEAS_EN.port, GPIO_Defs.VFAN_MEAS_EN.pin);
-            Thread.Sleep(DMM_DELAY);
-
-            //Measure the voltage
-            float measured = this.DMM.Get_Volts();
-            this.GPIO.ClearBit(GPIO_Defs.VFAN_MEAS_EN.port, GPIO_Defs.VFAN_MEAS_EN.pin);
-            string val;
-            if (!test.parameters.TryGetValue("measured", out val))
-            {
-                test.parameters["measured"] = measured.ToString();
-            }
-            else
-            {
-                test.parameters.Add("measured", measured.ToString());
-            }
-            try
-            {
-                message.Report("Measured: " + measured.ToString() + " V\n");
-
-                if ((measured < (upper)) && (measured > (lower)))
-                {
-                    message.Report("Test PASS");
                     success = true;
+                }
+
+
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+
                 }
                 else
                 {
-                    message.Report("Test FAIL");
-                    success = false;
+                    log.Report(test.name + ": FAIL");
                 }
+                test.parameters["measured"] = measured.ToString();
             }
-            catch (Exception e)
-            {
-                message.Report("Error");
-                message.Report(e.Message);
-                message.Report(e.StackTrace);
-                success = false;
-            }
-        
+
             return success;
         }
         /******************************************************************************************************************************
-         *  test_software_install
+         *  test_high_fan_freq
          *  
-         *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
-         *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
-         *            to initiate the software update.
-         *            Waits for user input to determine when software has finished updating. //TODO: Update this function to wait for SOM's serial port to tell us that the program updated successfully.
+         *  Function: Measures the high speed fan frequency.
          *  
          *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
          *             TestData test             - Variable that contains all of the necessary test data.
@@ -2273,39 +2166,40 @@ namespace ControlBoardTest
             string str_value;
             bool value_available;
             bool success = false;
-            
-            float upper = 0;
-            float lower = 0;
 
-            //Determine if the nebulizer needs to be running.
-            string returnVal = this.Vent.CMD_Write("get vcm monitors");
-            if (returnVal.Contains("nebulizerActive: 0"))
+            if (this.powered && this.Vent.Connected && this.DMM.Connected && this.GPIO.Connected)
             {
-                //Prompt user to begin nebulizer therapy.
-                message.Report("Please start Nebulizer therapy by pressing \"Start\"");
-                this.Vent.CMD_Write("set uim screen 5039");  //Nebulizer start screenID = 5039
-                this.Vent.CMD_Write("restart");
+                float upper = float.Parse(test.parameters["upper"]);
+                float lower = float.Parse(test.parameters["lower"]);
 
-                int i = 0;
-                do
+                //Determine if the nebulizer needs to be running.
+                string returnVal = this.Vent.CMD_Write("get vcm monitors");
+                if (returnVal.Contains("nebulizerActive: 0"))
                 {
-                    Thread.Sleep(1000);
-                    i++;
-                    returnVal = this.Vent.CMD_Write("get vcm monitors");
+                    //Prompt user to begin nebulizer therapy.
+                    PromptUser_YesNo("Please start nebulizer therapy on screen and hit enter", test.name);
+                    log.Report("Please start Nebulizer therapy by pressing \"Start\"");
                     this.Vent.CMD_Write("set uim screen 5039");  //Nebulizer start screenID = 5039
-                }
-                while (returnVal.Contains("nebulizerActive: 0") && (i < 15));
-                if (i >= 15)
-                {
-                    message.Report("Test timed out");
-                    return false;
+                    this.Vent.CMD_Write("restart");
+
+                    int i = 0;
+                    do
+                    {
+                        Thread.Sleep(1000);
+                        i++;
+                        returnVal = this.Vent.CMD_Write("get vcm monitors");
+                    }
+                    while (returnVal.Contains("nebulizerActive: 0") && (i < 15));
+                    if (i >= 15)
+                    {
+                        log.Report("Test timed out");
+                        this.Vent.CMD_Write("mfgmode");
+                        return false;
+                    }
                 }
 
-                this.Vent.CMD_Write("mfgmode");
-            }
-
-            //Get parameters from test data object
-            value_available = test.parameters.TryGetValue("upper", out str_value);
+                //Get parameters from test data object
+                value_available = test.parameters.TryGetValue("upper", out str_value);
             if (value_available)
             {
                 upper = float.Parse(str_value, System.Globalization.NumberStyles.Float);
@@ -2323,37 +2217,36 @@ namespace ControlBoardTest
             //Measure the voltage
             float measured = this.DMM.Get_Freq();
             this.GPIO.ClearBit(GPIO_Defs.FAN_FREQ_MEAS_EN.port, GPIO_Defs.FAN_FREQ_MEAS_EN.pin);
-            string val;
-            if (!test.parameters.TryGetValue("measured", out val))
+            //Connect the desired voltage node to the DMM
+            this.GPIO.SetBit(GPIO_Defs.VFAN_MEAS_EN.port, GPIO_Defs.VFAN_MEAS_EN.pin);
+            Thread.Sleep(DMM_DELAY);
+
+
+            var response = this.Vent.CMD_Write("restart");
+            PromptUser_YesNo("Please turn off nebulizer therapy now.", test.name);
+            response = this.Vent.CMD_Write("mfgmode");
+
+
+
+            log.Report("Measured: " + measured.ToString());
+
+            if ((measured > lower) && (measured < upper))
             {
-                test.parameters["measured"] = measured.ToString();
+                success = true;
+            }
+
+
+            if (success)
+            {
+                log.Report(test.name + ": PASS");
+
             }
             else
             {
-                test.parameters.Add("measured", measured.ToString());
+                log.Report(test.name + ": FAIL");
             }
-            try
-            {
-                message.Report("Measured: " + measured.ToString() + " Hz\n");
-
-                if ((measured < (upper)) && (measured > (lower)))
-                {
-                    message.Report("Test PASS");
-                    success = true;
-                }
-                else
-                {
-                    message.Report("Test FAIL");
-                    success = false;
-                }
-            }
-            catch (Exception e)
-            {
-                message.Report("Error");
-                message.Report(e.Message);
-                message.Report(e.StackTrace);
-                success = false;
-            }
+            test.parameters["measured"] = measured.ToString();
+        }
             
             
 
@@ -2384,43 +2277,85 @@ namespace ControlBoardTest
         private bool test_buttons(IProgress<string> message, IProgress<string> log, TestData test)
         {
             bool success = false;
-            
-            string[] output;
-            int initialState=0;
-            string port_str;
-            DigitalPortType port;
-            string pin_str;
-            DigitalPortType pin;
 
-            var available = test.parameters.TryGetValue("port", out port_str); 
-            available = test.parameters.TryGetValue("pin", out pin_str);
+
+            int measured=0;
+            
+            
 
             //Get Initial State
-            output = this.Vent.CMD_Write("get vcm buttons").Split('\n');
+            var output = this.Vent.CMD_Write("get vcm buttons");
+            var buttonStateMatches = Regex.Matches(output, @"(?'button'\s+\w+,)(?'state'\s+\d)(?'falling',\s+\w+\s\w+,)(?'fState'\s+\d)(?'rising',\s+\w+\s\w+)(?'rState'\s+\d)");
 
-            for(int i = 1; i < 3; i++)
+            var onState = int.Parse(buttonStateMatches[0].Groups["state"].Value);
+            var asState = int.Parse(buttonStateMatches[1].Groups["state"].Value);
+            var currState = (onState << 1) + asState;
+            if (currState == 0)
             {
-                string[] arr;
-                arr = output[i].Split(',');
-                initialState |= int.Parse(arr[3]) << (i-1); //Only care about whether the button is pressed, index 3
+                this.GPIO.SetBit(GPIO_Defs.AS_BTN_ON.port, GPIO_Defs.AS_BTN_ON.pin);
+                Thread.Sleep(200);
+
+                output = this.Vent.CMD_Write("get vcm buttons");
+                this.GPIO.ClearBit(GPIO_Defs.AS_BTN_ON.port, GPIO_Defs.AS_BTN_ON.pin);
+
+                buttonStateMatches = Regex.Matches(output, @"(?'button'\s+\w+,)(?'state'\s+\d)(?'falling',\s+\w+\s\w+,)(?'fState'\s+\d)(?'rising',\s+\w+\s\w+)(?'rState'\s+\d)");
+
+                onState = int.Parse(buttonStateMatches[0].Groups["state"].Value);
+                asState = int.Parse(buttonStateMatches[1].Groups["state"].Value);
+                currState = (onState << 1) | asState;
+
+
+                if ((currState & 1) == 1)
+                {
+                    measured = currState;
+                }
+                else
+                {
+                    measured = 0;
+                }
+                this.GPIO.SetBit(GPIO_Defs.PB_BTN_ON.port, GPIO_Defs.PB_BTN_ON.pin);
+                Thread.Sleep(200);
+
+                output = this.Vent.CMD_Write("get vcm buttons");
+                this.GPIO.ClearBit(GPIO_Defs.PB_BTN_ON.port, GPIO_Defs.PB_BTN_ON.pin);
+
+                buttonStateMatches = Regex.Matches(output, @"(?'button'\s+\w+,)(?'state'\s+\d)(?'falling',\s+\w+\s\w+,)(?'fState'\s+\d)(?'rising',\s+\w+\s\w+)(?'rState'\s+\d)");
+
+                onState = int.Parse(buttonStateMatches[0].Groups["state"].Value);
+                asState = int.Parse(buttonStateMatches[1].Groups["state"].Value);
+                currState = (onState << 1) | asState;
+
+                if ((currState & 2) == 2)
+                {
+                    success = true;
+                    measured |= currState;
+                }
+
+
+
             }
-
-            if (initialState != 0)
+            log.Report("0x" + (measured >> 1).ToString() + (measured & 1).ToString());
+            if (success)
             {
-                success = false;
-                message.Report("Buttons are not in the correct position\n\rTest failed.");
+                log.Report(test.name + ": PASS");
+                test.parameters["measured"] = "0x" + (measured >> 1).ToString() + (measured & 1).ToString();
             }
             else
             {
-                
+                log.Report(test.name + ": FAIL");
+                test.parameters["measured"] = "0x" + (measured >> 1).ToString() + (measured & 1).ToString();
             }
 
-            
 
-            
+
+
 
             //Build binary num representing measured data.
 
+            this.GPIO.SetBit(GPIO_Defs.AS_BTN_ON.port, GPIO_Defs.AS_BTN_ON.pin);
+            Thread.Sleep(100);
+            this.GPIO.ClearBit(GPIO_Defs.AS_BTN_ON.port, GPIO_Defs.AS_BTN_ON.pin);
+            this.GPIO.ClearBit(GPIO_Defs.PB_BTN_ON.port, GPIO_Defs.PB_BTN_ON.pin);
 
             return success;
         }
@@ -2433,63 +2368,68 @@ namespace ControlBoardTest
          *             TestData test             - Variable that contains all of the necessary test data.
          *  
          *  Returns: bool success - returns true barometer responds with pressure within the range 
-         *                          returns false if the software does not update successfully
+         *                          returns false if the barometer responds with pressure outside the range
          * 
          ******************************************************************************************************************************/
         private bool test_barometer(IProgress<string> message, IProgress<string> log, TestData test)
         {
             bool success = false;
             
-            string val;
+            
             int upper;
             int lower;
+            int samples = int.Parse(test.parameters["samples"]);
+            double avePress = 0;
+            var count = 0;
 
-            if (this.Vent.Connected)
+            if (this.powered && this.Vent.Connected)
             {
                 //Get limits
-                test.parameters.TryGetValue("upper", out val);
-                upper = int.Parse(val);
-                test.parameters.TryGetValue("lower", out val);
-                lower = int.Parse(val);
-
+                upper = int.Parse(test.parameters["upper"]);
+                lower = int.Parse(test.parameters["lower"]);
 
                 //Set telemetry channels
-                int channelNum = 85; //TODO: Add ability to search for channel number using channels names from Vent object
+                int channelNum = this.Vent.TLMChannels["Sensor:PAmbient_cmH2O_100"];
 
                 this.Vent.CMD_Write("set vcm telemetry " + channelNum + " 0 0 0");
 
-                var output = this.Vent.CMD_Write("get vcm telemetry");
+                var response = this.Vent.CMD_Write("get vcm telemetry " + samples.ToString());
 
-                string press = output.Substring(53, 8);
-                var pressure = float.Parse(press) * 0.000980665;
+                var matches = Regex.Matches(response, @"(?'channel'(?<=vcm\:)\s+" + channelNum.ToString() + @",)(?'counts'(\s+\d+|\s+-\d+))");
                 
-                if (!test.parameters.TryGetValue("measured", out val))
+                
+                foreach(Match m in matches)
                 {
-                    test.parameters["measured"] = pressure.ToString();
+                    avePress += double.Parse(m.Groups[3].Value);
+                    count++;
                 }
-                else
-                {
-                    test.parameters.Add("measured", pressure.ToString());
-                }
+                avePress = (avePress / count) * 0.000980665;
 
-                if ((pressure < upper) && (pressure > lower))
+                if((avePress > lower) && (avePress < upper))
                 {
                     success = true;
-
+                }
+                //string press = output.Substring(53, 8);
+                //var pressure = float.Parse(press) * 0.000980665; //Convert to kPa
+                log.Report("Measured: " + avePress.ToString() + " kPa");
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = avePress.ToString();
                 }
                 else
                 {
-                    success = false;
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = avePress.ToString();
                 }
 
-                message.Report("Barometer test: " + success.ToString());
+                
             }
             return success;
         }
     
         /******************************************************************************************************************************
-         *  test_software_install
-         *  
+         *  test_ambient_temperature
          *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
          *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
          *            to initiate the software update.
@@ -2505,48 +2445,58 @@ namespace ControlBoardTest
         private bool test_ambient_temperature(IProgress<string> message, IProgress<string> log, TestData test)
         {
             bool success = false;
-             //Unused, should remove
-            string val;
+
+
             int upper;
             int lower;
-            
+            int samples = int.Parse(test.parameters["samples"]);
+            double aveTemp = 0;
+            var count = 0;
 
-            if (this.Vent.Connected)
+            if (this.powered && this.Vent.Connected)
             {
                 //Get limits
-                test.parameters.TryGetValue("upper", out val);
-                upper = int.Parse(val);
-                test.parameters.TryGetValue("lower", out val);
-                lower = int.Parse(val);
-
+                upper = int.Parse(test.parameters["upper"]);
+                lower = int.Parse(test.parameters["lower"]);
 
                 //Set telemetry channels
-                int channelNum = 86; //TODO: Add ability to search for channel number using channels names from Vent object
+                int channelNum = this.Vent.TLMChannels["Sensor:Tambient_C_100"];
 
                 this.Vent.CMD_Write("set vcm telemetry " + channelNum + " 0 0 0");
 
-                var output = this.Vent.CMD_Write("get vcm telemetry");
-                var temp = int.Parse(output.Substring(53, 8)) / 100;
-                
-                if (!test.parameters.TryGetValue("measured", out val))
-                {
-                    test.parameters["measured"] = temp.ToString();
-                }
-                else
-                {
-                    test.parameters.Add("measured", temp.ToString());
-                }
+                var response = this.Vent.CMD_Write("get vcm telemetry " + samples.ToString());
 
-                if ((temp < upper) && (temp > lower))
+                var matches = Regex.Matches(response, @"(?'channel'(?<=vcm\:)\s+" + channelNum.ToString() + @",)(?'counts'(\s+\d+|\s+-\d+))");
+
+
+                foreach (Match m in matches)
+                {
+                    aveTemp += double.Parse(m.Groups[3].Value);
+                    count++;
+                }
+                aveTemp = (aveTemp / count) / 100;
+
+                if ((aveTemp > lower) && (aveTemp < upper))
                 {
                     success = true;
                 }
+                //string press = output.Substring(53, 8);
+                //var pressure = float.Parse(press) * 0.000980665; //Convert to kPa
+
+                log.Report("Measured: " + aveTemp.ToString() + " C");
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = aveTemp.ToString();
+                }
                 else
                 {
-                    success = false;
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = aveTemp.ToString();
                 }
+               
 
-                message.Report("Barometer test: " + success.ToString());
+               
             }
             return success;
         }
@@ -2568,7 +2518,7 @@ namespace ControlBoardTest
         private bool test_microphone(IProgress<string> message, IProgress<string> log, TestData test)
         {
             bool success = false;
-            
+            float measured = 0;
 
 
             /*TODO: 
@@ -2577,6 +2527,29 @@ namespace ControlBoardTest
              * - Move USB drive to PC.
              * - Open OUT1.wav or OUT2.wav and perform an amplitude check on the file. Confirm
              */
+            this.Vent.CMD_Write("restart");
+            this.GPIO.SetBit(GPIO_Defs.SPKR_EN.port, GPIO_Defs.SPKR_EN.pin);
+            this.GPIO.SetBit(GPIO_Defs.FAN_FAULT_EN.port, GPIO_Defs.FAN_FAULT_EN.pin);
+            this.GPIO.SetBit(GPIO_Defs.PIEZO_EN.port, GPIO_Defs.PIEZO_EN.pin);
+
+            //The speaker should now alarm, and the piezo should begin to alarm as well IF the speaker is not loud enough and the microphone is not sensitive enough.
+            Thread.Sleep(5000);
+            var ok = this.PromptUser_YesNo("Does the piezo sound?", test.name);
+
+            if (!ok)
+            {
+                success = true;
+            }
+
+            
+
+            this.Vent.CMD_Write("mfgmode");
+            this.GPIO.ClearBit(GPIO_Defs.SPKR_EN.port, GPIO_Defs.SPKR_EN.pin);
+            Thread.Sleep(500);
+            this.GPIO.ClearBit(GPIO_Defs.FAN_FAULT_EN.port, GPIO_Defs.FAN_FAULT_EN.pin);
+            Thread.Sleep(500);
+            this.GPIO.ClearBit(GPIO_Defs.PIEZO_EN.port, GPIO_Defs.PIEZO_EN.pin);
+            log.Report(test.name + measured.ToString());
 
             return success;
         }
@@ -2639,7 +2612,7 @@ namespace ControlBoardTest
                 this.GPIO.SetBit(GPIO_Defs.PIEZO_EN.port, GPIO_Defs.PIEZO_EN.pin);
 
                 //Prompt user to hear piezo.
-
+                Thread.Sleep(5000);
                 if(this.PromptUser_YesNo("Does the piezo alarm?", test.name))
                 {
                     success = true;
@@ -2687,11 +2660,11 @@ namespace ControlBoardTest
                     this.Vent.CMD_Write("set vcm sv 1 1");
                     Thread.Sleep(100);
 
-                    if (this.GPIO.GetBit(GPIO_Defs.XFLOW_SV1_2.port, GPIO_Defs.XFLOW_SV1_2.pin) == 0)
+                    if (this.GPIO.GetBit(GPIO_Defs.XFLOW_SV1_2.port, GPIO_Defs.XFLOW_SV1_2.pin) == 1)
                     {
                         this.Vent.CMD_Write("set vcm sv 1 0");
                         Thread.Sleep(100);
-                        if (this.GPIO.GetBit(GPIO_Defs.XFLOW_SV1_2.port, GPIO_Defs.XFLOW_SV1_2.pin) == 1)
+                        if (this.GPIO.GetBit(GPIO_Defs.XFLOW_SV1_2.port, GPIO_Defs.XFLOW_SV1_2.pin) == 0)
                         {
                             count++;
                         }
@@ -2702,6 +2675,7 @@ namespace ControlBoardTest
                         Thread.Sleep(100);
                     }
                 }
+                log.Report("SV1&2 count = " + toggle.ToString());
 
                 if (count == toggle)
                 {
@@ -2709,12 +2683,12 @@ namespace ControlBoardTest
                 }
                 if (success)
                 {
-                    message.Report(test.name + ": PASS");
+                    log.Report(test.name + ": PASS");
                     test.parameters["measured"] = count.ToString();
                 }
                 else
                 {
-                    message.Report(test.name + ": FAIL");
+                    log.Report(test.name + ": FAIL");
                     test.parameters["measured"] = count.ToString();
                 }
             }
@@ -2747,11 +2721,11 @@ namespace ControlBoardTest
                     this.Vent.CMD_Write("set vcm sv 3 1");
                     Thread.Sleep(100);
 
-                    if (this.GPIO.GetBit(GPIO_Defs.XFLOW_SV3_4.port, GPIO_Defs.XFLOW_SV3_4.pin) == 0)
+                    if (this.GPIO.GetBit(GPIO_Defs.XFLOW_SV3_4.port, GPIO_Defs.XFLOW_SV3_4.pin) == 1)
                     {
                         this.Vent.CMD_Write("set vcm sv 3 0");
                         Thread.Sleep(100);
-                        if (this.GPIO.GetBit(GPIO_Defs.XFLOW_SV3_4.port, GPIO_Defs.XFLOW_SV3_4.pin) == 1)
+                        if (this.GPIO.GetBit(GPIO_Defs.XFLOW_SV3_4.port, GPIO_Defs.XFLOW_SV3_4.pin) == 0)
                         {
                             count++;
                         }
@@ -2762,6 +2736,7 @@ namespace ControlBoardTest
                         Thread.Sleep(100);
                     }
                 }
+                log.Report("SV3&4 count = " + toggle.ToString());
 
                 if (count == toggle)
                 {
@@ -2769,13 +2744,123 @@ namespace ControlBoardTest
                 }
                 if (success)
                 {
-                    message.Report(test.name + ": PASS");
+                    log.Report(test.name + ": PASS");
                     test.parameters["measured"] = count.ToString();
                 }
                 else
                 {
-                    message.Report(test.name + ": FAIL");
+                    log.Report(test.name + ": FAIL");
                     test.parameters["measured"] = count.ToString();
+                }
+            }
+            return success;
+        }
+        /******************************************************************************************************************************
+        *  test_xflow_i2c
+        *  
+        *  Function: Commands UUT to read from the external flow module i2c chip
+        *  
+        *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+        *             TestData test             - Variable that contains all of the necessary test data.
+        *  
+        *  Returns: bool success - returns true if the i2c command returns with 0 i2c errors
+        *                          returns false if the i2c command returns with 1 or more i2c errors
+        * 
+        ******************************************************************************************************************************/
+        private bool test_xflow_i2c(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+            int i2c_error = 0;
+
+            if (this.powered && this.Vent.Connected)
+            {
+
+                //Command UUT to read from device Exhalation board
+                var response = this.Vent.CMD_Write("get vcm cal extflow");
+
+                i2c_error = int.Parse(Regex.Match(response, @"(?<=i2cStatus:\s)[\d]").Value);
+
+
+                if (i2c_error == 0)
+                {
+                    success = true;
+                }
+                else
+                {
+
+                }
+
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = i2c_error.ToString();
+                }
+            }
+            return success;
+        }
+        /******************************************************************************************************************************
+        *  test_xflow_spi
+        *  
+        *  Function: Commands UUT to read from the external flow module spi chip
+        *  
+        *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+        *             TestData test             - Variable that contains all of the necessary test data.
+        *  
+        *  Returns: bool success - returns true if the spi bus averages to about 0 over 50 samples
+        *                          returns false if the spi bus returns a value that is -1
+        * 
+        ******************************************************************************************************************************/
+        private bool test_xflow_spi(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = true;
+            
+            int samples;
+
+            if (this.powered && this.Vent.Connected)
+            {
+
+                samples = int.Parse(test.parameters["samples"]);
+
+                
+
+                //Get the telemetry channel for DSensor:PdiffIntWide_counts
+                int channel = this.Vent.TLMChannels["DSensor:PdiffExtWideRaw_counts"];
+                var response = this.Vent.CMD_Write("set vcm telemetry " + channel.ToString() + " 0 0 0");
+
+                response = this.Vent.CMD_Write("get vcm telemetry " + samples.ToString()); //100 samples retrieved from DUT
+
+                var matches = Regex.Matches(response, @"(?'channel'(?<=vcm\:\s\s)" + channel.ToString() + @",)(?'counts'(\s+\d+|\s+-\d+))");
+
+                double averageCounts = 0;
+                int cnt = 0;
+                foreach (Match m in matches)
+                {
+                    averageCounts += double.Parse(m.Groups[3].Value);
+                    cnt++;
+                    if (int.Parse(m.Groups[3].Value) == -1)
+                    {
+                        success = false;
+                        break;
+                    }
+                }
+                averageCounts = averageCounts / cnt;
+
+                log.Report("Measured: " + averageCounts.ToString() + " counts");
+
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = averageCounts.ToString();
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = averageCounts.ToString();
                 }
             }
             return success;
@@ -2807,11 +2892,11 @@ namespace ControlBoardTest
                     this.Vent.CMD_Write("set vcm sv 6 1");
                     Thread.Sleep(100);
 
-                    if (this.GPIO.GetBit(GPIO_Defs.EXHL_SV6.port, GPIO_Defs.EXHL_SV6.pin) == 0)
+                    if (this.GPIO.GetBit(GPIO_Defs.EXHL_SV6.port, GPIO_Defs.EXHL_SV6.pin) == 1)
                     {
                         this.Vent.CMD_Write("set vcm sv 6 0");
                         Thread.Sleep(100);
-                        if (this.GPIO.GetBit(GPIO_Defs.EXHL_SV6.port, GPIO_Defs.EXHL_SV6.pin) == 1)
+                        if (this.GPIO.GetBit(GPIO_Defs.EXHL_SV6.port, GPIO_Defs.EXHL_SV6.pin) == 0)
                         {
                             count++;
                         }
@@ -2822,6 +2907,7 @@ namespace ControlBoardTest
                         Thread.Sleep(100);
                     }
                 }
+                log.Report("SV6 count = " + toggle.ToString());
 
                 if (count == toggle)
                 {
@@ -2829,12 +2915,12 @@ namespace ControlBoardTest
                 }
                 if (success)
                 {
-                    message.Report(test.name + ": PASS");
+                    log.Report(test.name + ": PASS");
                     test.parameters["measured"] = count.ToString();
                 }
                 else
                 {
-                    message.Report(test.name + ": FAIL");
+                    log.Report(test.name + ": FAIL");
                     test.parameters["measured"] = count.ToString();
                 }
             }
@@ -2867,11 +2953,11 @@ namespace ControlBoardTest
                     this.Vent.CMD_Write("set vcm sv 7 1");
                     Thread.Sleep(100);
 
-                    if (this.GPIO.GetBit(GPIO_Defs.EXHL_SV7.port, GPIO_Defs.EXHL_SV7.pin) == 0)
+                    if (this.GPIO.GetBit(GPIO_Defs.EXHL_SV7.port, GPIO_Defs.EXHL_SV7.pin) == 1)
                     {
                         this.Vent.CMD_Write("set vcm sv 7 0");
                         Thread.Sleep(100);
-                        if (this.GPIO.GetBit(GPIO_Defs.EXHL_SV7.port, GPIO_Defs.EXHL_SV7.pin) == 1)
+                        if (this.GPIO.GetBit(GPIO_Defs.EXHL_SV7.port, GPIO_Defs.EXHL_SV7.pin) == 0)
                         {
                             count++;
                         }
@@ -2882,6 +2968,7 @@ namespace ControlBoardTest
                         Thread.Sleep(100);
                     }
                 }
+                log.Report("SV7 count = " + toggle.ToString());
 
                 if (count == toggle)
                 {
@@ -2889,12 +2976,12 @@ namespace ControlBoardTest
                 }
                 if (success)
                 {
-                    message.Report(test.name + ": PASS");
+                    log.Report(test.name + ": PASS");
                     test.parameters["measured"] = count.ToString();
                 }
                 else
                 {
-                    message.Report(test.name + ": FAIL");
+                    log.Report(test.name + ": FAIL");
                     test.parameters["measured"] = count.ToString();
                 }
             }
@@ -2927,11 +3014,11 @@ namespace ControlBoardTest
                     this.Vent.CMD_Write("set vcm sv 8 1");
                     Thread.Sleep(100);
 
-                    if (this.GPIO.GetBit(GPIO_Defs.EXHL_SV8.port, GPIO_Defs.EXHL_SV8.pin) == 0)
+                    if (this.GPIO.GetBit(GPIO_Defs.EXHL_SV8.port, GPIO_Defs.EXHL_SV8.pin) == 1)
                     {
                         this.Vent.CMD_Write("set vcm sv 8 0");
                         Thread.Sleep(100);
-                        if (this.GPIO.GetBit(GPIO_Defs.EXHL_SV8.port, GPIO_Defs.EXHL_SV8.pin) == 1)
+                        if (this.GPIO.GetBit(GPIO_Defs.EXHL_SV8.port, GPIO_Defs.EXHL_SV8.pin) == 0)
                         {
                             count++;
                         }
@@ -2942,6 +3029,7 @@ namespace ControlBoardTest
                         Thread.Sleep(100);
                     }
                 }
+                log.Report("SV8 count = " + toggle.ToString());
 
                 if (count == toggle)
                 {
@@ -2949,13 +3037,61 @@ namespace ControlBoardTest
                 }
                 if (success)
                 {
-                    message.Report(test.name + ": PASS");
+                    log.Report(test.name + ": PASS");
                     test.parameters["measured"] = count.ToString();
                 }
                 else
                 {
-                    message.Report(test.name + ": FAIL");
+                    log.Report(test.name + ": FAIL");
                     test.parameters["measured"] = count.ToString();
+                }
+            }
+            return success;
+        }
+        /******************************************************************************************************************************
+        *  test_exhl_i2c
+        *  
+        *  Function: Commands UUT to read from the exhalation module i2c chip
+        *  
+        *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+        *             TestData test             - Variable that contains all of the necessary test data.
+        *  
+        *  Returns: bool success - returns true if the i2c command returns with 0 i2c errors
+        *                          returns false if the i2c command returns with 1 or more i2c errors
+        * 
+        ******************************************************************************************************************************/
+        private bool test_exhl_i2c(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+            int i2c_error = 0;
+
+            if (this.powered && this.Vent.Connected)
+            {
+
+                //Command UUT to read from device Exhalation board
+                var response = this.Vent.CMD_Write("get vcm cal exhl");
+
+                i2c_error = int.Parse(Regex.Match(response, @"(?<=i2cStatus:\s)[\d]").Value);
+                
+
+                if (i2c_error == 0)
+                {
+                    success = true;
+                }
+                else
+                {
+
+                }
+
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = i2c_error.ToString();
                 }
             }
             return success;
@@ -2987,11 +3123,11 @@ namespace ControlBoardTest
                     this.Vent.CMD_Write("set vcm sv 5 1");
                     Thread.Sleep(100);
 
-                    if(this.GPIO.GetBit(GPIO_Defs.FLOW_SV5.port, GPIO_Defs.FLOW_SV5.pin) == 0)
+                    if(this.GPIO.GetBit(GPIO_Defs.FLOW_SV5.port, GPIO_Defs.FLOW_SV5.pin) == 1)
                     {
                         this.Vent.CMD_Write("set vcm sv 5 0");
                         Thread.Sleep(100);
-                        if(this.GPIO.GetBit(GPIO_Defs.FLOW_SV5.port, GPIO_Defs.FLOW_SV5.pin) == 1)
+                        if(this.GPIO.GetBit(GPIO_Defs.FLOW_SV5.port, GPIO_Defs.FLOW_SV5.pin) == 0)
                         {
                             count++;
                         }
@@ -3002,24 +3138,355 @@ namespace ControlBoardTest
                         Thread.Sleep(100);
                     }
                 }
-
+                log.Report("SV5 count = " + toggle.ToString());
                 if(count == toggle)
                 {
                     success = true;
                 }
                 if (success)
                 {
-                    message.Report(test.name + ": PASS");
+                    log.Report(test.name + ": PASS");
                     test.parameters["measured"] = count.ToString();
                 }
                 else
                 {
-                    message.Report(test.name + ": FAIL");
+                    log.Report(test.name + ": FAIL");
                     test.parameters["measured"] = count.ToString();
                 }
             }
             return success;
         }
+        /******************************************************************************************************************************
+        *  test_flow_i2c
+        *  
+        *  Function: Commands UUT to read from the internal flow module i2c chip
+        *  
+        *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+        *             TestData test             - Variable that contains all of the necessary test data.
+        *  
+        *  Returns: bool success - returns true if the i2c command returns with 0 i2c errors
+        *                          returns false if the i2c command returns with 1 or more i2c errors
+        * 
+        ******************************************************************************************************************************/
+        private bool test_flow_i2c(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+            int i2c_error = 0;
+
+            if (this.powered && this.Vent.Connected)
+            {
+
+                //Command UUT to read from device Exhalation board
+                var response = this.Vent.CMD_Write("get vcm cal intflow");
+
+                i2c_error = int.Parse(Regex.Match(response, @"(?<=i2cStatus:\s)[\d]").Value);
+
+
+                if (i2c_error == 0)
+                {
+                    success = true;
+                }
+                else
+                {
+
+                }
+
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = i2c_error.ToString();
+                }
+            }
+            return success;
+        }
+        /******************************************************************************************************************************
+        *  test_flow_spi
+        *  
+        *  Function: Commands UUT to read from the internal flow module i2c chip
+        *  
+        *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+        *             TestData test             - Variable that contains all of the necessary test data.
+        *  
+        *  Returns: bool success - returns true if the spi bus averages to about 0 over 50 samples
+        *                          returns false if the i2c command returns with 1 or more i2c errors
+        * 
+        ******************************************************************************************************************************/
+        private bool test_flow_spi(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = true;
+            int i2c_error = 0;
+            int samples;
+
+            if (this.powered && this.Vent.Connected)
+            {
+
+                samples = int.Parse(test.parameters["samples"]);
+
+                //Command UUT to read from device Exhalation board
+
+                //Get the telemetry channel for DSensor:PdiffIntWide_counts
+                int channel = this.Vent.TLMChannels["DSensor:PdiffIntWideRaw_counts"];
+                var response = this.Vent.CMD_Write("set vcm telemetry " + channel.ToString() + " 0 0 0");
+
+                response = this.Vent.CMD_Write("get vcm telemetry " + samples.ToString()); //100 samples retrieved from DUT
+
+                var matches = Regex.Matches(response, @"(?'channel'(?<=vcm\:\s\s)" + channel.ToString() + @",)(?'counts'(\s+\d+|\s+-\d+))");
+
+                double averageCounts = 0;
+                int cnt = 0;
+                foreach(Match m in matches)
+                {
+                    averageCounts += double.Parse(m.Groups[3].Value);
+                    cnt++;
+                    if (int.Parse(m.Groups[3].Value) == -1)
+                    {
+                        success = false;
+                        break; 
+                    }
+                }
+                averageCounts = averageCounts / cnt;
+
+                log.Report("Measured: " + averageCounts.ToString() + " counts");
+
+                if (success)
+                {
+                    test.parameters["measured"] = averageCounts.ToString();
+                }
+                else
+                {
+                    
+                    test.parameters["measured"] = averageCounts.ToString();
+                }
+            }
+            return success;
+        }
+        /******************************************************************************************************************************
+        *  test_mrotary_valve_1
+        *  
+        *  Function: Commands UUT to move the RV1 to position 4, measure the home flag, then move the RV1 to home position
+        *  measure the home flag again
+        *  
+        *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+        *             TestData test             - Variable that contains all of the necessary test data.
+        *  
+        *  Returns: bool success - returns true if the home flag toggles as anticipated
+        *                          returns false if the home flag does not.
+        * 
+        ******************************************************************************************************************************/
+        private bool test_rotary_valve_1(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+
+
+            if (this.powered && this.Vent.Connected)
+            {
+                var response = this.Vent.CMD_Write("set vcm rotaryv 1 0"); //Command UUT to home motor
+                Thread.Sleep(500);
+
+                //Command UUT to move motor to pos 4 --> opposite of home position
+                response = this.Vent.CMD_Write("set vcm rotaryv 1 4");
+                Thread.Sleep(250);
+
+                var measured = this.GPIO.GetBit(GPIO_Defs.MEAS_RV1_HOME.port, GPIO_Defs.MEAS_RV1_HOME.pin);
+
+                if (measured == 0)
+                {
+                    //Starting off good, the home flag is not set. Now move 
+
+
+                   
+                    response = this.Vent.CMD_Write("set vcm rotaryv 1 2");
+                    response = this.Vent.CMD_Write("set vcm rotaryv 1 0");
+                    Thread.Sleep(250);
+                    measured = this.GPIO.GetBit(GPIO_Defs.MEAS_RV1_HOME.port, GPIO_Defs.MEAS_RV1_HOME.pin);
+               
+
+                    if (measured == 1)
+                    {
+                        success = true;
+                    }
+
+                }
+
+
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = "FAIL";
+                }
+            }
+            return success;
+        }
+        /******************************************************************************************************************************
+        *  test_mrotary_valve_2
+        *  
+        *  Function: Commands UUT to move the RV2 to position 4, measure the home flag, then move the RV2 to home position
+        *  measure the home flag again
+        *  
+        *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+        *             TestData test             - Variable that contains all of the necessary test data.
+        *  
+        *  Returns: bool success - returns true if the home flag toggles as anticipated
+        *                          returns false if the home flag does not.
+        * 
+        ******************************************************************************************************************************/
+        private bool test_rotary_valve_2(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+
+
+            if (this.powered && this.Vent.Connected)
+            {
+
+                //Command UUT to move motor to pos 4 --> Opposite of the home position
+                var response = this.Vent.CMD_Write("set vcm rotaryv 2 0");
+                response = this.Vent.CMD_Write("set vcm rotaryv 2 2");
+                Thread.Sleep(250);
+
+                var measured = this.GPIO.GetBit(GPIO_Defs.MEAS_RV2_HOME.port, GPIO_Defs.MEAS_RV2_HOME.pin);
+
+                if (measured == 0)
+                {
+                    //Starting off good, the home flag is not set. Now move 
+
+
+                    response = this.Vent.CMD_Write("set vcm rotaryv 2 4");
+                    response = this.Vent.CMD_Write("set vcm rotaryv 2 0");
+                    Thread.Sleep(250);
+                    measured = this.GPIO.GetBit(GPIO_Defs.MEAS_RV2_HOME.port, GPIO_Defs.MEAS_RV2_HOME.pin);
+                    if (measured == 1)
+                    {
+                        success = true;
+                    }
+
+                }
+
+
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = "FAIL";
+                }
+            }
+            return success;
+        }
+        /******************************************************************************************************************************
+        *  test_metering_valve
+        *  
+        *  Function: Commands UUT to move the MV to an open position, measure the home flag, then move the MV to home position
+        *  measure the home flag again
+        *  
+        *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+        *             TestData test             - Variable that contains all of the necessary test data.
+        *  
+        *  Returns: bool success - returns true if the home flag toggles as anticipated
+        *                          returns false if the home flag does not.
+        * 
+        ******************************************************************************************************************************/
+        private bool test_metering_valve(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+            
+
+            if (this.powered && this.Vent.Connected)
+            {
+
+                //Command UUT to read from device Exhalation board
+                var response = this.Vent.CMD_Write("set vcm metering pos 1000");
+
+
+                var measured = this.GPIO.GetBit(GPIO_Defs.MEAS_MV_HOME.port, GPIO_Defs.MEAS_MV_HOME.pin);
+
+                if (measured == 1)
+                {
+                    //Starting off good, the home flag is not set. Now move 
+
+
+                    response = this.Vent.CMD_Write("set vcm metering home");
+                    Thread.Sleep(250);
+                    measured = this.GPIO.GetBit(GPIO_Defs.MEAS_MV_HOME.port, GPIO_Defs.MEAS_MV_HOME.pin);
+                    if(measured == 0)
+                    {
+                        success = true;
+                    }
+                    
+                }
+                
+
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = "FAIL";
+                }
+            }
+            return success;
+        }
+
+
+        /******************************************************************************************************************************
+        *  test_metering_i2c
+        *  
+        *  Function: Commands UUT to read from the internal flow module i2c chip
+        *  
+        *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+        *             TestData test             - Variable that contains all of the necessary test data.
+        *  
+        *  Returns: bool success - returns true if the i2c command returns with 0 i2c errors
+        *                          returns false if the i2c command returns with 1 or more i2c errors
+        * 
+        ******************************************************************************************************************************/
+        private bool test_mv_i2c(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+            int i2c_error = 0;
+
+            if (this.powered && this.Vent.Connected)
+            {
+
+                //Command UUT to read from device Exhalation board
+                var response = this.Vent.CMD_Write("get vcm cal metering");
+
+                i2c_error = int.Parse(Regex.Match(response, @"(?<=i2cStatus:\s)[\d]").Value);
+
+
+                if (i2c_error == 0)
+                {
+                    success = true;
+                }
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = i2c_error.ToString();
+                }
+            }
+            return success;
+        }
+
         /******************************************************************************************************************************
          *  test_as_led
          *  
@@ -3068,9 +3535,9 @@ namespace ControlBoardTest
                     for(int i = 0; i < (fs*time); i++)
                     {
                         ledFlash[i] = this.GPIO.GetBit(GPIO_Defs.MEAS_AS_LED.port, GPIO_Defs.MEAS_AS_LED.pin);
-                        if (ledFlash[i] == 1) message.Report("LED is OFF");
-                        else if (ledFlash[i] == 0) message.Report("LED is ON");
-                        else message.Report("Something is wrong with GPIO.GetBit()");
+                        if (ledFlash[i] == 1) log.Report("LED is OFF");
+                        else if (ledFlash[i] == 0) log.Report("LED is ON");
+                        else log.Report("Something is wrong with GPIO.GetBit()");
                         
                         Thread.Sleep(1000 / fs);
                     }
@@ -3080,7 +3547,7 @@ namespace ControlBoardTest
                         //Get average
                         var average = ledFlash.Average();
                         //if (average >= lower && average <= upper) ;
-                        message.Report("Average = " + average);
+                        log.Report("Average = " + average);
                         success = true;
                         
                     }
@@ -3096,12 +3563,12 @@ namespace ControlBoardTest
                 //Fill in measurement parameter
                 if (success)
                 {
-                    message.Report(test.name + ": PASS");
+                    log.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    message.Report(test.name + ": FAIL");
+                    log.Report(test.name + ": FAIL");
                     test.parameters["measured"] = "FAIL";
                 }
             }
@@ -3109,13 +3576,13 @@ namespace ControlBoardTest
             {
                 if (!this.powered)
                 {
-                    message.Report("UUT is not powered");
+                    log.Report("UUT is not powered");
                     test.parameters["measured"] = "Device not powered";
                 }
                 
                 if (!this.GPIO.Connected)
                 {
-                    message.Report("GPIO Module is not connected");
+                    log.Report("GPIO Module is not connected");
                     test.parameters["measured"] = "GPIO module disconnected";
                 }
             }
@@ -3148,59 +3615,52 @@ namespace ControlBoardTest
             int measured = 0;
             int retry = 0;
             string powerOutput = "";
+            string matchPattern = @"(?'battery'^\s+[a-zA-Z0-9]+:)(?'present'\s+\d+,)(?'charge'\s+\d+,)(?'err'\s+\d+,)(?'RSOC'\s+\d+,)(?'ASOC'\s+\d+,)(?'temp'\s+\d+)";
 
             if (this.powered && this.Vent.Connected && this.GPIO.Connected)
             {
                 //Command UUT with "get vcm power"
-                do
-                {
+                
                     
-                    powerOutput = this.Vent.CMD_Write("get vcm power").Replace("\r\n", "\r");
-                    retry++;
-                } while ((powerOutput == "") || (retry > 3));
+                powerOutput = this.Vent.CMD_Write("get vcm power");
+                
+                var matches = Regex.Matches(powerOutput, @"(?'battery'\s+\w+:)(?'present'\s+\d+,)(?'charge'\s+\d+,)(?'err'\s+\d+,)(?'RSOC'\s+\d+,)(?'ASOC'\s+\d+,)(?'temp'\s+\d+)");
 
 
+                var batt0_RSOC = matches[2].Groups[6].Value.Replace(",","");
+                var batt0_ASOC = matches[2].Groups[7].Value.Replace(",", "");
 
-                if (!(retry > 3)) // Tried too many times
+                var batt1_RSOC = matches[0].Groups[6].Value.Replace(",", "");
+                var batt1_ASOC = matches[0].Groups[7].Value.Replace(",", "");
+                
+                var batt2_RSOC = matches[1].Groups[6].Value.Replace(",", "");
+                var batt2_ASOC = matches[1].Groups[7].Value.Replace(",", "");
+
+                if((batt0_ASOC == batt1_ASOC) && (batt0_ASOC == batt2_ASOC))
                 {
-                    var powerArray = powerOutput.Split('\r');
-
-
-                    var BAT0_Data = powerArray[8].Trim().Substring(7).Split(',');
-                    var BAT1_Data = powerArray[6].Trim().Substring(8).Split(',');
-                    var BAT2_Data = powerArray[7].Trim().Substring(8).Split(',');
-
-                    //Get the ASOC and RSOC Values from the power array
-                    if (int.Parse(BAT0_Data[3]) != 0)
+                    if ((batt0_RSOC == batt1_RSOC) && (batt0_RSOC == batt2_RSOC))
                     {
-                        measured = measured | (1 << 0);
-                        if (int.Parse(BAT1_Data[3]) != 0)
-                        {
-                            measured = measured | (1 << 1);
-                            if (int.Parse(BAT2_Data[3]) != 0)
-                            {
-                                measured = measured | (1 << 2);
-                                success = true;
-                            }
-
-                        }
+                        success = true;
                     }
+                }
+                log.Report("BATT0 ASOC:" + batt0_ASOC);
+                log.Report("BATT0 RSOC:" + batt0_RSOC);
+                log.Report("BATT1 ASOC:" + batt1_ASOC);
+                log.Report("BATT1 RSOC:" + batt1_RSOC);
+                log.Report("BATT2 ASOC:" + batt2_ASOC);
+                log.Report("BATT2 RSOC:" + batt2_RSOC);
 
-                }
-                else
-                {
-                    measured = -1; //Timeout / tried to talk over telnet too many times
-                }
+
 
                 //Fill in measurement parameter
                 if (success)
                 {
-                    message.Report(test.name + ": PASS");
+                    log.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    message.Report(test.name + ": FAIL");
+                    log.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
             }
@@ -3208,15 +3668,15 @@ namespace ControlBoardTest
             {
                 if (!this.powered)
                 {
-                    message.Report("UUT is not powered");
+                    log.Report("UUT is not powered");
                 }
                 if (!this.Vent.Connected)
                 {
-                    message.Report("UUT is not connected to Telnet");
+                    log.Report("UUT is not connected to Telnet");
                 }
                 if (!this.GPIO.Connected)
                 {
-                    message.Report("GPIO Module is not connected");
+                    log.Report("GPIO Module is not connected");
                 }
             }
 
@@ -3301,12 +3761,12 @@ namespace ControlBoardTest
                 //Fill in measurement parameter
                 if (success)
                 {
-                    message.Report(test.name + ": PASS");
+                    log.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    message.Report(test.name + ": FAIL");
+                    log.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
             }
@@ -3314,15 +3774,15 @@ namespace ControlBoardTest
             {
                 if (!this.powered)
                 {
-                    message.Report("UUT is not powered");
+                    log.Report("UUT is not powered");
                 }
                 if (!this.Vent.Connected)
                 {
-                    message.Report("UUT is not connected to Telnet");
+                    log.Report("UUT is not connected to Telnet");
                 }
                 if (!this.GPIO.Connected)
                 {
-                    message.Report("GPIO Module is not connected");
+                    log.Report("GPIO Module is not connected");
                 }
             }
 
@@ -3331,8 +3791,11 @@ namespace ControlBoardTest
             return success;
         }
 
+
+
+
         /******************************************************************************************************************************
-         *  test_batt0_chg
+         *  test_batt0_source
          *  
          *  Function: Connects a power supply and a
          *  
@@ -3353,96 +3816,121 @@ namespace ControlBoardTest
          *                  
          * 
          ******************************************************************************************************************************/
-
-            //TODO: Test this before copying to test_batt1_charge and test_batt2_charge
-        private bool test_batt0_charge(IProgress<string> message, IProgress<string> log, TestData test)
+        private bool  test_batt0_source(IProgress<string> message, IProgress<string> log, TestData test)
         {
             bool success = false;
-            
-            float measured = 0;
 
-
-
-            float resistance = float.Parse(test.parameters["resistance"]);
-            double voltage = double.Parse(test.parameters["voltage"]);
-            double current = double.Parse(test.parameters["current"]);
-            int upper = int.Parse(test.parameters["upper"]);
-            int lower = int.Parse(test.parameters["lower"]);
-            int chgDelay = int.Parse(test.parameters["chg_delay"]);
-
-            if (this.powered && this.Vent.Connected && this.GPIO.Connected && this.DMM.Connected && this.PPS.Connected)
+            if(this.powered && this.Vent.Connected && this.PPS.Connected)
             {
-                //Command GPIO to connect PPS to CN302
+
+
+                //Set power supply to 16V
+                this.PPS.Set_Output(true, 16, 5);
+
                 this.GPIO.SetBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
+                Thread.Sleep(250);
+                this.GPIO.ClearBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+                Thread.Sleep(250);
 
-                //Command GPIO to connect DMM to measure voltage across sense resistor
-                this.GPIO.SetBit(GPIO_Defs.MEAS_BATT_CHG_EN.port, GPIO_Defs.MEAS_BATT_CHG_EN.pin);
+                //Confirm that device is still running.
+                var response = this.Vent.CMD_Write("ping uim");
 
-                //Command PPS to supply target voltage
-                this.PPS.SetPPSOutput(voltage, current);
+                if (response.Contains("pong uim"))
+                {
+                    response = this.Vent.CMD_Write("ping vcm");
+                    if(response.Contains("pong vcm"))
+                    {
+                        success = true;
+                    }
+                   
+                }
 
-                //Connect Load
-                this.GPIO.SetBit(GPIO_Defs.PPS_LOAD_EN.port, GPIO_Defs.PPS_LOAD_EN.pin);
 
-                //Wait some time until device begins to charge
-                Thread.Sleep(chgDelay);
-
-                measured = this.DMM.Get_Volts() / resistance;
-                
-
-                //Disconenct the power supply, load and DMM
-                
-                this.GPIO.ClearBit(GPIO_Defs.PPS_LOAD_EN.port, GPIO_Defs.PPS_LOAD_EN.pin);
-                this.PPS.SetPPSOff();
-                this.GPIO.ClearBit(GPIO_Defs.MEAS_BATT_CHG_EN.port, GPIO_Defs.MEAS_BATT_CHG_EN.pin);
+                this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+                Thread.Sleep(250);
                 this.GPIO.ClearBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
-
-                if ((measured > lower) && (measured < upper))
-                {
-                    success = true;
-                }
-                    
-
-                //Fill in measurement parameter
-                if (success)
-                {
-                    message.Report(test.name + ": PASS");
-                    test.parameters["measured"] = measured.ToString();
-                }
-                else
-                {
-                    message.Report(test.name + ": FAIL");
-                    test.parameters["measured"] = measured.ToString();
-                }
+                this.PPS.Set_Output(false);
             }
-            else
-            {
-                if (!this.powered)
-                {
-                    message.Report("UUT is not powered");
-                }
-                if (!this.Vent.Connected)
-                {
-                    message.Report("UUT is not connected to Telnet");
-                }
-                if (!this.GPIO.Connected)
-                {
-                    message.Report("GPIO Module is not connected");
-                }
-                if (!this.PPS.Connected)
-                {
-                    message.Report("Power supply is not connected");
-                }
-                if (!this.DMM.Connected)
-                {
-                    message.Report("Multimeter is not connected");
-                }
-            }
-
-
 
             return success;
         }
+        private bool test_batt1_source(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+
+            if (this.powered && this.Vent.Connected && this.PPS.Connected)
+            {
+
+
+                //Set power supply to 16V
+                this.PPS.Set_Output(true, 16, 5);
+
+                this.GPIO.SetBit(GPIO_Defs.BAT1_EN.port, GPIO_Defs.BAT1_EN.pin);
+                Thread.Sleep(250);
+                this.GPIO.ClearBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+                Thread.Sleep(250);
+
+                //Confirm that device is still running.
+                var response = this.Vent.CMD_Write("ping uim");
+
+                if (response.Contains("pong uim"))
+                {
+                    response = this.Vent.CMD_Write("ping vcm");
+                    if (response.Contains("pong vcm"))
+                    {
+                        success = true;
+                    }
+
+                }
+
+
+                this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+                Thread.Sleep(250);
+                this.GPIO.ClearBit(GPIO_Defs.BAT1_EN.port, GPIO_Defs.BAT1_EN.pin);
+                this.PPS.Set_Output(false);
+            }
+
+            return success;
+        }
+        private bool test_batt2_source(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+
+            if (this.powered && this.Vent.Connected && this.PPS.Connected)
+            {
+
+
+                //Set power supply to 16V
+                this.PPS.Set_Output(true, 16, 5);
+
+                this.GPIO.SetBit(GPIO_Defs.BAT2_EN.port, GPIO_Defs.BAT2_EN.pin);
+                Thread.Sleep(250);
+                this.GPIO.ClearBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+                Thread.Sleep(250);
+
+                //Confirm that device is still running.
+                var response = this.Vent.CMD_Write("ping uim");
+
+                if (response.Contains("pong uim"))
+                {
+                    response = this.Vent.CMD_Write("ping vcm");
+                    if (response.Contains("pong vcm"))
+                    {
+                        success = true;
+                    }
+
+                }
+
+
+                this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+                Thread.Sleep(250);
+                this.GPIO.ClearBit(GPIO_Defs.BAT2_EN.port, GPIO_Defs.BAT2_EN.pin);
+                this.PPS.Set_Output(false);
+            }
+
+            return success;
+        }
+
 
         /******************************************************************************************************************************
          *  test_charge_led
@@ -3469,13 +3957,18 @@ namespace ControlBoardTest
                 int timeout = int.Parse(test.parameters["timeout"]);
 
                 //Initialize a charging scenario
-                this.PPS.SetPPSOutput(16, 2);
+                this.GPIO.SetBit(GPIO_Defs.AMM_EN.port, GPIO_Defs.AMM_EN.pin);
+                this.GPIO.SetBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);
+                this.GPIO.SetBit(GPIO_Defs.TEMP_BATT0.port, GPIO_Defs.TEMP_BATT0.pin);
                 this.GPIO.SetBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
 
                 //Wait for battery to begin charging
-                message.Report("Waiting for charge led to light up ... ");
-                int time = 0;
+                log.Report("Waiting for charge led to light up ... ");
+
                 int meas;
+                int time = 0;
+
+
                 do
                 {
                     meas = this.GPIO.GetBit(GPIO_Defs.MEAS_CHG_LED.port, GPIO_Defs.MEAS_CHG_LED.pin);
@@ -3489,26 +3982,629 @@ namespace ControlBoardTest
                 } while (time < timeout);
 
                 //Turn off PPS and battery
+
+                this.GPIO.ClearBit(GPIO_Defs.AMM_EN.port, GPIO_Defs.AMM_EN.pin);
+                this.GPIO.ClearBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);
+                this.GPIO.ClearBit(GPIO_Defs.TEMP_BATT0.port, GPIO_Defs.TEMP_BATT0.pin);
                 this.GPIO.ClearBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
-                this.PPS.SetPPSOff();
+
+
                 //Fill in measurement parameter
                 if (success)
                 {
-                    message.Report(test.name + ": PASS");
+                    log.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    message.Report(test.name + ": FAIL");
-                    test.parameters["measured"] = "PASS";
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = "FAIL";
+                }
+            }
+
+            return success;
+        }
+        private bool test_chg_monitor(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+            string response;
+            double ave_mVolts = 0;
+
+            if (this.powered && this.GPIO.Connected && this.PPS.Connected && this.Vent.Connected)
+            {
+                
+                float upper = float.Parse(test.parameters["upper"]);
+                float lower = float.Parse(test.parameters["lower"]);
+                int samples = int.Parse(test.parameters["samples"]);
+
+                //Initialize a charging scenario
+                this.GPIO.SetBit(GPIO_Defs.AMM_EN.port, GPIO_Defs.AMM_EN.pin);
+                this.GPIO.SetBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);
+                this.GPIO.SetBit(GPIO_Defs.TEMP_BATT0.port, GPIO_Defs.TEMP_BATT0.pin);
+                this.GPIO.SetBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
+
+
+
+                //Set telemetry channels
+                int channelNum = this.Vent.TLMChannels["Sensor:VppoMonitor_F_mv"];
+
+                this.Vent.CMD_Write("set vcm telemetry " + channelNum + " 0 0 0");
+
+                response = this.Vent.CMD_Write("get vcm telemetry " + samples.ToString());
+
+                var matches = Regex.Matches(response, @"(?'channel'(?<=vcm\:)\s+" + channelNum.ToString() + @",)(?'counts'(\s+\d+|\s+-\d+))");
+
+                int count = 0;
+                foreach (Match m in matches)
+                {
+                    ave_mVolts += double.Parse(m.Groups[3].Value);
+                    count++;
+                }
+                ave_mVolts = (ave_mVolts / count) / 1000;
+
+                if ((ave_mVolts > lower) && (ave_mVolts < upper))
+                {
+                    success = true;
+                }
+
+
+
+                //Turn off PPS and battery
+
+                this.GPIO.ClearBit(GPIO_Defs.AMM_EN.port, GPIO_Defs.AMM_EN.pin);
+                this.GPIO.ClearBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);
+                this.GPIO.ClearBit(GPIO_Defs.TEMP_BATT0.port, GPIO_Defs.TEMP_BATT0.pin);
+                this.GPIO.ClearBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
+
+
+                //Fill in measurement parameter
+                test.parameters["measured"] = ave_mVolts.ToString();
+                log.Report("Measured: " + ave_mVolts.ToString() + "V");
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
                 }
             }
 
             return success;
         }
 
+        /********************************************************************************************************************************
+         *  test_batt0_charge
+         *
+         * Function: Connects a power supply and a
+         *  
+         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+         * TestData test             - Variable that contains all of the necessary test data.
+         *
+         * parameters: - resistance - Denotes the sense resistor used to calucalate current from volts
+         *                         - 
+         *                         - upper - Upper limit for passing result
+         *                         - lower - Lower limit for passing result
+         *                         - chg_delay - Delay in milliseconds to wait between connecting load and measuring current through the load
+         *             
+         *
+         *  Returns: bool success - returns true if alarm silence led lights up
+         * returns false if alarm silence led does not light up
+         * Exceptions: - The calling function is expected to catch any exceptions thrown in this function.
+         *
+         *                  - Parameters does not contain Key
+         *
+         *
+         ******************************************************************************************************************************/
+
+        private bool test_batt0_charge(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+            
+
+            if (this.powered && this.GPIO.Connected && this.PPS.Connected && this.Vent.Connected)
+            {
+                int timeout = int.Parse(test.parameters["timeout"]);
+                int delay = int.Parse(test.parameters["delay"]);
+                float upper = float.Parse(test.parameters["upper"]);
+                float lower = float.Parse(test.parameters["lower"]);
+
+                //Initialize a charging scenario
+                this.GPIO.SetBit(GPIO_Defs.AMM_EN.port, GPIO_Defs.AMM_EN.pin);
+                this.GPIO.SetBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);
+                this.GPIO.SetBit(GPIO_Defs.TEMP_BATT0.port, GPIO_Defs.TEMP_BATT0.pin);
+                this.GPIO.SetBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
+
+                
+                
+
+                float meas;
+                int time = 0;
+
+                Thread.Sleep(delay);
+
+                do
+                {
+                    meas = this.DMM.Get_Amps() * -1;
+                    if ((meas <= upper) && (meas >= lower))
+                    {
+                        success = true;
+                        break;
+                    }
+                    Thread.Sleep(1000);
+                    time++;
+                } while (time < timeout);
+
+                //Turn off PPS and battery
+
+                this.GPIO.ClearBit(GPIO_Defs.AMM_EN.port, GPIO_Defs.AMM_EN.pin);
+                this.GPIO.ClearBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);
+                this.GPIO.ClearBit(GPIO_Defs.TEMP_BATT0.port, GPIO_Defs.TEMP_BATT0.pin);
+                this.GPIO.ClearBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
+
+
+                //Fill in measurement parameter
+                test.parameters["measured"] = meas.ToString();
+                log.Report("Measured: " + meas.ToString() + "A");
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");   
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                }
+            }
+
+            return success;
+        }
+        /********************************************************************************************************************************
+         *  test_batt1_charge
+         *
+         * Function: Connects a battery to the battery connector and measures the current flow into the battery
+         *  
+         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+         * TestData test             - Variable that contains all of the necessary test data.
+         *
+         * parameters: - resistance - Denotes the sense resistor used to calucalate current from volts
+         *                         - 
+         *                         - upper - Upper limit for passing result
+         *                         - lower - Lower limit for passing result
+         *                         - chg_delay - Delay in milliseconds to wait between connecting load and measuring current through the load
+         *             
+         *
+         *  Returns: bool success - returns true if alarm silence led lights up
+         * returns false if alarm silence led does not light up
+         * Exceptions: - The calling function is expected to catch any exceptions thrown in this function.
+         *
+         *                  - Parameters does not contain Key
+         *
+         *
+         ******************************************************************************************************************************/
+
+        private bool test_batt1_charge(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+
+
+            if (this.powered && this.GPIO.Connected && this.PPS.Connected && this.Vent.Connected)
+            {
+                int timeout = int.Parse(test.parameters["timeout"]);
+                int delay = int.Parse(test.parameters["delay"]);
+                float upper = float.Parse(test.parameters["upper"]);
+                float lower = float.Parse(test.parameters["lower"]);
+
+                //Initialize a charging scenario
+                this.GPIO.SetBit(GPIO_Defs.AMM_EN.port, GPIO_Defs.AMM_EN.pin);
+                this.GPIO.SetBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);
+                this.GPIO.SetBit(GPIO_Defs.TEMP_BATT2.port, GPIO_Defs.TEMP_BATT2.pin);
+                this.GPIO.SetBit(GPIO_Defs.BAT1_EN.port, GPIO_Defs.BAT1_EN.pin);
+
+
+
+
+                float meas;
+                int time = 0;
+
+                Thread.Sleep(delay);
+
+                do
+                {
+                    meas = this.DMM.Get_Amps() * -1;
+                    if ((meas <= upper) && (meas >= lower))
+                    {
+                        success = true;
+                        break;
+                    }
+                    Thread.Sleep(1000);
+                    time++;
+                } while (time < timeout);
+
+                //Turn off PPS and battery
+
+                this.GPIO.ClearBit(GPIO_Defs.AMM_EN.port, GPIO_Defs.AMM_EN.pin);
+                this.GPIO.ClearBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);
+                this.GPIO.ClearBit(GPIO_Defs.TEMP_BATT2.port, GPIO_Defs.TEMP_BATT2.pin);
+                this.GPIO.ClearBit(GPIO_Defs.BAT1_EN.port, GPIO_Defs.BAT1_EN.pin);
+
+
+                //Fill in measurement parameter
+                test.parameters["measured"] = meas.ToString();
+                log.Report("Measured: " + meas.ToString() + "A");
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                }
+            }
+
+            return success;
+        }
+        /********************************************************************************************************************************
+         *  test_batt2_charge
+         *
+         * Function: Connects a battery to the battery connector and measures the current flow into the battery
+         *  
+         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+         * TestData test             - Variable that contains all of the necessary test data.
+         *
+         * parameters: - resistance - Denotes the sense resistor used to calucalate current from volts
+         *                         - 
+         *                         - upper - Upper limit for passing result
+         *                         - lower - Lower limit for passing result
+         *                         - chg_delay - Delay in milliseconds to wait between connecting load and measuring current through the load
+         *             
+         *
+         *  Returns: bool success - returns true if alarm silence led lights up
+         * returns false if alarm silence led does not light up
+         * Exceptions: - The calling function is expected to catch any exceptions thrown in this function.
+         *
+         *                  - Parameters does not contain Key
+         *
+         *
+         ******************************************************************************************************************************/
+
+        private bool test_batt2_charge(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+
+
+            if (this.powered && this.GPIO.Connected && this.PPS.Connected && this.Vent.Connected)
+            {
+                int timeout = int.Parse(test.parameters["timeout"]);
+                int delay = int.Parse(test.parameters["delay"]);
+                float upper = float.Parse(test.parameters["upper"]);
+                float lower = float.Parse(test.parameters["lower"]);
+
+                //Initialize a charging scenario
+                this.GPIO.SetBit(GPIO_Defs.AMM_EN.port, GPIO_Defs.AMM_EN.pin);
+                this.GPIO.SetBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);
+                this.GPIO.SetBit(GPIO_Defs.TEMP_BATT1.port, GPIO_Defs.TEMP_BATT1.pin);
+                this.GPIO.SetBit(GPIO_Defs.BAT2_EN.port, GPIO_Defs.BAT2_EN.pin);
+
+
+
+
+                float meas;
+                int time = 0;
+
+                Thread.Sleep(delay);
+
+                
+                do
+                {
+                    meas = this.DMM.Get_Amps() * -1;
+                   
+                    
+                    if ((meas <= upper) && (meas >= lower))
+                    {
+                        success = true;
+                        break;
+                    }
+                    Thread.Sleep(1000);
+                    time++;
+                } while (time < timeout);
+
+                //Turn off PPS and battery
+
+                this.GPIO.ClearBit(GPIO_Defs.AMM_EN.port, GPIO_Defs.AMM_EN.pin);
+                this.GPIO.ClearBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);
+                this.GPIO.ClearBit(GPIO_Defs.TEMP_BATT1.port, GPIO_Defs.TEMP_BATT1.pin);
+                this.GPIO.ClearBit(GPIO_Defs.BAT2_EN.port, GPIO_Defs.BAT2_EN.pin);
+
+
+                //Fill in measurement parameter
+                test.parameters["measured"] = meas.ToString();
+                log.Report("Measured: " + meas.ToString() + "A");
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                }
+            }
+
+            return success;
+        }
+
+        private bool test_nurse_call(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+
+            float upper = float.Parse(test.parameters["upper"]);
+            float lower = float.Parse(test.parameters["lower"]);
+
+            
+            if(this.powered && this.Vent.Connected && this.GPIO.Connected && this.DMM.Connected)
+            {
+                //Measure NC
+
+                this.GPIO.SetBit(GPIO_Defs.MEAS_NC_NC.port, GPIO_Defs.MEAS_NC_NC.pin);
+                Thread.Sleep(DMM_DELAY);
+                var measured = this.DMM.Get_Ohms();
+                log.Report("NC measured: " + measured.ToString());
+
+                if((measured > lower) && (measured < upper))
+                {
+                    this.GPIO.ClearBit(GPIO_Defs.MEAS_NC_NC.port, GPIO_Defs.MEAS_NC_NC.pin);
+                    this.GPIO.SetBit(GPIO_Defs.MEAS_NC_NO.port, GPIO_Defs.MEAS_NC_NO.pin);
+
+                    this.Vent.CMD_Write("restart");
+                    Thread.Sleep(DMM_DELAY);
+                    measured = this.DMM.Get_Ohms();
+                    log.Report("NO measured: " + measured.ToString());
+                    if ((measured > lower) && (measured < upper))
+                    {
+                        success = true;
+                    }
+
+                }
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = "PASS";
+                }
+
+                this.GPIO.ClearBit(GPIO_Defs.MEAS_NC_NC.port, GPIO_Defs.MEAS_NC_NC.pin);
+                this.GPIO.ClearBit(GPIO_Defs.MEAS_NC_NO.port, GPIO_Defs.MEAS_NC_NO.pin);
+                this.Vent.CMD_Write("mfgmode");
+            }
+            return success;
+
+        }
+        private bool test_batt0_diode(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+
+
+            float tolerance = float.Parse(test.parameters["tolerance"]);
+            float upper = float.Parse(test.parameters["upper"]);
+            float lower = float.Parse(test.parameters["lower"]);
+            int samples = int.Parse(test.parameters["samples"]);
+            string response;
+
+            if (this.powered && this.Vent.Connected && this.PPS.Connected)
+            {
+                //Set the power supply to the lower voltage and highest current capability.
+                this.PPS.Set_Output(true, lower, 9);
+                //Confirm that device is in mfgmode to prevent overcurrent and accidental shutoff
+                this.Vent.CMD_Write("mfgmode");
+                //Set telemetry channels
+                int channelNum = this.Vent.TLMChannels["Sensor:VppoMonitor_F_mv"];
+                this.Vent.CMD_Write("set vcm telemetry " + channelNum + " 0 0 0");
+
+                this.GPIO.SetBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
+                this.GPIO.ClearBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+
+                success = true;
+                for (int i = (int)lower; i < upper; i++)
+                {
+                    float high_val = (float)i * (1 + (tolerance / 100));
+                    float low_val = (float)i * (1 - (tolerance / 100));
+                    this.PPS.Set_Output(true, i, 9);
+                    Thread.Sleep(1000);
+                    response = this.Vent.CMD_Write("get vcm telemetry " + samples.ToString());
+
+                    var matches = Regex.Matches(response, @"(?'channel'(?<=vcm\:)\s+" + channelNum.ToString() + @",)(?'counts'(\s+\d+|\s+-\d+))");
+
+                    float ave_mVolts = 0;
+                    int count = 0;
+                    foreach (Match m in matches)
+                    {
+                        ave_mVolts += float.Parse(m.Groups[3].Value);
+                        count++;
+                    }
+                    ave_mVolts = (ave_mVolts / count) / 1000;
+
+                    if (success && ((ave_mVolts > low_val) && (ave_mVolts < high_val)))
+                    {
+                        success = true;
+                    }
+                    else
+                    {
+                        success = false;
+                    }
+                }
+                this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+                Thread.Sleep(1000);
+                this.GPIO.ClearBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
+                this.PPS.Set_Output(false);
+                
+
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = "FAIL";
+                }
+
+            }
+            return success;
+        }
+        private bool test_batt1_diode(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+
+
+            float tolerance = float.Parse(test.parameters["tolerance"]);
+            float upper = float.Parse(test.parameters["upper"]);
+            float lower = float.Parse(test.parameters["lower"]);
+            int samples = int.Parse(test.parameters["samples"]);
+            string response;
+
+            if (this.powered && this.Vent.Connected && this.PPS.Connected)
+            {
+                //Set the power supply to the lower voltage and highest current capability.
+                this.PPS.Set_Output(true, lower, 9);
+                //Confirm that device is in mfgmode to prevent overcurrent and accidental shutoff
+                this.Vent.CMD_Write("mfgmode");
+                //Set telemetry channels
+                int channelNum = this.Vent.TLMChannels["Sensor:VppoMonitor_F_mv"];
+                this.Vent.CMD_Write("set vcm telemetry " + channelNum + " 0 0 0");
+
+                this.GPIO.SetBit(GPIO_Defs.BAT1_EN.port, GPIO_Defs.BAT1_EN.pin);
+                Thread.Sleep(500);
+                this.GPIO.ClearBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+
+                success = true;
+                for (int i = (int)lower; i < upper; i++)
+                {
+                    float high_val = (float)i * (1 + (tolerance / 100));
+                    float low_val = (float)i * (1 - (tolerance / 100));
+                    this.PPS.Set_Output(true, i, 9);
+                    Thread.Sleep(1000);
+                    response = this.Vent.CMD_Write("get vcm telemetry " + samples.ToString());
+
+                    var matches = Regex.Matches(response, @"(?'channel'(?<=vcm\:)\s+" + channelNum.ToString() + @",)(?'counts'(\s+\d+|\s+-\d+))");
+
+                    float ave_mVolts = 0;
+                    int count = 0;
+                    foreach (Match m in matches)
+                    {
+                        ave_mVolts += float.Parse(m.Groups[3].Value);
+                        count++;
+                    }
+                    ave_mVolts = (ave_mVolts / count) / 1000;
+
+                    if (success && ((ave_mVolts > low_val) && (ave_mVolts < high_val)))
+                    {
+                        success = true;
+                    }
+                    else
+                    {
+                        success = false;
+                    }
+                }
+                this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+                Thread.Sleep(1000);
+                this.GPIO.ClearBit(GPIO_Defs.BAT1_EN.port, GPIO_Defs.BAT1_EN.pin);
+                this.PPS.Set_Output(false);
+
+
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = "FAIL";
+                }
+
+            }
+            return success;
+        }
+        private bool test_batt2_diode(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+
+
+            float tolerance = float.Parse(test.parameters["tolerance"]);
+            float upper = float.Parse(test.parameters["upper"]);
+            float lower = float.Parse(test.parameters["lower"]);
+            int samples = int.Parse(test.parameters["samples"]);
+            string response;
+
+            if (this.powered && this.Vent.Connected && this.PPS.Connected)
+            {
+                //Set the power supply to the lower voltage and highest current capability.
+                this.PPS.Set_Output(true, lower, 9);
+                //Confirm that device is in mfgmode to prevent overcurrent and accidental shutoff
+                this.Vent.CMD_Write("mfgmode");
+                //Set telemetry channels
+                int channelNum = this.Vent.TLMChannels["Sensor:VppoMonitor_F_mv"];
+                this.Vent.CMD_Write("set vcm telemetry " + channelNum + " 0 0 0");
+
+                this.GPIO.SetBit(GPIO_Defs.BAT2_EN.port, GPIO_Defs.BAT2_EN.pin);
+                Thread.Sleep(500);
+                this.GPIO.ClearBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+
+                success = true;
+                for (int i = (int)lower; i < upper; i++)
+                {
+                    float high_val = (float)i * (1 + (tolerance / 100));
+                    float low_val = (float)i * (1 - (tolerance / 100));
+                    this.PPS.Set_Output(true, i, 9);
+                    Thread.Sleep(1000);
+                    response = this.Vent.CMD_Write("get vcm telemetry " + samples.ToString());
+
+                    var matches = Regex.Matches(response, @"(?'channel'(?<=vcm\:)\s+" + channelNum.ToString() + @",)(?'counts'(\s+\d+|\s+-\d+))");
+
+                    float ave_mVolts = 0;
+                    int count = 0;
+                    foreach (Match m in matches)
+                    {
+                        ave_mVolts += float.Parse(m.Groups[3].Value);
+                        count++;
+                    }
+                    ave_mVolts = (ave_mVolts / count) / 1000;
+
+                    if (success && ((ave_mVolts > low_val) && (ave_mVolts < high_val)))
+                    {
+                        success = true;
+                    }
+                    else
+                    {
+                        success = false;
+                    }
+                }
+                this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+                Thread.Sleep(1000);
+                this.GPIO.ClearBit(GPIO_Defs.BAT2_EN.port, GPIO_Defs.BAT2_EN.pin);
+                this.PPS.Set_Output(false);
+
+
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = "FAIL";
+                }
+
+            }
+            return success;
+        }
         /******************************************************************************************************************************
-         *  test_charge_led
+         *  test_inop_led
          *  
          *  Function: Connects a load to the internal battery port and waits for the system to start charging. The Charge LED should light up and be measured by the GPIO module as a low.
          *  
@@ -3523,37 +4619,907 @@ namespace ControlBoardTest
          
          ******************************************************************************************************************************/
 
-        private bool test_cpld_rev(IProgress<string> message, IProgress<string> log, TestData test)
+        private bool test_inop_led(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+
+            if (this.powered && this.GPIO.Connected && this.PPS.Connected && this.Vent.Connected)
+            {
+                int timeout = int.Parse(test.parameters["timeout"]);
+
+                //Confirm external power is on.
+                this.GPIO.SetBit(GPIO_Defs.WDOG_DIS.port, GPIO_Defs.WDOG_DIS.pin);
+                
+
+
+                int time = 0;
+                int meas;
+                do
+                {
+                    meas = this.GPIO.GetBit(GPIO_Defs.MEAS_INOP_LED.port, GPIO_Defs.MEAS_INOP_LED.pin);
+                    if (meas == 0)
+                    {
+                        success = true;
+                        break;
+                    }
+                    Thread.Sleep(50);
+                    time++;
+                } while (time < timeout);
+
+                this.GPIO.ClearBit(GPIO_Defs.WDOG_DIS.port, GPIO_Defs.WDOG_DIS.pin);
+
+                //Fill in measurement parameter
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = "PASS";
+                }
+            }
+
+            return success;
+        }
+
+        /******************************************************************************************************************************
+         *  test_ext_led
+         *  
+         *  Function: Connects a load to the internal battery port and waits for the system to start charging. The Charge LED should light up and be measured by the GPIO module as a low.
+         *  
+         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+         *             TestData test             - Variable that contains all of the necessary test data.
+         *             parameters: - 
+         *             
+
+         *  Returns: bool success - returns true if charge led cathode pin is low
+         *  Exceptions: - The calling function is expected to catch any exceptions thrown in this function.
+         *                  - parameters does not contain Key
+         
+         ******************************************************************************************************************************/
+
+        private bool test_ext_led(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+
+            if (this.powered && this.GPIO.Connected && this.PPS.Connected && this.Vent.Connected)
+            {
+                int timeout = int.Parse(test.parameters["timeout"]);
+
+                //Confirm external power is on.
+                this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+                //Confirm that batteries are off to make sure that no charging is occurring
+                this.GPIO.ClearBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
+                this.GPIO.ClearBit(GPIO_Defs.BAT1_EN.port, GPIO_Defs.BAT1_EN.pin);
+                this.GPIO.ClearBit(GPIO_Defs.BAT2_EN.port, GPIO_Defs.BAT2_EN.pin);
+
+
+                int time = 0;
+                int meas;
+                do
+                {
+                    meas = this.GPIO.GetBit(GPIO_Defs.MEAS_EXT_LED.port, GPIO_Defs.MEAS_EXT_LED.pin);
+                    if (meas == 0)
+                    {
+                        success = true;
+                        break;
+                    }
+                    Thread.Sleep(1000);
+                    time++;
+                } while (time < timeout);
+
+                
+                //Fill in measurement parameter
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = "PASS";
+                }
+            }
+
+            return success;
+        }
+        /******************************************************************************************************************************
+         *  test_ext_gt14_ok
+         *  
+         *  Function: Connects external power and pings the CPLD to retrieve a EXT_GT14V flag
+         *  
+         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+         *             TestData test             - Variable that contains all of the necessary test data.
+         *             parameters: - 
+         *             
+
+         *  Returns: bool success - returns true if the flag is set.
+         *  Exceptions: - The calling function is expected to catch any exceptions thrown in this function.
+         *                  - parameters does not contain Key
+         
+         ******************************************************************************************************************************/
+
+        private bool test_ext_gt14_ok(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+
+            if (this.powered && this.GPIO.Connected &&  this.Vent.Connected)
+            {
+               
+
+                //Confirm external power is on.
+                this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+
+                //Wait for battery to begin charging
+
+                var response = this.Vent.CMD_Write("get vcm cpld 0c");
+                int responseMatch = (((int.Parse(Regex.Matches(response, @"=(?> |)(\w+)")[0].Groups[1].Value, System.Globalization.NumberStyles.HexNumber)) & (1<<6)) >>6);
+                if(responseMatch == 1)
+                {
+                    success = true;
+                }
+
+                //Fill in measurement parameter
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = "PASS";
+                }
+            }
+
+            return success;
+        }
+        /******************************************************************************************************************************
+         *  test_vppo_ok
+         *  
+         *  Function: Connects external power and pings the CPLD to retrieve a EXT_GT14V flag
+         *  
+         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+         *             TestData test             - Variable that contains all of the necessary test data.
+         *             parameters: - 
+         *             
+
+         *  Returns: bool success - returns true if the flag is set.
+         *  Exceptions: - The calling function is expected to catch any exceptions thrown in this function.
+         *                  - parameters does not contain Key
+         
+         ******************************************************************************************************************************/
+
+        public bool test_vppo_ok(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+
+            if (DEBUG || (this.powered && this.GPIO.Connected && this.Vent.Connected))
+            {
+
+
+                //Confirm external power is on.
+                this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+
+                
+
+                var response = this.Vent.CMD_Write("get vcm cpld 0c");
+                int responseMatch = (((int.Parse(Regex.Matches(response, @"=(?> |)(\w+)")[0].Groups[1].Value, System.Globalization.NumberStyles.HexNumber)) & (1 << 6)) >> 6);
+                if (responseMatch == 1)
+                {
+                    success = true;
+                }
+
+                //Fill in measurement parameter
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = "PASS";
+                }
+            }
+
+            return success;
+        }
+        /******************************************************************************************************************************
+         *  test_vppo_monitor
+         *  
+         *  Function: Connects external power and pings the CPLD to retrieve a vppo_ok flag
+         *  
+         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+         *             TestData test             - Variable that contains all of the necessary test data.
+         *             parameters: - 
+         *             
+
+         *  Returns: bool success - returns true if the flag is set.
+         *  Exceptions: - The calling function is expected to catch any exceptions thrown in this function.
+         *                  - parameters does not contain Key
+         
+         ******************************************************************************************************************************/
+
+        private bool test_vppo_monitor(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+
+
+            int upper;
+            int lower;
+            int samples = int.Parse(test.parameters["samples"]);
+            double ave_mVolts = 0;
+            var count = 0;
+
+            if (this.powered && this.Vent.Connected)
+            {
+                //Get limits
+                
+
+                //Set telemetry channels
+                int channelNum = this.Vent.TLMChannels["Sensor:VppoMonitor_F_mv"];
+
+                this.Vent.CMD_Write("set vcm telemetry " + channelNum + " 0 0 0");
+
+                var response = this.Vent.CMD_Write("get vcm telemetry " + samples.ToString());
+
+                var matches = Regex.Matches(response, @"(?'channel'(?<=vcm\:)\s+" + channelNum.ToString() + @",)(?'counts'(\s+\d+|\s+-\d+))");
+
+
+                foreach (Match m in matches)
+                {
+                    ave_mVolts += double.Parse(m.Groups[3].Value);
+                    count++;
+                }
+                ave_mVolts = (ave_mVolts / count) / 1000;
+
+                if (ave_mVolts > 19)
+                {
+                    success = true;
+                }
+                //string press = output.Substring(53, 8);
+                //var pressure = float.Parse(press) * 0.000980665; //Convert to kPa
+
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = ave_mVolts.ToString();
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = ave_mVolts.ToString();
+                }
+
+                log.Report("Measured: " + ave_mVolts.ToString());
+            }
+            return success;
+        }
+        private bool test_extdc_diode(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+
+
+            int upper;
+            int lower;
+            int samples = int.Parse(test.parameters["samples"]);
+            double ave_mVolts = 0;
+            var count = 0;
+
+            if (this.powered && this.Vent.Connected)
+            {
+                //Turn on all sources and set power supply to 15V
+                this.PPS.Set_Output(true, 15, 5);
+                this.GPIO.SetBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
+                this.GPIO.SetBit(GPIO_Defs.BAT1_EN.port, GPIO_Defs.BAT1_EN.pin);
+                this.GPIO.SetBit(GPIO_Defs.BAT2_EN.port, GPIO_Defs.BAT2_EN.pin);
+
+
+
+                //Set telemetry channels
+                int channelNum = this.Vent.TLMChannels["Sensor:VppoMonitor_F_mv"];
+
+                this.Vent.CMD_Write("set vcm telemetry " + channelNum + " 0 0 0");
+
+                var response = this.Vent.CMD_Write("get vcm telemetry " + samples.ToString());
+
+                var matches = Regex.Matches(response, @"(?'channel'(?<=vcm\:)\s+" + channelNum.ToString() + @",)(?'counts'(\s+\d+|\s+-\d+))");
+
+
+                foreach (Match m in matches)
+                {
+                    ave_mVolts += double.Parse(m.Groups[3].Value);
+                    count++;
+                }
+                ave_mVolts = (ave_mVolts / count) / 1000;
+
+                if (ave_mVolts > 20)
+                {
+                    success = true;
+                }
+                //string press = output.Substring(53, 8);
+                //var pressure = float.Parse(press) * 0.000980665; //Convert to kPa
+
+
+                this.PPS.Set_Output(false);
+                this.GPIO.ClearBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
+                this.GPIO.ClearBit(GPIO_Defs.BAT1_EN.port, GPIO_Defs.BAT1_EN.pin);
+                this.GPIO.ClearBit(GPIO_Defs.BAT2_EN.port, GPIO_Defs.BAT2_EN.pin);
+
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = ave_mVolts.ToString();
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = ave_mVolts.ToString();
+                }
+
+                log.Report("Measured: " + ave_mVolts.ToString());
+            }
+            return success;
+        }
+
+        private bool test_cpld_diode(IProgress<string> message, IProgress<string> log, TestData test)
         {
             bool success = false;
             string response;
+            bool ib_ok;
+            bool eb1_ok;
+            bool xdc_ok;
+            bool eb2_ok;
+
+
+            int xdc_only = 8;
+            int ib_only = 1;
+            int eb1_only = 4;
+            int eb2_only = 2;
+            
+
+
+            if (this.powered && this.Vent.Connected && this.PPS.Connected && this.GPIO.Connected)
+            {
+                int ok = 0;
+
+                this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+                Thread.Sleep(1000);
+                response = this.Vent.CMD_Write("get vcm power");
+                //Match the Source OK bits and confirm that the xdc bit is the only ok bit.
+
+                var src_match = Convert.ToInt32(Regex.Match(response, @"((?<=source:\s)\d+)").Value);
+                
+
+                if(src_match == xdc_only)
+                {
+                    ok++;
+                }
+                //Internal Battery
+                this.PPS.Set_Output(true, 16, 9);
+                this.GPIO.SetBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
+                this.GPIO.ClearBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+
+                Thread.Sleep(1000);
+                response = this.Vent.CMD_Write("get vcm power");
+                //Match the Source OK bits and confirm that the ib bit is the only ok bit.
+
+                src_match = Convert.ToInt32(Regex.Match(response, @"((?<=source:\s)\d+)").Value);
+
+
+                if (src_match == ib_only)
+                {
+                    ok++;
+                    message.Report("Internal: OK");
+                }
+                else
+                {
+                    message.Report("Internal: ");
+
+                }
+                //External Battery 1
+                this.GPIO.SetBit(GPIO_Defs.BAT1_EN.port, GPIO_Defs.BAT1_EN.pin);
+                this.GPIO.ClearBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
+
+                Thread.Sleep(1000);
+                response = this.Vent.CMD_Write("get vcm power");
+                //Match the Source OK bits and confirm that the eb1 bit is the only ok bit.
+
+                src_match = Convert.ToInt32(Regex.Match(response, @"((?<=source:\s)\d+)").Value);
+
+
+                if (src_match == eb1_only)
+                {
+                    ok++;
+                }
+
+                //External Battery 2
+                this.GPIO.SetBit(GPIO_Defs.BAT2_EN.port, GPIO_Defs.BAT2_EN.pin);
+                this.GPIO.ClearBit(GPIO_Defs.BAT1_EN.port, GPIO_Defs.BAT1_EN.pin);
+
+                Thread.Sleep(1000);
+                response = this.Vent.CMD_Write("get vcm power");
+                //Match the Source OK bits and confirm that the eb2 bit is the only ok bit.
+
+                src_match = Convert.ToInt32(Regex.Match(response, @"((?<=source:\s)\d+)").Value);
+
+
+                if (src_match == eb2_only)
+                {
+                    ok++;
+                }
+
+                this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+                Thread.Sleep(1000);
+                this.GPIO.ClearBit(GPIO_Defs.BAT2_EN.port, GPIO_Defs.BAT2_EN.pin);
+
+
+                if (ok == 4)
+                {
+                    success = true;
+                }
+                log.Report("Measured: " + ok.ToString());
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = ok.ToString();
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = ok.ToString();
+                }
+            }
+
+
+            return success;
+        }
+
+
+        /******************************************************************************************************************************
+            *  test_cpld_rev
+            *  
+            *  Function: Queries the CPLD for the current revision.
+            *  
+            *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+            *             TestData test             - Variable that contains all of the necessary test data.
+            *             parameters: - 
+            *             
+
+            *  Returns: bool success - returns true if charge led cathode pin is low
+            *  Exceptions: - The calling function is expected to catch any exceptions thrown in this function.
+            *                  - parameters does not contain Key
+
+            ******************************************************************************************************************************/
+
+        private bool test_cpld_rev(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+            string alpha_response;
+            string number_response;
+            string revision;
+            string revision_meas = "";
+            
+            if (this.powered && this.Vent.Connected)
+            {
+                revision = test.parameters["rev"];
+
+                alpha_response = this.Vent.CMD_Write("get vcm cpld 9");
+                number_response = this.Vent.CMD_Write("get vcm cpld a");
+
+                var alphaMatch = Regex.Matches(alpha_response, @"=(?> |)(\w+)");
+                var numberMatch = Regex.Matches(number_response, @"=(?> |)(\w+)");
+
+                revision_meas += (char)int.Parse(alphaMatch[0].Groups[1].Value);
+                revision_meas += ((int.Parse(numberMatch[0].Groups[1].Value, System.Globalization.NumberStyles.HexNumber) & 0x78) >>3).ToString();
+
+                
+
+                  
+
+                if ((revision_meas == revision))
+                {
+                    success = true;
+                }
+
+
+                //TODO: Parse meas for the correct revision
+
+
+                log.Report("Measured: " + revision_meas);
+                //Fill in measurement parameter
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = revision_meas;
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = revision_meas;
+                }
+            }
+            
+            
+
+            return success;
+        }
+        /******************************************************************************************************************************
+         *  test_vcm_rev
+         *  
+         *  Function: Queries the CPLD for the current revision.
+         *  
+         *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+         *             TestData test             - Variable that contains all of the necessary test data.
+         *             parameters: - 
+         *             
+
+         *  Returns: bool success - returns true if charge led cathode pin is low
+         *  Exceptions: - The calling function is expected to catch any exceptions thrown in this function.
+         *                  - parameters does not contain Key
+         
+         ******************************************************************************************************************************/
+
+        private bool test_vcm_rev(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
             string revision;
             string revision_meas = "";
 
             if (this.powered && this.Vent.Connected)
             {
-                revision = test.parameters["revision"];
+                revision = test.parameters["rev"];
 
-                response = this.Vent.CMD_Write("get vcm cpld 9");
-                
+                var response = this.Vent.CMD_Write("get vcm version");
+
+               
+
+                revision_meas = Regex.Match(response, @"((?<=vcm version:\s)\d+.\d+.\d+R)").Value;
+
+                if ((revision_meas == revision))
+                {
+                    success = true;
+                }
+
 
                 //TODO: Parse meas for the correct revision
-                    
 
-            
+                log.Report("Measured: " + revision_meas);
+                test.parameters["measured"] = revision_meas;
                 //Fill in measurement parameter
                 if (success)
                 {
-                    message.Report(test.name + ": PASS");
-                    test.parameters["measured"] = revision_meas;
+                    log.Report(test.name + ": PASS");            
                 }
                 else
                 {
-                    message.Report(test.name + ": FAIL");
-                    test.parameters["measured"] = revision_meas;
+                    log.Report(test.name + ": FAIL");
                 }
             }
 
+
+
+            return success;
+        }
+
+
+
+
+
+        private bool test_supercap(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+            string response;
+            float measured;
+            float upper;
+            float lower;
+
+            if (this.powered && this.Vent.Connected && this.DMM.Connected)
+            {
+                upper = float.Parse(test.parameters["upper"]);
+                lower = float.Parse(test.parameters["lower"]);
+
+                this.GPIO.SetBit(GPIO_Defs.MEAS_PIEZO.port, GPIO_Defs.MEAS_PIEZO.pin);
+
+                measured = this.DMM.Get_Volts();
+
+                this.GPIO.ClearBit(GPIO_Defs.MEAS_PIEZO.port, GPIO_Defs.MEAS_PIEZO.pin);
+
+
+                if ((measured <= upper) && (measured >= lower))
+                {
+                    success = true;
+                }
+
+                test.parameters["measured"] = measured.ToString();
+                //Fill in measurement parameter
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                }
+            }
+
+
+
+            return success;
+        }
+        private bool test_sd_card(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+            string response;
+            float measured;
+            string filename = test.parameters["filename"];
+            
+
+            if (this.powered && this.Vent.Connected)
+            {
+                Random rnd = new Random();
+                int randNum = rnd.Next(1, 100);
+
+                response = this.Vent.QNX_Write("ls /fs/sd0");
+                int cnt = 0;
+                while(response.Contains(filename) && (cnt < 50))
+                {
+                    response = this.Vent.QNX_Write("rm /fs/sd0/" + filename);
+                    response = this.Vent.QNX_Write("ls /fs/sd0");
+                    cnt++;
+                }
+                response = this.Vent.QNX_Write("echo \"" + randNum.ToString() + "\" >> /fs/sd0/" + filename);
+                response = this.Vent.QNX_Write("cat /fs/sd0/" + filename);
+
+                if (response.Contains(randNum.ToString()))
+                {
+                    success = true;
+                }
+
+                
+
+               
+               
+                //Fill in measurement parameter
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = "FAIL";
+                }
+            }
+
+
+
+            return success;
+        }
+        private bool test_usb(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+            string response;
+            float measured;
+            string filename = test.parameters["filename"];
+
+
+            if (this.powered && this.Vent.Connected)
+            {
+                Random rnd = new Random();
+                int randNum = rnd.Next(1, 100);
+
+                response = this.Vent.QNX_Write("ls /fs/usb");
+                int cnt = 0;
+                while (response.Contains(filename) && (cnt < 50))
+                {
+                    response = this.Vent.QNX_Write("rm /fs/usb/" + filename);
+                    response = this.Vent.QNX_Write("ls /fs/usb");
+                    cnt++;
+                }
+                response = this.Vent.QNX_Write("echo \"" + randNum.ToString() + "\" >> /fs/usb/" + filename);
+                response = this.Vent.QNX_Write("cat /fs/usb/" + filename);
+
+                if (response.Contains(randNum.ToString()))
+                {
+                    success = true;
+                }
+                //Fill in measurement parameter
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = "FAIL";
+                }
+            }
+
+
+
+            return success;
+        }
+        /******************************************************************************************************************************
+        *  test_oa1_i2c
+        *  
+        *  Function: Commands UUT to read from the exhalation module i2c chip
+        *  
+        *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+        *             TestData test             - Variable that contains all of the necessary test data.
+        *  
+        *  Returns: bool success - returns true if the i2c command returns with 0 i2c errors
+        *                          returns false if the i2c command returns with 1 or more i2c errors
+        * 
+        ******************************************************************************************************************************/
+        private bool test_oa1_i2c(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+            int i2c_error = 0;
+
+            if (this.powered && this.Vent.Connected)
+            {
+
+                //Command UUT to read from device Exhalation board
+                var response = this.Vent.CMD_Write("get vcm cal oa1");
+
+
+                
+                if (!response.Contains("i2C failure"))
+                {
+                    success = true;
+                }
+                else
+                {
+
+                }
+
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = i2c_error.ToString();
+                }
+            }
+            return success;
+        }
+        /******************************************************************************************************************************
+        *  test_oa1_i2c
+        *  
+        *  Function: Commands UUT to read from the exhalation module i2c chip
+        *  
+        *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+        *             TestData test             - Variable that contains all of the necessary test data.
+        *  
+        *  Returns: bool success - returns true if the i2c command returns with 0 i2c errors
+        *                          returns false if the i2c command returns with 1 or more i2c errors
+        * 
+        ******************************************************************************************************************************/
+        private bool test_oa2_i2c(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+            int i2c_error = 0;
+
+            if (this.powered && this.Vent.Connected)
+            {
+
+                //Command UUT to read from device Exhalation board
+                var response = this.Vent.CMD_Write("get vcm cal oa2");
+
+
+
+                if (!response.Contains("i2C failure"))
+                {
+                    success = true;
+                }
+                else
+                {
+
+                }
+
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = i2c_error.ToString();
+                }
+            }
+            return success;
+        }
+        /******************************************************************************************************************************
+        *  test_oa1_off
+        *  
+        *  Function: Commands UUT to read the OA1_OFF signal and confirm that it is low.
+        *  
+        *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+        *             TestData test             - Variable that contains all of the necessary test data.
+        *  
+        *  Returns: bool success - returns true if the test passes
+        *                          returns false if the test fails
+        * 
+        ******************************************************************************************************************************/
+        private bool test_oa1_off(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+            
+
+            if (this.powered && this.Vent.Connected)
+            {
+
+                //Command UUT to read from device Exhalation board
+                var meas = this.GPIO.GetBit(GPIO_Defs.OAX1_OFF.port, GPIO_Defs.OAX1_OFF.pin);
+
+                if (meas == 0)
+                {
+                    success = true;
+                }
+
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = "FAIL";
+                }
+            }
+            return success;
+        }
+        /******************************************************************************************************************************
+        *  test_oa1_off
+        *  
+        *  Function: Commands UUT to read the OA1_OFF signal and confirm that it is low.
+        *  
+        *  Arguments: IProgress<string> message - Variable to pass string updates back to the GUI and inform the user on what is happening.
+        *             TestData test             - Variable that contains all of the necessary test data.
+        *  
+        *  Returns: bool success - returns true if the test passes
+        *                          returns false if the test fails
+        * 
+        ******************************************************************************************************************************/
+        private bool test_oa2_off(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+
+
+            if (this.powered && this.Vent.Connected)
+            {
+
+                //Command UUT to read from device Exhalation board
+                var meas = this.GPIO.GetBit(GPIO_Defs.OAX2_OFF.port, GPIO_Defs.OAX2_OFF.pin);
+
+                if (meas == 0)
+                {
+                    success = true;
+                }
+
+                if (success)
+                {
+                    log.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                }
+                else
+                {
+                    log.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = "FAIL";
+                }
+            }
             return success;
         }
 

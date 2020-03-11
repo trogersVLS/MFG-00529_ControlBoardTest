@@ -21,6 +21,7 @@ using System.Xml;
 using VLS;
 using System.Data.SQLite;
 using System.Linq;
+using System.Diagnostics;
 
 
 
@@ -141,10 +142,8 @@ namespace ControlBoardTest
 
         //Displays a message to the Output window in Visual Studio.
         private void LogMessage(string text)
-        {   if (this.ConsoleLog != null)
-            {
-                this.ConsoleLog.WriteLine(text);
-            }
+        {
+            Debug.WriteLine(text);
         }
         //Displays a message on the UI screen
         private void DisplayMessage(string text)
@@ -325,7 +324,7 @@ namespace ControlBoardTest
             this.DatabaseExist();
 
             //Initialize the functional test class object
-            this.FCT = new FunctionalTest(this.DB_CON, this.GPIO, this.DMM, this.PPS, this.SOM, this.VENT);
+            this.FCT = new FunctionalTest(this.GPIO, this.DMM, this.PPS, this.SOM, this.VENT);
 
             return;
         }
@@ -417,7 +416,6 @@ namespace ControlBoardTest
             
             //Disable the check buttons
             this.Check_FCT.Enabled = false;
-            this.Check_Program.Enabled = false;
             this.Check_SingleTest.Enabled = false;
 
 
@@ -447,7 +445,7 @@ namespace ControlBoardTest
             bool success = false;
             error = null;
             errorCode = 0;
-            var param = new object[] { message, log, test, errorCode };
+            var param = new object[] { message, log, test};
 
             try
             {   
@@ -462,22 +460,24 @@ namespace ControlBoardTest
                 {
                     test.result = "PASS";
                     message.Report("PASS: " + test.name);
-                    log.Report("PASS: " + test.method_name);
+                    
                 }
                 else
                 {
                     test.result = "FAIL";
                     message.Report("FAIL: " + test.name);
-                    log.Report("FAIL: " + test.method_name);
                     success = false;
                 }
             }
             catch(Exception e)
             {
                 errorCode = -1;
-                error = e.Message;
+                error = e.InnerException.Message;
+                
                 test.parameters["measured"] = "ERROR";
                 string errormessage = "Exception caught: " + error + "\n\rThe following test failed: " + test.name;
+
+                log.Report(error);
 
 
                 MessageBox.Show(errormessage, "Exception caught", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -514,41 +514,8 @@ namespace ControlBoardTest
             Progress<string> log = new Progress<string>(s => this.LogMessage(s));
 
             //Get current program state
-            if (Check_Program.Checked)
-            {
-                this.DisplayMessage("Program steps not functional as of Rev A");
-                //LogTestInstance();
-                //int ctr = 1;
-                //int total = this.Programming_Steps.Count;
-                //foreach (TestData test in this.Programming_Steps)
-                //{
-                //    bool success = true;
-                //    string error = null;
-                //    int errorCode = 0;
-
-                //    await Task.Factory.StartNew(() => (success = this.RunTest(this.TEST_ID, this.SERIAL_NUM, test, message, log, out error, out errorCode)));
-
-                //    if (errorCode != 0)
-                //    {
-                //        this.RESULT = "FAIL";
-
-                //    }
-                //    else
-                //    {
-                //        if (!success)
-                //        {
-                //            this.RESULT = "FAIL";
-                //        }
-
-                //    }
-                //    this.DisplayMessage(error); 
-                //    this.ProgressBar.Value = (ctr * 100) / total;
-                //    ctr++;
-                //}
-
-                //LogTestResult();
-            }
-            else if (Check_FCT.Checked)
+            this.ProgressBar.Value = 0;
+            if (Check_FCT.Checked)
             {
 
                 if (this.Powered && this.Telnet)
@@ -582,32 +549,6 @@ namespace ControlBoardTest
                         this.ProgressBar.Value = (ctr * 100) / total;
                         ctr++;
                     }
-                    //foreach (TestData test in this.PowerDown_Steps)
-                    //{
-                    //    bool success = true;
-                    //    string error = null;
-                    //    int errorCode = 0;
-                    //    await Task.Factory.StartNew(() => (success = this.RunTest(this.TEST_ID, this.SERIAL_NUM, test, message, log, out error, out errorCode)));
-                    //    this.DisplayMessage(error);
-
-                    //    if (errorCode != 0)
-                    //    {
-                    //        this.RESULT = "FAIL";
-
-                    //    }
-                    //    else
-                    //    {
-                    //        if (!success)
-                    //        {
-                    //            this.RESULT = "FAIL";
-                    //        }
-
-                    //    }
-
-                    //    this.ProgressBar.Value = (ctr * 100) / total;
-                    //    ctr++;
-                    //}
-
                     LogTestResult();
                 }
             }
@@ -642,8 +583,8 @@ namespace ControlBoardTest
                                     this.ProgressBar.Value = 100;
                                     LogTestResult();
 
-                                    Thread.Sleep(3000);
-                                    this.ProgressBar.Value = 0;
+
+                                    
                                     break;
                                 }
                                 else
@@ -926,7 +867,6 @@ namespace ControlBoardTest
                 this.SERIAL_NUM = this.Field_SerialNumber.Text;
 
                 this.Check_FCT.Enabled = true;
-                this.Check_Program.Enabled = true;
                 this.Check_SingleTest.Enabled = true;
 
                 this.Panel_Actions.Enabled = true;
@@ -946,9 +886,9 @@ namespace ControlBoardTest
                 this.Field_SerialNumber.Text = "";
 
                 this.Panel_Actions.Enabled = false;
-                this.Check_Program.Enabled = false;
                 this.Check_SingleTest.Enabled = false;
                 this.Check_FCT.Enabled = false;
+                this.ProgressBar.Value = 0;
             }
         }
         /******************************************************************************************************
@@ -977,7 +917,6 @@ namespace ControlBoardTest
             {
                 Dropdown_Test_List.Enabled = true;
                 this.Check_FCT.Checked = false;
-                this.Check_Program.Checked = false;
                 this.Button_PowerUp.Enabled = true;
                 this.Button_Telnet.Enabled = true;
 
@@ -991,6 +930,9 @@ namespace ControlBoardTest
 
         private async void Button_Telnet_Click(object sender, EventArgs e)
         {
+            Progress<string> message = new Progress<string>(s => this.Button_Telnet.Text = s);
+            Progress<string> log = new Progress<string>(s => this.LogMessage(s));
+
             if (this.Powered && !this.Telnet)
             {
                 //Device is already powered, can connect to Telnet now
@@ -1001,8 +943,7 @@ namespace ControlBoardTest
                 {
                     
                     ip = Microsoft.VisualBasic.Interaction.InputBox("Please enter the IP adress", "IP Address", null);
-                    this.DHCP_START = ip;
-                    this.DHCP_END = ip;
+                    
                 }
                 else
                 {
@@ -1012,32 +953,37 @@ namespace ControlBoardTest
                 }
 
                 var success = false;
-                for (int i = 0; i < 100; i++) {
-                    //this.DisplayMessage("Trying to connect to " + ip);
 
-                    ip = ip.Substring(0, ip.LastIndexOf(".") + 1) + (int.Parse(ip.Substring(ip.LastIndexOf(".") + 1)) + i).ToString() ;
+                //this.DisplayMessage("Trying to connect to " + ip);
+
+               
+                this.Button_Telnet.BackColor = System.Drawing.Color.Yellow;
+                await Task.Factory.StartNew(() => (success = this.FCT.ConnectToTelnet(ip, message, log)));
+
                     
-                    await Task.Factory.StartNew(() => (success = this.FCT.ConnectToTelnet(ip)));
 
-                    if(ip == this.DHCP_END)
-                    {
-                        break;
-                    }
-
-                }
+                
                 
 
                 if (success)
                 {
                     this.Telnet = true;
                     this.Button_Telnet.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(128)))), ((int)(((byte)(255)))), ((int)(((byte)(128)))));
+                    this.Button_Telnet.Text = "Connected";
                     this.DisplayMessage("Successfully connected!");
+                }
+                else
+                {
+                    this.Telnet = false;
+                    this.Button_Telnet.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(128)))), ((int)(((byte)(128)))));
+                    this.Button_Telnet.Text = "Not Connected";
                 }
             }
             else if(this.Powered && this.Telnet)
             {
                 this.FCT.DisconnectTelnet();
                 this.Telnet = false;
+                this.Button_Telnet.Text = "Disconnected";
                 this.Button_Telnet.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(128)))), ((int)(((byte)(128)))));
             }
             
@@ -1085,27 +1031,7 @@ namespace ControlBoardTest
             }
 
         }
-        /******************************************************************************************************
-         * Check_SingleTest_CheckedChanged  
-         * - When Check_SingleTest is checked, the dropdown list appears and on the first check, the dropdown
-         * list is populated with all of the test names that are available.
-         * - When Check_SingleTest is unchecked, the dropdown lists is hidden, but the test names are preserved.
-         * 
-         * ****************************************************************************************************/
-
-        private void Check_Program_CheckedChanged(object sender, EventArgs e)
-        {
-            if (Check_Program.Checked)
-            {  
-                this.Check_FCT.Checked = false;
-                this.Check_SingleTest.Checked = false;
-                this.Button_PowerUp.Enabled = true;
-                this.Button_Telnet.Enabled = true;
-            }
-            else
-            {
-            }
-        }
+        
         /******************************************************************************************************
          * Check_Functional_CheckedChanged  
          * - When Check_Functional is checked, FullTest is unchecked
@@ -1117,7 +1043,7 @@ namespace ControlBoardTest
         {
             if (Check_FCT.Checked)
             {
-                this.Check_Program.Checked = false;
+                this.ProgressBar.Value = 0;
                 this.Check_SingleTest.Checked = false;
                 this.Button_PowerUp.Enabled = true;
                 this.Button_Telnet.Enabled = true;
@@ -1141,9 +1067,6 @@ namespace ControlBoardTest
             
             this.Button_Run.Hide();
             //Hide Checkboxes
-            this.Check_Program.Hide();
-            this.Check_Program.Enabled = true;
-            this.Check_Program.Checked = true;
             this.Check_FCT.Hide();
             this.Check_FCT.Checked = false;
             this.Check_FCT.Enabled = true;
@@ -1209,6 +1132,11 @@ namespace ControlBoardTest
             var success = changePassword.ShowForm(this.USER_ID);
 
             changePassword.Dispose();
+        }
+
+        private void Dropdown_Test_List_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            this.ProgressBar.Value = 0;
         }
     }
 

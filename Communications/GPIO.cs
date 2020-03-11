@@ -59,17 +59,45 @@ namespace GPIO
                 //this.SetPort(DigitalPortType.ThirdPortCH, 0);
 
 
-                this.SetPort_Output(DigitalPortType.FourthPortA);
-                this.SetPort_Output(DigitalPortType.FourthPortB);
-                this.SetPort_Output(DigitalPortType.FourthPortCL);
-                this.SetPort_Output(DigitalPortType.FourthPortCH);
+                //this.SetPort_Output(DigitalPortType.FourthPortA);
+                //this.SetPort_Output(DigitalPortType.FourthPortB);
+                //this.SetPort_Output(DigitalPortType.FourthPortCL);
+                //this.SetPort_Output(DigitalPortType.FourthPortCH);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 MessageBox.Show("GPIO is not connected\nPlease connect the GPIO module and restart the application", "GPIO ERROR", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 
 
+        }
+        ~MccDaq_GPIO()
+        {
+            this.SetPort(DigitalPortType.FirstPortA, 0);
+            this.SetPort(DigitalPortType.FirstPortB, 0);
+            this.SetPort(DigitalPortType.FirstPortCL, 0);
+            this.SetPort(DigitalPortType.FirstPortCH, 0);
+
+
+            this.SetPort(DigitalPortType.SecondPortA, 0);
+            this.SetPort(DigitalPortType.SecondPortB, 0);
+            this.SetPort(DigitalPortType.SecondPortCL, 0);
+            this.SetPort(DigitalPortType.SecondPortCH, 0);
+
+        }
+
+        public void ClearAll()
+        {
+            this.SetPort(DigitalPortType.FirstPortA, 0);
+            this.SetPort(DigitalPortType.FirstPortB, 0);
+            this.SetPort(DigitalPortType.FirstPortCL, 0);
+            this.SetPort(DigitalPortType.FirstPortCH, 0);
+
+
+            this.SetPort(DigitalPortType.SecondPortA, 0);
+            this.SetPort(DigitalPortType.SecondPortB, 0);
+            this.SetPort(DigitalPortType.SecondPortCL, 0);
+            this.SetPort(DigitalPortType.SecondPortCH, 0);
         }
 
         public bool SetBit(DigitalPortType port, int bit)
@@ -77,8 +105,14 @@ namespace GPIO
             bool success = false;
             try
             {
-                this.gpio_board.DOut(port, (short)(1<<bit));
+
+                var currVal = (int)this.GetPort(port);
+                var newVal = (short)(currVal | (1 << bit));
+                this.gpio_board.DOut(port, newVal);
                 success = true;
+
+
+                
             }
             catch(Exception e)
             {
@@ -94,7 +128,8 @@ namespace GPIO
             try
             {
                 var currVal = (int)this.GetPort(port);
-                var newVal = (short)(currVal & (0 << bit));
+                var currBit = (int)this.GetBit(port, bit);
+                var newVal = (short)(currVal ^ ((1 & currBit) << bit));
                 this.gpio_board.DOut(port,  newVal);
                 success = true;
             }

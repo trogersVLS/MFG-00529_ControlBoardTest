@@ -28,7 +28,7 @@ namespace ControlBoardTest
         [STAThread]
         static void Main()
         {
-            int ms = 100;
+            int ms = 500;
             GUIConsoleWriter log_console = new GUIConsoleWriter();
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
@@ -39,9 +39,13 @@ namespace ControlBoardTest
             //TestSignalRelayC(ms);
             //TestSignalRelayD(ms);
             //TestUSBSwitch(ms, 3);
-            TestTelemetry(log_console);
+            //TestTelemetry(log_console);
             //TestGPIO();
 
+
+            //TestPPS();
+
+            //TestFCT();
 
 
 
@@ -57,6 +61,65 @@ namespace ControlBoardTest
          * 
          * 
          *********************************************************************/
+         
+        private static void TestGPIO()
+        {
+            MccDaq_GPIO gpio = new MccDaq_GPIO();
+
+
+            gpio.SetBit(GPIO_Defs.SPKR_EN.port, GPIO_Defs.SPKR_EN.pin);
+            gpio.SetBit(GPIO_Defs.FAN_FAULT_EN.port, GPIO_Defs.FAN_FAULT_EN.pin);
+            gpio.SetBit(GPIO_Defs.PIEZO_EN.port, GPIO_Defs.PIEZO_EN.pin);
+
+            gpio.ClearBit(GPIO_Defs.SPKR_EN.port, GPIO_Defs.SPKR_EN.pin);
+            gpio.ClearBit(GPIO_Defs.FAN_FAULT_EN.port, GPIO_Defs.FAN_FAULT_EN.pin);
+            gpio.ClearBit(GPIO_Defs.PIEZO_EN.port, GPIO_Defs.PIEZO_EN.pin);
+
+
+        }
+        private static void TestFCT()
+        {
+            VLS_Tlm Vent = new VLS_Tlm("10.10.2.101");
+            MccDaq_GPIO Gpio = new MccDaq_GPIO();
+            Test_Equip DMM = new Test_Equip();
+            Test_Equip PPS = new Test_Equip();
+            VOCSN_Serial SOM = new VOCSN_Serial();
+            //IProgress(string) message = new I
+
+
+            //if (Vent.Connect())
+            //{
+            //    FunctionalTest FCT = new FunctionalTest(Gpio, DMM, PPS, SOM, Vent, true);
+
+            //    FCT.test_vppo_ok()
+
+            //}
+
+
+        }
+        private static void TestPPS()
+        {
+            Test_Equip pps = new Test_Equip("HEWLETT", "RS232", 1200, 2, "COM3");
+            pps.Connect();
+
+            pps.PPS_Init();
+
+
+            for(int i = 1; i <= 20; i++)
+            {
+                for(int j = 1; j <= 10; j++)
+                {
+                    pps.Set_Output(true, i, j);
+                    Thread.Sleep(200);
+                }
+            }
+            pps.Set_Output(false);
+          
+
+
+
+            Application.Exit();
+        }
         private static void TestTelemetry(GUIConsoleWriter console)
         {
 
@@ -101,10 +164,7 @@ namespace ControlBoardTest
 
             test.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
 
-            while (true)
-            {
-                break;
-            }
+            int x = 9;
             test.ClearBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
 
             return;
@@ -123,7 +183,7 @@ namespace ControlBoardTest
                 {
                     test.SetBit(DigitalPortType.FirstPortA, i);
                     Thread.Sleep(ms);
-                    test.ClearBit(DigitalPortType.FirstPortA, i);
+                    //test.ClearBit(DigitalPortType.FirstPortA, i);
                 }
             }
         }
@@ -137,7 +197,7 @@ namespace ControlBoardTest
             {
                 test.SetBit(DigitalPortType.FirstPortB, i);
                 Thread.Sleep(ms);
-                test.ClearBit(DigitalPortType.FirstPortB, i);
+                //test.ClearBit(DigitalPortType.FirstPortB, i);
             }
         }
         private static void TestSignalRelayB(int ms)

@@ -25,6 +25,10 @@ namespace ControlBoardTest
         /* Test_Equip Constructor: 
          * Initializes a Test Equipment SCPI compatible device over RS232, GPIB, LAN, or USB
          */
+        public Test_Equip()
+        {
+
+        }
         public Test_Equip(string ID, string comm,  int baud, int stopbits, string address = null)
         {
 
@@ -129,7 +133,7 @@ namespace ControlBoardTest
             string amp_str = "";
             float amps;
 
-            amp_str = this.Query(":MEAS:CURR:DC?");
+            amp_str = this.Query(":MEAS:CURR:DC? 3");
             try
             {
                 amps = float.Parse(amp_str, System.Globalization.NumberStyles.Float);
@@ -148,8 +152,17 @@ namespace ControlBoardTest
             float freq;
 
             this.Device.ReadTimeout = 2000;
-            freq_str = this.Query(":MEAS:FREQ?");
-            
+            freq_str = this.Query(":MEAS:FREQ?", 5000);
+            int cnt = 0;
+            bool ok;
+            do
+            {
+                freq_str = this.Query(":MEAS:FREQ?", 5000);
+                ok = float.TryParse(freq_str, out freq);
+                cnt++;
+
+            } while (!ok && (cnt < 10));
+
             try
             {
                 freq = float.Parse(freq_str, System.Globalization.NumberStyles.Float);
@@ -162,15 +175,39 @@ namespace ControlBoardTest
             return freq;
         }
 
-        private string Query(string cmd)
+        public float Get_Ohms()
+        {
+            string ohms_str = "";
+            float ohms;
+
+            ohms_str = this.Query(":MEAS:RES?", 2000);
+
+            try
+            {
+                ohms = float.Parse(ohms_str, System.Globalization.NumberStyles.Float);
+            }
+            catch
+            {
+                ohms = 0;
+            }
+
+            return ohms;
+        }
+
+        private string Query(string cmd, int query_delay = 0)
         {
             string response = "";
             byte[] byte_response = new byte[128];
             if(this.comm == "RS232")
-            {
+            {   if(query_delay == 0)
+                {
+                    query_delay = this.QUERY_DELAY;
+                }
                 try
                 {
                     this.Device.ReadTimeout = 5000;
+
+                    this.Device.Write("SYST:REM\n\r");
                     this.Device.Write(cmd +"\r\n");
                     Thread.Sleep(this.QUERY_DELAY);
                     int num = this.Device.Read(byte_response, 0, byte_response.Length);
@@ -188,6 +225,66 @@ namespace ControlBoardTest
             return response;
         }
 
+        public void PPS_Init()
+        {
+            this.Device.Write("SYST:REM\n\r");
+            Thread.Sleep(200);
+            this.Device.Write("*RST\n\r");
+            Thread.Sleep(200);
+            
+        }
+        public bool Set_Output(bool state, float voltage = 0, float current = 0)
+        {
+            bool success = false;
+            float amps;
+            string status;
+            if (state)
+            {
+                status = "ON";
+            }
+            else
+            {
+                status = "off";
+            }
+            if (current != 0)
+            {
+                this.Set_Current(current);
+                Thread.Sleep(200);
+            }
+            if (voltage != 0)
+            {
+                this.Set_Voltage(voltage);
+                Thread.Sleep(200);
+            }
+
+            
+            this.Device.Write("OUTP " + status + "\r\n");
+            Thread.Sleep(200);
+
+            return success;
+        }
+
+        public float Set_Current(float current)
+        {
+            string amp_str = "";
+            float amps = 0;
+
+            this.Device.Write("Current " + current.ToString() + "\r\n");
+            
+
+            return amps;
+        }
+        public float Set_Voltage(float volts)
+        {
+            string volt_str = "";
+            float voltage = 0;
+
+            this.Device.Write("Voltage " + volts.ToString() + "\r\n");
+            
+
+            return voltage;
+        }
+
 
         public bool SetPPSOutput(double volts, double current)
         {
@@ -197,13 +294,15 @@ namespace ControlBoardTest
 
             double v = Math.Truncate(10 * volts) / 10;
             double i = Math.Truncate(10 * current) / 10;
-            string cmd = "APPL " + v.ToString() + ", " + i.ToString();
+            string cmd = "Current 2";
 
             try
             {
                 this.Device.ReadTimeout = 5000;
-                this.Device.ReadTimeout = 5000;
-                this.Device.Write(cmd + "\r\n");
+                
+                this.Device.Write("Current " + current.ToString() + "\r\n");
+                this.Device.Write("Volt " + volts.ToString() + "\r\n");
+                this.Device.Write("Output on");
 
 
                 //Verify that the output was set
