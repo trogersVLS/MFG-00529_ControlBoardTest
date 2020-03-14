@@ -73,16 +73,7 @@ namespace GPIO
         }
         ~MccDaq_GPIO()
         {
-            this.SetPort(DigitalPortType.FirstPortA, 0);
-            this.SetPort(DigitalPortType.FirstPortB, 0);
-            this.SetPort(DigitalPortType.FirstPortCL, 0);
-            this.SetPort(DigitalPortType.FirstPortCH, 0);
-
-
-            this.SetPort(DigitalPortType.SecondPortA, 0);
-            this.SetPort(DigitalPortType.SecondPortB, 0);
-            this.SetPort(DigitalPortType.SecondPortCL, 0);
-            this.SetPort(DigitalPortType.SecondPortCH, 0);
+            ClearAll();
 
         }
 

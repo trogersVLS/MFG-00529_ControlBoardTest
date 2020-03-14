@@ -41,7 +41,7 @@ namespace VLS
 
         int TimeOutMs = 50;
 
-        private string _ip_address;
+        public string _ip_address;
 
         public Dictionary<string, int> TLMChannels = new Dictionary<string, int>();
 
@@ -94,6 +94,7 @@ namespace VLS
                 else
                 {
                     success = false;
+                    this.Connected = false;
                 }
 
             }
@@ -181,7 +182,7 @@ namespace VLS
                 else
                 {
                     success = false;
-                    this.Disconnect();
+                    //this.Disconnect();
                 }
 
 
@@ -215,7 +216,7 @@ namespace VLS
                 else
                 {
                     success = false;
-                    this.Disconnect();
+                    //this.Disconnect();
                 }
 
             }

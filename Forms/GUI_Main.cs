@@ -76,6 +76,8 @@ namespace ControlBoardTest
         //Functional Test Data
         private FunctionalTest FCT;
         private readonly ConcurrentQueue<string> message_queue = new ConcurrentQueue<string>();
+        private List<TestData> failedTests;
+        private List<TestData> passedTests;
 
         public ControlBoardTest(GUIConsoleWriter logConsole = null)
         {
@@ -148,6 +150,7 @@ namespace ControlBoardTest
         //Displays a message on the UI screen
         private void DisplayMessage(string text)
         {
+            LogMessage(text);
             this.Output_Window.AppendText(text + "\n");
 
             return;
@@ -440,39 +443,26 @@ namespace ControlBoardTest
          * This function will wait until the task finishes before exiting. // Not sure if that is a good thing or not yet
          * 
          * ****************************************************************************************************/
-        private bool RunTest(long TEST_ID, string SERIAL, TestData test, IProgress<string> message, IProgress<string> log, out string error, out int errorCode)
+        private bool RunTest(long TEST_ID, string SERIAL, TestData test, IProgress<string> message, IProgress<string> log)
         {
             bool success = false;
-            error = null;
-            errorCode = 0;
+            
             var param = new object[] { message, log, test};
 
             try
             {   
                 
-                message.Report("Starting test: " + test.name);
-                log.Report("Starting test: " + test.method_name);
+                message.Report("Starting test: " + test.name + "\n");
+                //log.Report("Starting test: " + test.method_name);
 
                 //Invoke the test function --> Each test will fill the parameters table to measured
                 success = (bool)test.testinfo.Invoke(this.FCT, param);
 
-                if (success)
-                {
-                    test.result = "PASS";
-                    message.Report("PASS: " + test.name);
-                    
-                }
-                else
-                {
-                    test.result = "FAIL";
-                    message.Report("FAIL: " + test.name);
-                    success = false;
-                }
+                
             }
             catch(Exception e)
             {
-                errorCode = -1;
-                error = e.InnerException.Message;
+                var error = e.InnerException.Message;
                 
                 test.parameters["measured"] = "ERROR";
                 string errormessage = "Exception caught: " + error + "\n\rThe following test failed: " + test.name;
@@ -482,6 +472,18 @@ namespace ControlBoardTest
 
                 MessageBox.Show(errormessage, "Exception caught", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
+            }
+            test.SetResult(success);
+
+            if (success)
+            {
+                message.Report(test.name + ": PASS");
+
+            }
+            else
+            {
+                message.Report(test.name + ": FAIL");
+                success = false;
             }
 
             LogResults(test, SERIAL, TEST_ID);
@@ -520,35 +522,54 @@ namespace ControlBoardTest
 
                 if (this.Powered && this.Telnet)
                 {
+                    
                     LogTestInstance();
+                    int pass = 0;
+                    int fail = 0;
+                    UpdateStatus("busy");
+                    UpdateTestCount(pass, fail);
                     int ctr = 1;
                     int total = this.Tests.Count;
+                    bool success = true;
+
+                    this.failedTests = new List<TestData>();
+                    this.passedTests = new List<TestData>();
                     
                     foreach (TestData test in this.Tests)
                     {
-                        bool success = true;
-                        string error = null;
-                        int errorCode = 0;
-                        await Task.Factory.StartNew(() => (success = this.RunTest(this.TEST_ID, this.SERIAL_NUM, test, message, log, out error, out errorCode)));
-                        this.DisplayMessage(error);
 
-                        if (errorCode != 0)
+                        await Task.Factory.StartNew(() => (success = this.RunTest(this.TEST_ID, this.SERIAL_NUM, test, message, log)));
+
+                        if (!success)
                         {
-                            this.RESULT = "FAIL";
-
+                            fail++;
+                            failedTests.Add(test);
                         }
                         else
                         {
-                            if (!success)
-                            {
-                                this.RESULT = "FAIL";
-                            }
-
+                            pass++;
+                            passedTests.Add(test);
                         }
+                        test.SetResult(success);
 
+                        UpdateTestCount(pass, fail);
                         this.ProgressBar.Value = (ctr * 100) / total;
                         ctr++;
                     }
+
+                    if (fail == 0)
+                    {
+                        UpdateStatus("pass");
+                        this.RESULT = "PASS";
+
+                        
+                    }
+                    else
+                    {
+                        this.RESULT = "FAIL";
+                        UpdateStatus("fail");
+                    }
+                    MessageBox.Show(this.RESULT, "RESULTS");
                     LogTestResult();
                 }
             }
@@ -570,19 +591,30 @@ namespace ControlBoardTest
                                 {
                                     TestToRun = t;
                                     LogTestInstance();
+                                    int pass = 0;
+                                    int fail = 0;
+                                    UpdateStatus("busy");
+                                    UpdateTestCount(pass, fail);
 
 
                                     this.ProgressBar.Value = 30;
 
                                     bool success = true;
-                                    string error = null;
-                                    int errorCode = 0;
-                                    await Task.Factory.StartNew(() => (success = this.RunTest(this.TEST_ID, this.SERIAL_NUM, TestToRun, message, log, out error, out errorCode)));
-                                    this.DisplayMessage(error);
+                                    await Task.Factory.StartNew(() => (success = this.RunTest(this.TEST_ID, this.SERIAL_NUM, TestToRun, message, log)));
 
                                     this.ProgressBar.Value = 100;
                                     LogTestResult();
 
+                                    if (success)
+                                    {
+                                        this.UpdateStatus("pass");
+                                        this.UpdateTestCount(1, 0);
+                                    }
+                                    else
+                                    {
+                                        this.UpdateStatus("fail");
+                                        this.UpdateTestCount(0, 1);
+                                    }
 
                                     
                                     break;
@@ -602,6 +634,7 @@ namespace ControlBoardTest
 
 
                         MessageBox.Show(errormessage, "Exception caught", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        this.DisplayMessage(errormessage);
                     }
                     
                 }
@@ -613,6 +646,35 @@ namespace ControlBoardTest
             this.Panel_Settings.Enabled = true;
 
             return;
+        }
+
+        private void UpdateStatus(string status)
+        {
+            if (status == "busy")
+            {
+                this.StatusIndicator.BackColor = System.Drawing.Color.Yellow;
+                this.StatusLabel.Text = "Busy";
+            }
+            else if (status == "pass")
+            {
+                this.StatusIndicator.BackColor = System.Drawing.Color.Green;
+                this.StatusLabel.Text = "Pass!";
+            }
+            else if (status == "fail")
+            {
+                this.StatusIndicator.BackColor = System.Drawing.Color.Red;
+                this.StatusLabel.Text = "Fail!";
+            }
+            else if (status == "idle")
+            {
+                this.StatusIndicator.BackColor = System.Drawing.Color.DarkGray;
+                this.StatusLabel.Text = "Idle";
+            }
+        }
+        private void UpdateTestCount(int pass, int fail)
+        {
+            this.PassCountIndicator.Text = pass.ToString();
+            this.FailCountIndicator.Text = fail.ToString();
         }
         private bool DatabaseExist()
         {
@@ -1062,38 +1124,12 @@ namespace ControlBoardTest
         private void Reset_GUI()
         {
             
-
-            //Hide buttons
-            
-            this.Button_Run.Hide();
-            //Hide Checkboxes
-            this.Check_FCT.Hide();
-            this.Check_FCT.Checked = false;
-            this.Check_FCT.Enabled = true;
-            this.Check_SingleTest.Hide();
-            this.Check_SingleTest.Enabled = true;
-            this.Check_SingleTest.Checked = false;
-            //Clear serial number box
-            this.Field_SerialNumber.ResetText();
-            this.Field_SerialNumber.Enabled = true;
-            //Reset status bar
-            this.ProgressBar.Value = 0;
-
-            //Reset Debug_Output
-            //this.console_debugOutput.ResetText();
-            this.Output_Window.AppendText("Please enter a serial number");
-
-
-            
         }
 
         private void About_Version_Click(object sender, EventArgs e)
         {
             MessageBox.Show("Version: 01.00\nRevision: A", "Version", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
-
-
-
 
         private void File_ChangeUser_Click(object sender, EventArgs e)
         {
@@ -1137,6 +1173,37 @@ namespace ControlBoardTest
         private void Dropdown_Test_List_SelectedIndexChanged(object sender, EventArgs e)
         {
             this.ProgressBar.Value = 0;
+        }
+
+        private void FailCountIndicator_Click(object sender, EventArgs e)
+        {
+            //Show a new form listing the failed tests and their measurements
+
+            this.Output_Window.AppendText("\n\r\n\r");
+
+            foreach(TestData test in failedTests)
+            {  
+                this.Output_Window.AppendText("Test Name: " + test.name + ", ");
+                this.Output_Window.AppendText("Measured: " + test.parameters["measured"] + ", ");
+                this.Output_Window.AppendText("Result: " + test.result + "\n");
+            }
+
+
+        }
+
+        private void PassCountIndicator_Click(object sender, EventArgs e)
+        {
+            //Show a new form listing the passed tests and their measurements
+
+            this.Output_Window.AppendText("\n\r\n\r");
+
+            foreach (TestData test in passedTests)
+            {
+                this.Output_Window.AppendText("Test Name: " + test.name + ", ");
+                this.Output_Window.AppendText("Measured: " + test.parameters["measured"] + ", ");
+                this.Output_Window.AppendText("Result: " + test.result + "\n");
+            }
+
         }
     }
 

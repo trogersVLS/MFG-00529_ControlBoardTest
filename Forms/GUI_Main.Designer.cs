@@ -31,6 +31,11 @@
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ControlBoardTest));
             this.MainPanel = new System.Windows.Forms.Panel();
+            this.StatusPanel = new System.Windows.Forms.Panel();
+            this.FailCountIndicator = new System.Windows.Forms.Button();
+            this.PassCountIndicator = new System.Windows.Forms.Button();
+            this.StatusLabel = new System.Windows.Forms.Label();
+            this.StatusIndicator = new System.Windows.Forms.Button();
             this.Output_Window = new System.Windows.Forms.RichTextBox();
             this.Panel_Actions = new System.Windows.Forms.Panel();
             this.Button_Telnet = new System.Windows.Forms.Button();
@@ -65,6 +70,7 @@
             this.Status_UserLabel = new System.Windows.Forms.ToolStripStatusLabel();
             this.Status_UserTag = new System.Windows.Forms.ToolStripStatusLabel();
             this.MainPanel.SuspendLayout();
+            this.StatusPanel.SuspendLayout();
             this.Panel_Actions.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.Logo_VLS)).BeginInit();
             this.Panel_Settings.SuspendLayout();
@@ -73,6 +79,7 @@
             // 
             // MainPanel
             // 
+            this.MainPanel.Controls.Add(this.StatusPanel);
             this.MainPanel.Controls.Add(this.Output_Window);
             this.MainPanel.Controls.Add(this.Panel_Actions);
             this.MainPanel.Controls.Add(this.ProgressBar);
@@ -81,18 +88,76 @@
             this.MainPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.MainPanel.Location = new System.Drawing.Point(0, 0);
             this.MainPanel.Name = "MainPanel";
-            this.MainPanel.Size = new System.Drawing.Size(478, 397);
+            this.MainPanel.Size = new System.Drawing.Size(484, 521);
             this.MainPanel.TabIndex = 31;
+            // 
+            // StatusPanel
+            // 
+            this.StatusPanel.BackColor = System.Drawing.Color.Gainsboro;
+            this.StatusPanel.Controls.Add(this.FailCountIndicator);
+            this.StatusPanel.Controls.Add(this.PassCountIndicator);
+            this.StatusPanel.Controls.Add(this.StatusLabel);
+            this.StatusPanel.Controls.Add(this.StatusIndicator);
+            this.StatusPanel.Location = new System.Drawing.Point(12, 261);
+            this.StatusPanel.Name = "StatusPanel";
+            this.StatusPanel.Size = new System.Drawing.Size(460, 36);
+            this.StatusPanel.TabIndex = 31;
+            // 
+            // FailCountIndicator
+            // 
+            this.FailCountIndicator.BackColor = System.Drawing.Color.Red;
+            this.FailCountIndicator.Font = new System.Drawing.Font("Consolas", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.FailCountIndicator.Location = new System.Drawing.Point(402, 0);
+            this.FailCountIndicator.Name = "FailCountIndicator";
+            this.FailCountIndicator.Size = new System.Drawing.Size(55, 36);
+            this.FailCountIndicator.TabIndex = 3;
+            this.FailCountIndicator.Text = "0";
+            this.FailCountIndicator.UseVisualStyleBackColor = false;
+            this.FailCountIndicator.Click += new System.EventHandler(this.FailCountIndicator_Click);
+            // 
+            // PassCountIndicator
+            // 
+            this.PassCountIndicator.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(192)))), ((int)(((byte)(0)))));
+            this.PassCountIndicator.Font = new System.Drawing.Font("Consolas", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.PassCountIndicator.Location = new System.Drawing.Point(343, 0);
+            this.PassCountIndicator.Name = "PassCountIndicator";
+            this.PassCountIndicator.Size = new System.Drawing.Size(55, 36);
+            this.PassCountIndicator.TabIndex = 2;
+            this.PassCountIndicator.Text = "0";
+            this.PassCountIndicator.UseVisualStyleBackColor = false;
+            this.PassCountIndicator.Click += new System.EventHandler(this.PassCountIndicator_Click);
+            // 
+            // StatusLabel
+            // 
+            this.StatusLabel.AutoSize = true;
+            this.StatusLabel.Font = new System.Drawing.Font("Consolas", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.StatusLabel.Location = new System.Drawing.Point(39, 8);
+            this.StatusLabel.Name = "StatusLabel";
+            this.StatusLabel.Size = new System.Drawing.Size(45, 19);
+            this.StatusLabel.TabIndex = 1;
+            this.StatusLabel.Text = "IDLE";
+            // 
+            // StatusIndicator
+            // 
+            this.StatusIndicator.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left)));
+            this.StatusIndicator.BackColor = System.Drawing.Color.Gray;
+            this.StatusIndicator.Enabled = false;
+            this.StatusIndicator.Location = new System.Drawing.Point(3, 3);
+            this.StatusIndicator.Name = "StatusIndicator";
+            this.StatusIndicator.Size = new System.Drawing.Size(30, 30);
+            this.StatusIndicator.TabIndex = 0;
+            this.StatusIndicator.UseVisualStyleBackColor = false;
             // 
             // Output_Window
             // 
             this.Output_Window.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.Output_Window.Location = new System.Drawing.Point(3, 240);
+            this.Output_Window.Location = new System.Drawing.Point(12, 336);
             this.Output_Window.Name = "Output_Window";
             this.Output_Window.ReadOnly = true;
-            this.Output_Window.Size = new System.Drawing.Size(472, 154);
+            this.Output_Window.Size = new System.Drawing.Size(460, 182);
             this.Output_Window.TabIndex = 9;
             this.Output_Window.Text = "";
             this.Output_Window.TextChanged += new System.EventHandler(this.Output_Window_TextChanged);
@@ -104,10 +169,10 @@
             this.Panel_Actions.Controls.Add(this.Button_PowerUp);
             this.Panel_Actions.Controls.Add(this.Dropdown_Test_List);
             this.Panel_Actions.Controls.Add(this.Button_Run);
-            this.Panel_Actions.Location = new System.Drawing.Point(168, 126);
+            this.Panel_Actions.Location = new System.Drawing.Point(174, 126);
             this.Panel_Actions.Margin = new System.Windows.Forms.Padding(1);
             this.Panel_Actions.Name = "Panel_Actions";
-            this.Panel_Actions.Size = new System.Drawing.Size(307, 110);
+            this.Panel_Actions.Size = new System.Drawing.Size(298, 131);
             this.Panel_Actions.TabIndex = 30;
             // 
             // Button_Telnet
@@ -115,7 +180,7 @@
             this.Button_Telnet.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(128)))), ((int)(((byte)(128)))));
             this.Button_Telnet.Enabled = false;
             this.Button_Telnet.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.Button_Telnet.Location = new System.Drawing.Point(3, 69);
+            this.Button_Telnet.Location = new System.Drawing.Point(3, 88);
             this.Button_Telnet.Margin = new System.Windows.Forms.Padding(1);
             this.Button_Telnet.Name = "Button_Telnet";
             this.Button_Telnet.Size = new System.Drawing.Size(106, 37);
@@ -129,7 +194,7 @@
             this.Button_PowerUp.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(128)))), ((int)(((byte)(128)))));
             this.Button_PowerUp.Enabled = false;
             this.Button_PowerUp.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.Button_PowerUp.Location = new System.Drawing.Point(3, 30);
+            this.Button_PowerUp.Location = new System.Drawing.Point(3, 41);
             this.Button_PowerUp.Margin = new System.Windows.Forms.Padding(1);
             this.Button_PowerUp.Name = "Button_PowerUp";
             this.Button_PowerUp.Size = new System.Drawing.Size(106, 37);
@@ -145,9 +210,9 @@
             this.Dropdown_Test_List.Enabled = false;
             this.Dropdown_Test_List.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Dropdown_Test_List.FormattingEnabled = true;
-            this.Dropdown_Test_List.Location = new System.Drawing.Point(3, 5);
+            this.Dropdown_Test_List.Location = new System.Drawing.Point(3, 3);
             this.Dropdown_Test_List.Name = "Dropdown_Test_List";
-            this.Dropdown_Test_List.Size = new System.Drawing.Size(303, 22);
+            this.Dropdown_Test_List.Size = new System.Drawing.Size(292, 22);
             this.Dropdown_Test_List.TabIndex = 15;
             this.Dropdown_Test_List.SelectedIndexChanged += new System.EventHandler(this.Dropdown_Test_List_SelectedIndexChanged);
             // 
@@ -158,9 +223,9 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.Button_Run.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(134)))), ((int)(((byte)(214)))));
             this.Button_Run.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.Button_Run.Location = new System.Drawing.Point(184, 30);
+            this.Button_Run.Location = new System.Drawing.Point(181, 41);
             this.Button_Run.Name = "Button_Run";
-            this.Button_Run.Size = new System.Drawing.Size(122, 76);
+            this.Button_Run.Size = new System.Drawing.Size(114, 84);
             this.Button_Run.TabIndex = 1;
             this.Button_Run.Text = "Run";
             this.Button_Run.UseVisualStyleBackColor = false;
@@ -170,21 +235,24 @@
             // 
             this.ProgressBar.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.ProgressBar.Location = new System.Drawing.Point(3, 95);
+            this.ProgressBar.Location = new System.Drawing.Point(12, 303);
             this.ProgressBar.Name = "ProgressBar";
-            this.ProgressBar.Size = new System.Drawing.Size(472, 27);
+            this.ProgressBar.Size = new System.Drawing.Size(460, 27);
             this.ProgressBar.Style = System.Windows.Forms.ProgressBarStyle.Continuous;
             this.ProgressBar.TabIndex = 12;
             // 
             // Logo_VLS
             // 
+            this.Logo_VLS.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.Logo_VLS.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None;
             this.Logo_VLS.Image = ((System.Drawing.Image)(resources.GetObject("Logo_VLS.Image")));
             this.Logo_VLS.InitialImage = ((System.Drawing.Image)(resources.GetObject("Logo_VLS.InitialImage")));
-            this.Logo_VLS.Location = new System.Drawing.Point(3, 3);
-            this.Logo_VLS.Margin = new System.Windows.Forms.Padding(10);
+            this.Logo_VLS.Location = new System.Drawing.Point(12, 9);
+            this.Logo_VLS.Margin = new System.Windows.Forms.Padding(0);
             this.Logo_VLS.Name = "Logo_VLS";
-            this.Logo_VLS.Size = new System.Drawing.Size(267, 79);
-            this.Logo_VLS.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.Logo_VLS.Size = new System.Drawing.Size(460, 94);
+            this.Logo_VLS.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.Logo_VLS.TabIndex = 26;
             this.Logo_VLS.TabStop = false;
             // 
@@ -194,10 +262,10 @@
             this.Panel_Settings.Controls.Add(this.Check_FCT);
             this.Panel_Settings.Controls.Add(this.Check_SingleTest);
             this.Panel_Settings.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
-            this.Panel_Settings.Location = new System.Drawing.Point(3, 126);
+            this.Panel_Settings.Location = new System.Drawing.Point(12, 126);
             this.Panel_Settings.Margin = new System.Windows.Forms.Padding(1);
             this.Panel_Settings.Name = "Panel_Settings";
-            this.Panel_Settings.Size = new System.Drawing.Size(163, 110);
+            this.Panel_Settings.Size = new System.Drawing.Size(154, 131);
             this.Panel_Settings.TabIndex = 29;
             // 
             // Field_SerialNumber
@@ -206,7 +274,7 @@
             this.Field_SerialNumber.CharacterCasing = System.Windows.Forms.CharacterCasing.Upper;
             this.Field_SerialNumber.Location = new System.Drawing.Point(3, 3);
             this.Field_SerialNumber.Name = "Field_SerialNumber";
-            this.Field_SerialNumber.Size = new System.Drawing.Size(150, 20);
+            this.Field_SerialNumber.Size = new System.Drawing.Size(141, 20);
             this.Field_SerialNumber.TabIndex = 0;
             this.Field_SerialNumber.TextChanged += new System.EventHandler(this.Field_SerialNumber_TextChanged);
             this.Field_SerialNumber.KeyUp += new System.Windows.Forms.KeyEventHandler(this.Field_SerialNumber_KeyUp);
@@ -325,10 +393,10 @@
             this.Status_ToolTag,
             this.Status_UserLabel,
             this.Status_UserTag});
-            this.StatusBar.Location = new System.Drawing.Point(0, 397);
+            this.StatusBar.Location = new System.Drawing.Point(0, 521);
             this.StatusBar.Name = "StatusBar";
             this.StatusBar.Padding = new System.Windows.Forms.Padding(0, 0, 5, 0);
-            this.StatusBar.Size = new System.Drawing.Size(478, 22);
+            this.StatusBar.Size = new System.Drawing.Size(484, 22);
             this.StatusBar.TabIndex = 27;
             this.StatusBar.Text = "StatusStrip";
             // 
@@ -391,17 +459,19 @@
             this.AutoSize = true;
             this.BackColor = System.Drawing.Color.Gainsboro;
             this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
-            this.ClientSize = new System.Drawing.Size(478, 419);
+            this.ClientSize = new System.Drawing.Size(484, 543);
             this.Controls.Add(this.MainPanel);
             this.Controls.Add(this.StatusBar);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Menu = this.MenuBar;
-            this.MinimumSize = new System.Drawing.Size(494, 458);
+            this.MinimumSize = new System.Drawing.Size(500, 458);
             this.Name = "ControlBoardTest";
             this.RightToLeft = System.Windows.Forms.RightToLeft.No;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Control Board Functional Test";
             this.MainPanel.ResumeLayout(false);
+            this.StatusPanel.ResumeLayout(false);
+            this.StatusPanel.PerformLayout();
             this.Panel_Actions.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.Logo_VLS)).EndInit();
             this.Panel_Settings.ResumeLayout(false);
@@ -451,6 +521,11 @@
         private System.Windows.Forms.MenuItem menuItem1;
         private System.Windows.Forms.MenuItem menuItem2;
         private System.Windows.Forms.MenuItem File_ChangePassword;
+        private System.Windows.Forms.Panel StatusPanel;
+        private System.Windows.Forms.Button StatusIndicator;
+        private System.Windows.Forms.Label StatusLabel;
+        private System.Windows.Forms.Button FailCountIndicator;
+        private System.Windows.Forms.Button PassCountIndicator;
     }
 }
 

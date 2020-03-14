@@ -48,53 +48,53 @@ namespace ControlBoardTest
          *  Returns: bool success - returns true is the verification is successful, returns false if the verification is not successful
          * 
          *******************************************************************************************************************************/
-        private bool Verify_CPLD(IProgress<string> message, IProgress<string> log, TestData test)
-        {
-            string VerifyScriptPath;
-            string ResultFilePath;
-            string Verify_CMD;
-            string Verify_Success = "Executing action VERIFY PASSED";
-            bool success;
+        //private bool Verify_CPLD(IProgress<string> message, IProgress<string> log, TestData test)
+        //{
+        //    string VerifyScriptPath;
+        //    string ResultFilePath;
+        //    string Verify_CMD;
+        //    string Verify_Success = "Executing action VERIFY PASSED";
+        //    bool success;
             
-            //TODO: Confirm that this is still true when a setup project is used to create the installer.
-            //The path to the CPLD_Program script is always two directories up from the executing path.
-            VerifyScriptPath = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
-            VerifyScriptPath = VerifyScriptPath.Remove(VerifyScriptPath.LastIndexOf("\\")); //Up one directory
-            VerifyScriptPath = VerifyScriptPath.Remove(VerifyScriptPath.LastIndexOf("\\")); // Up two directories
-            ResultFilePath = VerifyScriptPath + "\\ProgramLoad\\CPLDLoad\\Results\\VerifyResult.txt";
-            VerifyScriptPath = VerifyScriptPath + "\\ProgramLoad\\CPLDLoad\\cpld_verify.tcl";
+        //    //TODO: Confirm that this is still true when a setup project is used to create the installer.
+        //    //The path to the CPLD_Program script is always two directories up from the executing path.
+        //    VerifyScriptPath = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
+        //    VerifyScriptPath = VerifyScriptPath.Remove(VerifyScriptPath.LastIndexOf("\\")); //Up one directory
+        //    VerifyScriptPath = VerifyScriptPath.Remove(VerifyScriptPath.LastIndexOf("\\")); // Up two directories
+        //    ResultFilePath = VerifyScriptPath + "\\ProgramLoad\\CPLDLoad\\Results\\VerifyResult.txt";
+        //    VerifyScriptPath = VerifyScriptPath + "\\ProgramLoad\\CPLDLoad\\cpld_verify.tcl";
 
-            Verify_CMD = "script:" + VerifyScriptPath + " logfile:" + ResultFilePath;
+        //    Verify_CMD = "script:" + VerifyScriptPath + " logfile:" + ResultFilePath;
 
-            System.Diagnostics.Process cpld_cmd = new System.Diagnostics.Process();
-            System.Diagnostics.ProcessStartInfo cpld_info = new System.Diagnostics.ProcessStartInfo();
-            cpld_info.FileName = "C:\\Microsemi\\Program_Debug_v11.9\\bin\\flashpro.exe";
-            cpld_info.Arguments = Verify_CMD;
-            cpld_info.RedirectStandardOutput = true;
-            cpld_info.UseShellExecute = false;
-            cpld_cmd.StartInfo = cpld_info;
-            cpld_cmd.Start();
-            //string output = cpld_cmd.StandardOutput.ReadToEnd();
-            log.Report("Starting programmer ...");
-            while (!File.Exists(ResultFilePath))
-            {
-                Thread.Sleep(2000);
-                log.Report("...");
-            }
-            if (CPLD_LogRead(ResultFilePath, Verify_Success))
-            {
-                log.Report("CPLD Verify Successful");
-                success = true;
-            }
-            else
-            {
-                log.Report("CPLD Verify unsuccessful");
-                success = false;
-            }
+        //    System.Diagnostics.Process cpld_cmd = new System.Diagnostics.Process();
+        //    System.Diagnostics.ProcessStartInfo cpld_info = new System.Diagnostics.ProcessStartInfo();
+        //    cpld_info.FileName = "C:\\Microsemi\\Program_Debug_v11.9\\bin\\flashpro.exe";
+        //    cpld_info.Arguments = Verify_CMD;
+        //    cpld_info.RedirectStandardOutput = true;
+        //    cpld_info.UseShellExecute = false;
+        //    cpld_cmd.StartInfo = cpld_info;
+        //    cpld_cmd.Start();
+        //    //string output = cpld_cmd.StandardOutput.ReadToEnd();
+        //    message.Report("Starting programmer ...");
+        //    while (!File.Exists(ResultFilePath))
+        //    {
+        //        Thread.Sleep(2000);
+        //        message.Report("...");
+        //    }
+        //    if (CPLD_LogRead(ResultFilePath, Verify_Success))
+        //    {
+        //        message.Report("CPLD Verify Successful");
+        //        success = true;
+        //    }
+        //    else
+        //    {
+        //        message.Report("CPLD Verify unsuccessful");
+        //        success = false;
+        //    }
 
 
-            return success;
-        }
+        //    return success;
+        //}
 
         /******************************************************************************************************************************
          *CPLD_Program
@@ -107,56 +107,56 @@ namespace ControlBoardTest
          *  Returns: bool success - returns true is the verification is successful, returns false if the verification is not successful
          * 
          ******************************************************************************************************************************/
-        private bool Program_CPLD(IProgress<string> message, IProgress<string> log, TestData test)
-        {
-            string ProgramScriptPath;
-            string ResultFilePath;
-            string Program_CMD;
-            string Program_Success = "Executing action PROGRAM PASSED";
-            bool success;
+        //private bool Program_CPLD(IProgress<string> message, IProgress<string> log, TestData test)
+        //{
+        //    string ProgramScriptPath;
+        //    string ResultFilePath;
+        //    string Program_CMD;
+        //    string Program_Success = "Executing action PROGRAM PASSED";
+        //    bool success;
             
 
 
 
-            //TODO: Confirm that this is still true when a setup project is used to create the installer.
-            //The path to the CPLD_Program script is always two directories up from the executing path.
-            ProgramScriptPath = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
-            ProgramScriptPath = ProgramScriptPath.Remove(ProgramScriptPath.LastIndexOf("\\")); //Up one directory
-            ProgramScriptPath = ProgramScriptPath.Remove(ProgramScriptPath.LastIndexOf("\\")); // Up two directories
-            ResultFilePath = ProgramScriptPath + "\\ProgramLoad\\CPLDLoad\\Results\\ProgramResult.txt";
-            ProgramScriptPath = ProgramScriptPath + "\\ProgramLoad\\CPLDLoad\\cpld_program.tcl";
+        //    //TODO: Confirm that this is still true when a setup project is used to create the installer.
+        //    //The path to the CPLD_Program script is always two directories up from the executing path.
+        //    ProgramScriptPath = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
+        //    ProgramScriptPath = ProgramScriptPath.Remove(ProgramScriptPath.LastIndexOf("\\")); //Up one directory
+        //    ProgramScriptPath = ProgramScriptPath.Remove(ProgramScriptPath.LastIndexOf("\\")); // Up two directories
+        //    ResultFilePath = ProgramScriptPath + "\\ProgramLoad\\CPLDLoad\\Results\\ProgramResult.txt";
+        //    ProgramScriptPath = ProgramScriptPath + "\\ProgramLoad\\CPLDLoad\\cpld_program.tcl";
 
-            Program_CMD = "script:" + ProgramScriptPath + " logfile:" + ResultFilePath;
+        //    Program_CMD = "script:" + ProgramScriptPath + " logfile:" + ResultFilePath;
 
-            System.Diagnostics.Process cpld_cmd = new System.Diagnostics.Process();
-            System.Diagnostics.ProcessStartInfo cpld_info = new System.Diagnostics.ProcessStartInfo();
-            cpld_info.FileName = "C:\\Microsemi\\Program_Debug_v11.9\\bin\\flashpro.exe";
-            cpld_info.Arguments = Program_CMD;
-            cpld_info.RedirectStandardOutput = true;
-            cpld_info.UseShellExecute = false;
-            cpld_cmd.StartInfo = cpld_info;
-            cpld_cmd.Start();
-            //string output = cpld_cmd.StandardOutput.ReadToEnd();
-            log.Report("Starting programmer ...");
-            while (!File.Exists(ResultFilePath))
-            {
-                Thread.Sleep(2000);
-                log.Report("...");
-            }
-            if (CPLD_LogRead(ResultFilePath, Program_Success))
-            {
-                log.Report("CPLD Program Successful");
-                success = true;
-            }
-            else
-            {
-                log.Report("CPLD Program unsuccessful");
-                success = false;
-            }
+        //    System.Diagnostics.Process cpld_cmd = new System.Diagnostics.Process();
+        //    System.Diagnostics.ProcessStartInfo cpld_info = new System.Diagnostics.ProcessStartInfo();
+        //    cpld_info.FileName = "C:\\Microsemi\\Program_Debug_v11.9\\bin\\flashpro.exe";
+        //    cpld_info.Arguments = Program_CMD;
+        //    cpld_info.RedirectStandardOutput = true;
+        //    cpld_info.UseShellExecute = false;
+        //    cpld_cmd.StartInfo = cpld_info;
+        //    cpld_cmd.Start();
+        //    //string output = cpld_cmd.StandardOutput.ReadToEnd();
+        //    message.Report("Starting programmer ...");
+        //    while (!File.Exists(ResultFilePath))
+        //    {
+        //        Thread.Sleep(2000);
+        //        message.Report("...");
+        //    }
+        //    if (CPLD_LogRead(ResultFilePath, Program_Success))
+        //    {
+        //        message.Report("CPLD Program Successful");
+        //        success = true;
+        //    }
+        //    else
+        //    {
+        //        message.Report("CPLD Program unsuccessful");
+        //        success = false;
+        //    }
 
 
-            return success;
-        }
+        //    return success;
+        //}
         /******************************************************************************************************************************
          *  CPLD_LogRead
          *  
@@ -171,25 +171,25 @@ namespace ControlBoardTest
          *                          returns false if the log file does not contain the pass phrase.
          * 
          ******************************************************************************************************************************/
-        private bool CPLD_LogRead(string path, string pass)
-        {
-            bool success;
-            string file;
+        //private bool CPLD_LogRead(string path, string pass)
+        //{
+        //    bool success;
+        //    string file;
             
-            file = File.ReadAllText(path);
+        //    file = File.ReadAllText(path);
 
-            if (file.Contains(pass))
-            {
-                success = true;
-            }
-            else
-            {
-                success = false;
-            }
+        //    if (file.Contains(pass))
+        //    {
+        //        success = true;
+        //    }
+        //    else
+        //    {
+        //        success = false;
+        //    }
 
-            File.Delete(path);
-            return success;
-        }
+        //    File.Delete(path);
+        //    return success;
+        //}
         /******************************************************************************************************************************
          *  Hercules_Program
          *  
@@ -201,53 +201,53 @@ namespace ControlBoardTest
          *                          returns false if the programming is unsuccessful
          * 
          ******************************************************************************************************************************/
-        private bool Program_Hercules(IProgress<string> message, IProgress<string> log, TestData test)
-        {
-            string HerculesScriptPath;
-            string Hercules_CMD;
-            string cmd_output;
+        //private bool Program_Hercules(IProgress<string> message, IProgress<string> log, TestData test)
+        //{
+        //    string HerculesScriptPath;
+        //    string Hercules_CMD;
+        //    string cmd_output;
 
-            bool success;
+        //    bool success;
             
-            //TODO: Confirm that this is still true when a setup project is used to create the installer.
-            //The path to the Herc_Program script is always two directories up from the executing path.
-            HerculesScriptPath = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
-            HerculesScriptPath = HerculesScriptPath.Remove(HerculesScriptPath.LastIndexOf("\\")); //Up one directory
-            HerculesScriptPath = HerculesScriptPath.Remove(HerculesScriptPath.LastIndexOf("\\")); // Up two directories
-            HerculesScriptPath = HerculesScriptPath + "\\ProgramLoad\\HerculesLoad\\dslite.bat";
+        //    //TODO: Confirm that this is still true when a setup project is used to create the installer.
+        //    //The path to the Herc_Program script is always two directories up from the executing path.
+        //    HerculesScriptPath = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
+        //    HerculesScriptPath = HerculesScriptPath.Remove(HerculesScriptPath.LastIndexOf("\\")); //Up one directory
+        //    HerculesScriptPath = HerculesScriptPath.Remove(HerculesScriptPath.LastIndexOf("\\")); // Up two directories
+        //    HerculesScriptPath = HerculesScriptPath + "\\ProgramLoad\\HerculesLoad\\dslite.bat";
 
-            Hercules_CMD = "/c " + HerculesScriptPath;
+        //    Hercules_CMD = "/c " + HerculesScriptPath;
 
-            //Sets up the shell that will be used to execute the hercules programming script
-            System.Diagnostics.Process cmd = new System.Diagnostics.Process();
-            System.Diagnostics.ProcessStartInfo cmd_info = new System.Diagnostics.ProcessStartInfo("cmd");
-            cmd_info.FileName = "cmd.exe";
-            cmd_info.Arguments = Hercules_CMD;
-            cmd_info.CreateNoWindow = true;
-            cmd_info.RedirectStandardOutput = true;
-            cmd_info.RedirectStandardError = true;
-            cmd_info.UseShellExecute = false;
-            cmd_info.WorkingDirectory = HerculesScriptPath.Remove(HerculesScriptPath.LastIndexOf("\\")); // TODO: sets the current directory to the directory that the hercules program script is located by removing the file name at the end of the string
-            cmd.StartInfo = cmd_info;
-            log.Report("Starting Hercules programmer ...");
+        //    //Sets up the shell that will be used to execute the hercules programming script
+        //    System.Diagnostics.Process cmd = new System.Diagnostics.Process();
+        //    System.Diagnostics.ProcessStartInfo cmd_info = new System.Diagnostics.ProcessStartInfo("cmd");
+        //    cmd_info.FileName = "cmd.exe";
+        //    cmd_info.Arguments = Hercules_CMD;
+        //    cmd_info.CreateNoWindow = true;
+        //    cmd_info.RedirectStandardOutput = true;
+        //    cmd_info.RedirectStandardError = true;
+        //    cmd_info.UseShellExecute = false;
+        //    cmd_info.WorkingDirectory = HerculesScriptPath.Remove(HerculesScriptPath.LastIndexOf("\\")); // TODO: sets the current directory to the directory that the hercules program script is located by removing the file name at the end of the string
+        //    cmd.StartInfo = cmd_info;
+        //    message.Report("Starting Hercules programmer ...");
 
 
-            cmd.Start(); //Executes the script and pauses until the script has finished executing
+        //    cmd.Start(); //Executes the script and pauses until the script has finished executing
 
-            cmd_output = cmd.StandardOutput.ReadToEnd();
-            log.Report("Programmer exit");
+        //    cmd_output = cmd.StandardOutput.ReadToEnd();
+        //    message.Report("Programmer exit");
 
-            //Confirms that the script was successful by comparing the 
-            if (cmd_output.Contains("Program verification successful")) // Contains may be somewhat slow for this use case TODO: Determine if there is a better way?
-            {
-                success = true;
-            }
-            else
-            {
-                success = false;
-            }
-            return success;
-        }
+        //    //Confirms that the script was successful by comparing the 
+        //    if (cmd_output.Contains("Program verification successful")) // Contains may be somewhat slow for this use case TODO: Determine if there is a better way?
+        //    {
+        //        success = true;
+        //    }
+        //    else
+        //    {
+        //        success = false;
+        //    }
+        //    return success;
+        //}
 
         /******************************************************************************************************************************
          *  SOM_Program
@@ -260,82 +260,82 @@ namespace ControlBoardTest
          *                          returns false if the log file does not contain the pass phrase.
          * 
          ******************************************************************************************************************************/
-        private bool Program_SOM(IProgress<string> message, IProgress<string> log, TestData test)
-        {
-            bool success = false;
+        //private bool Program_SOM(IProgress<string> message, IProgress<string> log, TestData test)
+        //{
+        //    bool success = false;
             
-            bool Booted = false;
-            bool Formatted = false;
-            bool IPL_Installed = false;
-            string output;
+        //    bool Booted = false;
+        //    bool Formatted = false;
+        //    bool IPL_Installed = false;
+        //    string output;
 
-            if (this.SOM.Connected)
-            {
-                //Cycle power
-                log.Report("Cycling Power ...\n");
-                this.GPIO.SetBit(GPIO_Defs.AC_EN.port, 0);
-                Thread.Sleep(100);
-                this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+        //    if (this.SOM.Connected)
+        //    {
+        //        //Cycle power
+        //        message.Report("Cycling Power ...\n");
+        //        this.GPIO.SetBit(GPIO_Defs.AC_EN.port, 0);
+        //        Thread.Sleep(100);
+        //        this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
 
-                Booted = this.SOM.ReadUntil("U-Boot# ", out output, 10000);
-                //Device needs to boot U-Boot
-                if (!Booted)
-                {
-                    log.Report("Device did not boot to U-Boot\nCycling power again ...\n");
-                    this.GPIO.SetBit(GPIO_Defs.AC_EN.port, 0x00);
-                    Thread.Sleep(100);
-                    this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+        //        Booted = this.SOM.ReadUntil("U-Boot# ", out output, 10000);
+        //        //Device needs to boot U-Boot
+        //        if (!Booted)
+        //        {
+        //            message.Report("Device did not boot to U-Boot\nCycling power again ...\n");
+        //            this.GPIO.SetBit(GPIO_Defs.AC_EN.port, 0x00);
+        //            Thread.Sleep(100);
+        //            this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
 
-                    Booted = this.SOM.ReadUntil("U-Boot# ", out output, 10000);
+        //            Booted = this.SOM.ReadUntil("U-Boot# ", out output, 10000);
 
-                    if (!Booted)
-                    {
-                        log.Report("Device does not boot properly.\nPowering down ...");
-                        this.GPIO.SetBit(GPIO_Defs.AC_EN.port, 0);
-                        success = false;
-                    }
-                }
-                else if(Booted)
-                {
-                    log.Report("Successfully booted to U-Boot\nLoading QNX ...");
+        //            if (!Booted)
+        //            {
+        //                message.Report("Device does not boot properly.\nPowering down ...");
+        //                this.GPIO.SetBit(GPIO_Defs.AC_EN.port, 0);
+        //                success = false;
+        //            }
+        //        }
+        //        else if(Booted)
+        //        {
+        //            message.Report("Successfully booted to U-Boot\nLoading QNX ...");
                     
-                    this.SOM.Command("mmc dev; fatload mmc 0 0x81000000 qnxifs; go 0x81000000",out output, "U-Boot# ", 5000);
+        //            this.SOM.Command("mmc dev; fatload mmc 0 0x81000000 qnxifs; go 0x81000000",out output, "U-Boot# ", 5000);
 
-                    Booted = false;
-                    Booted = this.SOM.ReadUntil("Welcome to QNX on the Ventec 3000 platform", out output, 20000);
+        //            Booted = false;
+        //            Booted = this.SOM.ReadUntil("Welcome to QNX on the Ventec 3000 platform", out output, 20000);
 
-                    if (!Booted)
-                    {
-                        log.Report("Device did not boot correctly");
-                    }
-                    else
-                    {
-                        log.Report("Formatting NAND");
-                        Formatted = this.SOM.Command("fs-etfs-jacinto5_micron -D gpmc=0x50000000, cache, ipl=4, ifs=1024 -r131072 -e -m /fs/etfs", 
-                                                  out output, "# ", 20000);
-                        if (Formatted)
-                        {
-                            IPL_Installed = this.SOM.Command("update_nand -i -f /fs/sd0/ipl_nand.bin", out output, "# ", 10000);
-                            if (IPL_Installed)
-                            {
-                                success = true;
-                            }
-                        }
+        //            if (!Booted)
+        //            {
+        //                message.Report("Device did not boot correctly");
+        //            }
+        //            else
+        //            {
+        //                message.Report("Formatting NAND");
+        //                Formatted = this.SOM.Command("fs-etfs-jacinto5_micron -D gpmc=0x50000000, cache, ipl=4, ifs=1024 -r131072 -e -m /fs/etfs", 
+        //                                          out output, "# ", 20000);
+        //                if (Formatted)
+        //                {
+        //                    IPL_Installed = this.SOM.Command("update_nand -i -f /fs/sd0/ipl_nand.bin", out output, "# ", 10000);
+        //                    if (IPL_Installed)
+        //                    {
+        //                        success = true;
+        //                    }
+        //                }
 
 
                          
 
-                    }
+        //            }
 
-                }
+        //        }
 
-            }
-            else
-            {
-                success = false;
-            }
-            return success;
-        }
+        //    }
+        //    else
+        //    {
+        //        success = false;
+        //    }
+        //    return success;
+        //}
 
         /******************************************************************************************************************************
          *  test_mfg_install
@@ -353,70 +353,70 @@ namespace ControlBoardTest
          *                          returns false if the software does not update successfully
          * 
          ******************************************************************************************************************************/
-        private bool test_mfg_install(IProgress<string> message, IProgress<string> log, TestData test)
-        {
+        //private bool test_mfg_install(IProgress<string> message, IProgress<string> log, TestData test)
+        //{
 
-            bool success = false;
-            string output;
+        //    bool success = false;
+        //    string output;
             
 
 
-            //Check to see if the current version of software is not MFG01.04
+        //    //Check to see if the current version of software is not MFG01.04
 
-            output = this.Vent.CMD_Write("get vcm version");
+        //    output = this.Vent.CMD_Write("get vcm version");
             
 
 
-            success = CopySoftware_USB(message, "MFG");
+        //    success = CopySoftware_USB(message, "MFG");
 
-            if (success)
-            {   
+        //    if (success)
+        //    {   
 
-                //Swap the USB drive to the UUT.
-                log.Report("Turning on the device ...");
-                this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+        //        //Swap the USB drive to the UUT.
+        //        message.Report("Turning on the device ...");
+        //        this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
 
-                success = this.SOM.ReadUntil("Waiting 3 seconds for /fs/usb", out output, 5000);
+        //        success = this.SOM.ReadUntil("Waiting 3 seconds for /fs/usb", out output, 5000);
 
-                if (success) {
-                    success = false;
-                    log.Report("Starting software update ...");
+        //        if (success) {
+        //            success = false;
+        //            message.Report("Starting software update ...");
 
-                    this.GPIO.SetBit(GPIO_Defs.AS_BTN_ON.port, GPIO_Defs.AS_BTN_ON.pin);
+        //            this.GPIO.SetBit(GPIO_Defs.AS_BTN_ON.port, GPIO_Defs.AS_BTN_ON.pin);
 
-                    success = this.SOM.ReadUntil("Update IFS", out output, 100000);
-                    if (success)
-                    {
-                        success = false;
-                        log.Report("Updating the NAND flash ...");
+        //            success = this.SOM.ReadUntil("Update IFS", out output, 100000);
+        //            if (success)
+        //            {
+        //                success = false;
+        //                message.Report("Updating the NAND flash ...");
 
-                        success = this.SOM.ReadUntil("display_image", out output, 100000);
-                        if (success)
-                        {
-                            success = false;
-                            // Turn off device using the power button.
-                            Thread.Sleep(500);
-                            log.Report("Powering down device ...");
-                            this.GPIO.SetBit(GPIO_Defs.PB_BTN_ON.port, GPIO_Defs.PB_BTN_ON.pin);
-                            Thread.Sleep(500);
-                            this.GPIO.SetBit(GPIO_Defs.PB_BTN_ON.port, 0x00);
-                            this.SOM.Booted = false;
+        //                success = this.SOM.ReadUntil("display_image", out output, 100000);
+        //                if (success)
+        //                {
+        //                    success = false;
+        //                    // Turn off device using the power button.
+        //                    Thread.Sleep(500);
+        //                    message.Report("Powering down device ...");
+        //                    this.GPIO.SetBit(GPIO_Defs.PB_BTN_ON.port, GPIO_Defs.PB_BTN_ON.pin);
+        //                    Thread.Sleep(500);
+        //                    this.GPIO.SetBit(GPIO_Defs.PB_BTN_ON.port, 0x00);
+        //                    this.SOM.Booted = false;
 
-                            log.Report("\nSoftware update successful!");
+        //                    message.Report("\nSoftware update successful!");
 
                             
                            
-                            success = true;
-                        }
+        //                    success = true;
+        //                }
 
-                    }
+        //            }
  
-                }
+        //        }
                 
-            }
+        //    }
             
-            return success;
-        }
+        //    return success;
+        //}
         /******************************************************************************************************************************
          *  test_prd_install
          *  
@@ -433,64 +433,64 @@ namespace ControlBoardTest
          *                          returns false if the software does not update successfully
          * 
          ******************************************************************************************************************************/
-        private bool test_prd_install(IProgress<string> message, IProgress<string> log, TestData test)
-        {
+        //private bool test_prd_install(IProgress<string> message, IProgress<string> log, TestData test)
+        //{
 
-            bool success = false;
-            string output;
+        //    bool success = false;
+        //    string output;
             
 
-            success = CopySoftware_USB(message, "PRD");
+        //    success = CopySoftware_USB(message, "PRD");
 
-            if (success)
-            {
+        //    if (success)
+        //    {
 
-                //Swap the USB drive to the UUT.
-                log.Report("Turning on the device ...");
-                this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+        //        //Swap the USB drive to the UUT.
+        //        message.Report("Turning on the device ...");
+        //        this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
 
-                success = this.SOM.ReadUntil("Waiting 3 seconds for /fs/usb", out output, 5000);
+        //        success = this.SOM.ReadUntil("Waiting 3 seconds for /fs/usb", out output, 5000);
 
-                if (success)
-                {
-                    success = false;
-                    log.Report("Starting software update ...");
+        //        if (success)
+        //        {
+        //            success = false;
+        //            message.Report("Starting software update ...");
 
-                    this.GPIO.SetBit(GPIO_Defs.AS_BTN_ON.port, GPIO_Defs.AS_BTN_ON.pin);
+        //            this.GPIO.SetBit(GPIO_Defs.AS_BTN_ON.port, GPIO_Defs.AS_BTN_ON.pin);
 
-                    success = this.SOM.ReadUntil("Update IFS", out output, 100000);
-                    if (success)
-                    {
-                        success = false;
-                        log.Report("Updating the NAND flash ...");
+        //            success = this.SOM.ReadUntil("Update IFS", out output, 100000);
+        //            if (success)
+        //            {
+        //                success = false;
+        //                message.Report("Updating the NAND flash ...");
 
-                        success = this.SOM.ReadUntil("display_image", out output, 100000);
-                        if (success)
-                        {
-                            success = false;
-                            // Turn off device using the power button.
-                            Thread.Sleep(500);
-                            log.Report("Powering down device ...");
-                            this.GPIO.SetBit(GPIO_Defs.PB_BTN_ON.port, GPIO_Defs.PB_BTN_ON.pin);
-                            Thread.Sleep(500);
-                            this.GPIO.SetBit(GPIO_Defs.PB_BTN_ON.port, 0x00);
-                            this.SOM.Booted = false;
+        //                success = this.SOM.ReadUntil("display_image", out output, 100000);
+        //                if (success)
+        //                {
+        //                    success = false;
+        //                    // Turn off device using the power button.
+        //                    Thread.Sleep(500);
+        //                    message.Report("Powering down device ...");
+        //                    this.GPIO.SetBit(GPIO_Defs.PB_BTN_ON.port, GPIO_Defs.PB_BTN_ON.pin);
+        //                    Thread.Sleep(500);
+        //                    this.GPIO.SetBit(GPIO_Defs.PB_BTN_ON.port, 0x00);
+        //                    this.SOM.Booted = false;
 
-                            log.Report("\nSoftware update successful!");
+        //                    message.Report("\nSoftware update successful!");
 
 
 
-                            success = true;
-                        }
+        //                    success = true;
+        //                }
 
-                    }
+        //            }
 
-                }
+        //        }
 
-            }
+        //    }
 
-            return success;
-        }
+        //    return success;
+        //}
         /******************************************************************************************************************************
          *  CopySoftware_USB
          *  
@@ -503,56 +503,56 @@ namespace ControlBoardTest
          *                          returns false if the usb drive is not correctly prepared.
          * 
          ******************************************************************************************************************************/
-        private bool CopySoftware_USB(IProgress<string> log, string sw_version = "MFG", int iteration = 0)
-        {
-            bool success = false;
-            string filepath;
-            //Prepare USB Drive with the correct software, find the USB drive first
-            DriveInfo[] alldrives = DriveInfo.GetDrives();
+        //private bool CopySoftware_USB(IProgress<string> log, string sw_version = "MFG", int iteration = 0)
+        //{
+        //    bool success = false;
+        //    string filepath;
+        //    //Prepare USB Drive with the correct software, find the USB drive first
+        //    DriveInfo[] alldrives = DriveInfo.GetDrives();
 
-            if (sw_version == "MFG") filepath = ".\\ProgramLoad\\MFG_SW\\vswupdate";
-            else if (sw_version == "PRD") filepath = ".\\ProgramLoad\\PRD_SW\\vswupdate"; //TODO: Update KVSTORE bit
-            else return success;
+        //    if (sw_version == "MFG") filepath = ".\\ProgramLoad\\MFG_SW\\vswupdate";
+        //    else if (sw_version == "PRD") filepath = ".\\ProgramLoad\\PRD_SW\\vswupdate"; //TODO: Update KVSTORE bit
+        //    else return success;
 
 
-            foreach (DriveInfo drive in alldrives)
-            {
-                //Special volume label for drive used as Software loader
-                if (drive.IsReady)
-                {
-                    if (drive.VolumeLabel == "MFG527")
-                    {
-                        log.Report("Preparing USB drive ...");
-                        //Delete the current software update files
-                        string targetPath = drive.Name;
-                        if (Directory.Exists(targetPath + "vswupdate"))
-                        {
-                            log.Report("Deleting directory: " + targetPath + "\\vswupdate");
-                            Directory.Delete(targetPath + "vswupdate", true);
-                        }
-                        log.Report("Copying software update files to " + targetPath);
-                        //Copy the update files for the intended software
-                        CopyDirectory(filepath, targetPath + "vswupdate");
-                        success = true;
-                    }
-                }
-            }
-            if(!success && iteration < 4) //Couldn't find the USB drive.
-            {
-                log.Report("Could not find the drive");
-                ushort initialVal = 1;//this.GPIO.getPort(GPIO_Defs.USB_TGL.port);
-                this.GPIO.SetBit(GPIO_Defs.USB_TGL.port,GPIO_Defs.USB_TGL.pin);
-                Thread.Sleep(100);
-                this.GPIO.SetBit(GPIO_Defs.USB_TGL.port, initialVal);
-                Thread.Sleep(1000);
+        //    foreach (DriveInfo drive in alldrives)
+        //    {
+        //        //Special volume label for drive used as Software loader
+        //        if (drive.IsReady)
+        //        {
+        //            if (drive.VolumeLabel == "MFG527")
+        //            {
+        //                message.Report("Preparing USB drive ...");
+        //                //Delete the current software update files
+        //                string targetPath = drive.Name;
+        //                if (Directory.Exists(targetPath + "vswupdate"))
+        //                {
+        //                    message.Report("Deleting directory: " + targetPath + "\\vswupdate");
+        //                    Directory.Delete(targetPath + "vswupdate", true);
+        //                }
+        //                message.Report("Copying software update files to " + targetPath);
+        //                //Copy the update files for the intended software
+        //                CopyDirectory(filepath, targetPath + "vswupdate");
+        //                success = true;
+        //            }
+        //        }
+        //    }
+        //    if(!success && iteration < 4) //Couldn't find the USB drive.
+        //    {
+        //        message.Report("Could not find the drive");
+        //        ushort initialVal = 1;//this.GPIO.getPort(GPIO_Defs.USB_TGL.port);
+        //        this.GPIO.SetBit(GPIO_Defs.USB_TGL.port,GPIO_Defs.USB_TGL.pin);
+        //        Thread.Sleep(100);
+        //        this.GPIO.SetBit(GPIO_Defs.USB_TGL.port, initialVal);
+        //        Thread.Sleep(1000);
                 
                 
-                success = CopySoftware_USB(log, sw_version, ++iteration);
-            }
+        //        success = CopySoftware_USB(log, sw_version, ++iteration);
+        //    }
 
-            Thread.Sleep(500);
-            return success;
-        }
+        //    Thread.Sleep(500);
+        //    return success;
+        //}
 
         /******************************************************************************************************************************
          *  CopyDirectory
@@ -623,17 +623,17 @@ namespace ControlBoardTest
 
             this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
 
-            log.Report("Does the device boot to the touchscreen calibration screen?");
+            message.Report("Does the device boot to the touchscreen calibration screen?");
             
             if(true)
             {
-                log.Report("Perform the touchscreen calibration, select \"yes\" when done");
+                message.Report("Perform the touchscreen calibration, select \"yes\" when done");
 
                 success = this.SOM.ReadUntil("calib-touch", out output);
 
                 if (!success)
                 {
-                    log.Report("Device did not power up correctly");
+                    message.Report("Device did not power up correctly");
                 }
             }
             else
@@ -678,7 +678,7 @@ namespace ControlBoardTest
                 Thread.Sleep(500);
                 this.GPIO.ClearBit(GPIO_Defs.PB_BTN_ON.port,GPIO_Defs.PB_BTN_ON.pin);
 
-                log.Report("Powering up ... ");
+                message.Report("Powering up ... ");
 
                 if (this.SOM.ReadUntil("screen driver", out output, 20000))
                 {   
@@ -695,29 +695,103 @@ namespace ControlBoardTest
                     {
 
                         this.powered = true;
-                        log.Report("Successfully powered up");
+                        message.Report("Successfully powered up");
                         success = true;
 
 
                     }
+                }
+
+                if (!success)
+                {
+                    //this.GPIO.ClearBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
                 }
             }
             else
             {
                 if (!this.SOM.Connected)
                 {
-                    log.Report("SOM serial port is not connected");
+                    message.Report("SOM serial port is not connected");
                     
                 }
                 
                 if (!this.GPIO.Connected)
                 {
-                    log.Report("GPIO device is not connected");
+                    message.Report("GPIO device is not connected");
                    
                 }
             }
 
+            
+
            
+            return success;
+        }
+        public bool test_power_on(IProgress<string> message, IProgress<string> log, int timeout)
+        {
+            bool success = false;
+
+            //Determine if the devices are properly connected
+            if (this.GPIO.Connected && this.SOM.Connected)
+            {
+                string output;
+                
+
+                //Enables the AC power supply
+                this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+
+                //Toggles the power button in case the device does not begin booting right away (device was successfully powered down by the power button prior to testing).
+                this.GPIO.SetBit(GPIO_Defs.PB_BTN_ON.port, GPIO_Defs.PB_BTN_ON.pin);
+                Thread.Sleep(500);
+                this.GPIO.ClearBit(GPIO_Defs.PB_BTN_ON.port, GPIO_Defs.PB_BTN_ON.pin);
+
+                message.Report("Powering up ... ");
+
+                if (this.SOM.ReadUntil("screen driver", out output, 20000))
+                {
+                    //May need to calibrate touchscreen, which requires user interaction
+                    if (!this.SOM.ReadUntil("calib-touch", out output, 5000))
+                    {
+                        //Device needs touchscreen calibration
+                        do
+                        {
+                            this.PromptUser_YesNo("Please perform the touch screen calibration\n\nThen press \"OK\"", "Touchscreen Calibration");
+                        } while (!this.SOM.ReadUntil("calib-touch", out output, 5000));
+                    }
+                    if (this.SOM.ReadUntil("Storyboard", out output, 50000))
+                    {
+
+                        this.powered = true;
+                        message.Report("Successfully powered up");
+                        success = true;
+
+
+                    }
+                }
+
+                if (!success)
+                {
+                    this.GPIO.ClearBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+                }
+            }
+            else
+            {
+                if (!this.SOM.Connected)
+                {
+                    message.Report("SOM serial port is not connected");
+
+                }
+
+                if (!this.GPIO.Connected)
+                {
+                    message.Report("GPIO device is not connected");
+
+                }
+            }
+
+
+
+
             return success;
         }
         /******************************************************************************************************************************
@@ -743,7 +817,7 @@ namespace ControlBoardTest
 
                 
 
-               log.Report("Powering down");
+               message.Report("Powering down");
 
                 this.Vent.Disconnect();
                 
@@ -814,13 +888,13 @@ namespace ControlBoardTest
 
 
             //Blocking until user input is given --> Possible options are: "yes", or "no" 
-            //log.Report("Is the LCD screen clear?");
+            //message.Report("Is the LCD screen clear?");
 
             result = this.PromptUser_YesNo("Is the LCD screen clear?", test.name);
 
             if (result)
             {
-                //log.Report("Test Passed!");
+                //message.Report("Test Passed!");
                 measured = "pass";
                 success = true;
 
@@ -830,19 +904,19 @@ namespace ControlBoardTest
 
                 measured = this.PromptUser("Describe the failure", test.name);
 
-                //log.Report("Test Failed");
+                //message.Report("Test Failed");
                 success = false;
             }
 
             //Fill in measurement parameter
             if (success)
             {
-                log.Report(test.name + ": PASS");
+                message.Report(test.name + ": PASS");
                 test.parameters["measured"] = "PASS";
             }
             else
             {
-                log.Report(test.name + ": FAIL");
+                message.Report(test.name + ": FAIL");
                 test.parameters["measured"] = "FAIL";
             }
 
@@ -883,7 +957,7 @@ namespace ControlBoardTest
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_3V3_HOT_EN.port, GPIO_Defs.MEAS_3V3_HOT_EN.pin);
 
 
-                log.Report("Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
@@ -898,12 +972,12 @@ namespace ControlBoardTest
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = measured.ToString();
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
             }
@@ -944,7 +1018,7 @@ namespace ControlBoardTest
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_5V0_HOT_EN.port, GPIO_Defs.MEAS_5V0_HOT_EN.pin);
 
 
-                log.Report("Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
@@ -957,12 +1031,12 @@ namespace ControlBoardTest
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = measured.ToString();
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
             }
@@ -1002,7 +1076,7 @@ namespace ControlBoardTest
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_5V3_EN.port, GPIO_Defs.MEAS_5V3_EN.pin);
 
 
-                log.Report("Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
@@ -1015,12 +1089,12 @@ namespace ControlBoardTest
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = measured.ToString();
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
             }
@@ -1060,7 +1134,7 @@ namespace ControlBoardTest
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_12V0_EN.port, GPIO_Defs.MEAS_12V0_EN.pin);
 
 
-                log.Report("Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
@@ -1073,12 +1147,12 @@ namespace ControlBoardTest
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = measured.ToString();
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
             }
@@ -1118,7 +1192,7 @@ namespace ControlBoardTest
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_3V3_EN.port, GPIO_Defs.MEAS_3V3_EN.pin);
 
 
-                log.Report("Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
@@ -1131,12 +1205,12 @@ namespace ControlBoardTest
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = measured.ToString();
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
             }
@@ -1176,7 +1250,7 @@ namespace ControlBoardTest
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_1V2_EN.port, GPIO_Defs.MEAS_1V2_EN.pin);
 
 
-                log.Report("Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
@@ -1189,12 +1263,12 @@ namespace ControlBoardTest
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = measured.ToString();
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
             }
@@ -1234,7 +1308,7 @@ namespace ControlBoardTest
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_VREF_EN.port, GPIO_Defs.MEAS_VREF_EN.pin);
 
 
-                log.Report("Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
@@ -1247,12 +1321,12 @@ namespace ControlBoardTest
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = measured.ToString();
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
             }
@@ -1292,7 +1366,7 @@ namespace ControlBoardTest
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_3V3A_EN.port, GPIO_Defs.MEAS_3V3A_EN.pin);
 
 
-                log.Report("Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
@@ -1305,12 +1379,12 @@ namespace ControlBoardTest
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = measured.ToString();
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
             }
@@ -1350,7 +1424,7 @@ namespace ControlBoardTest
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_30V_EN.port, GPIO_Defs.MEAS_30V_EN.pin);
 
 
-                log.Report("Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
@@ -1363,12 +1437,12 @@ namespace ControlBoardTest
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = measured.ToString();
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
             }
@@ -1408,7 +1482,7 @@ namespace ControlBoardTest
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_36V_EN.port, GPIO_Defs.MEAS_36V_EN.pin);
 
 
-                log.Report("Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
@@ -1421,12 +1495,12 @@ namespace ControlBoardTest
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = measured.ToString();
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
             }
@@ -1461,7 +1535,7 @@ namespace ControlBoardTest
 
             if (this.powered && this.GPIO.Connected && this.Vent.Connected)
             {
-                log.Report("Setting blower speed  to: " + speed.ToString() + " RPM");
+                message.Report("Setting blower speed  to: " + speed.ToString() + " RPM");
 
                 ventOutput = this.Vent.CMD_Write("set vcm testmgr speed " + speed.ToString());
 
@@ -1479,7 +1553,7 @@ namespace ControlBoardTest
 
                 this.Vent.CMD_Write("set vcm testmgr stop");
 
-                log.Report("Measured: " + measured.ToString());
+                message.Report("Measured: " + measured.ToString());
                 if((measured <= (speed * (1 + (tolerance/100)))) && (measured >= (speed * (1 - (tolerance / 100)))))
                 {
                     success = true;
@@ -1489,12 +1563,12 @@ namespace ControlBoardTest
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = measured.ToString();
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
             }
@@ -1536,7 +1610,7 @@ namespace ControlBoardTest
                 float upper = float.Parse(test.parameters["upper"]);
                 float lower = float.Parse(test.parameters["lower"]);
 
-                log.Report("Setting pump speed  to: " + speed.ToString() + " RPM");
+                message.Report("Setting pump speed  to: " + speed.ToString() + " RPM");
 
                 ventOutput = this.Vent.CMD_Write("set vcm testmgr o2speed " + speed.ToString());
 
@@ -1560,16 +1634,16 @@ namespace ControlBoardTest
                     success = true;
                 }
 
-                log.Report("Measured: " + measured.ToString());
+                message.Report("Measured: " + measured.ToString());
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = measured.ToString();
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
             }
@@ -1628,12 +1702,12 @@ namespace ControlBoardTest
             //Fill in measurement parameter
             if (success)
             {
-                log.Report(test.name + ": PASS");
+                message.Report(test.name + ": PASS");
                 test.parameters["measured"] = "PASS";
             }
             else
             {
-                log.Report(test.name + ": FAIL");
+                message.Report(test.name + ": FAIL");
                 test.parameters["measured"] = "FAIL";
             }
 
@@ -1681,7 +1755,7 @@ namespace ControlBoardTest
                 this.Vent.CMD_Write("set vcm sv 9 0");
 
 
-                log.Report("Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
@@ -1695,12 +1769,12 @@ namespace ControlBoardTest
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = measured.ToString();
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
 
@@ -1747,7 +1821,7 @@ namespace ControlBoardTest
                 this.Vent.CMD_Write("set vcm sv 10 0");
 
 
-                log.Report("Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
@@ -1760,12 +1834,12 @@ namespace ControlBoardTest
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = measured.ToString();
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
 
@@ -1811,7 +1885,7 @@ namespace ControlBoardTest
                 this.Vent.CMD_Write("set vcm sv 9 0");
 
 
-                log.Report("Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
@@ -1824,12 +1898,12 @@ namespace ControlBoardTest
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = measured.ToString();
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
 
@@ -1874,7 +1948,7 @@ namespace ControlBoardTest
                 this.Vent.CMD_Write("set vcm sv 10 0");
 
 
-                log.Report("Measured: " + measured.ToString() + " V\n");
+                message.Report("Measured: " + measured.ToString() + " V\n");
 
                 if ((measured < (upper)) && (measured > (lower)))
                 {
@@ -1887,12 +1961,12 @@ namespace ControlBoardTest
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = measured.ToString();
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
 
@@ -1926,7 +2000,7 @@ namespace ControlBoardTest
             for (int i = 0; i < num*2; i++)
             {
                 this.Vent.CMD_Write("set vcm coughv " + (i%2).ToString() );
-                Thread.Sleep(50); //Value doesn't really matter, the device doesn't drive the valve any faster
+                Thread.Sleep(250); //Value doesn't really matter, the device doesn't drive the valve any faster
                 
             }
 
@@ -1942,12 +2016,12 @@ namespace ControlBoardTest
             //Fill in measurement parameter
             if (success)
             {
-                log.Report(test.name + ": PASS");
+                message.Report(test.name + ": PASS");
                 test.parameters["measured"] ="PASS";
             }
             else
             {
-                log.Report(test.name + ": FAIL");
+                message.Report(test.name + ": FAIL");
                 test.parameters["measured"] = "FAIL";
             }
 
@@ -1988,7 +2062,7 @@ namespace ControlBoardTest
             this.GPIO.ClearBit(GPIO_Defs.VFAN_MEAS_EN.port, GPIO_Defs.VFAN_MEAS_EN.pin);
             string val;
 
-            log.Report("Measured: " + measured.ToString());
+            message.Report("Measured: " + measured.ToString());
 
             if ((measured > lower) && (measured < upper))
             {
@@ -1996,15 +2070,7 @@ namespace ControlBoardTest
             }
 
 
-            if (success)
-            {
-                log.Report(test.name + ": PASS");
-                
-            }
-            else
-            {
-                log.Report(test.name + ": FAIL");
-            }
+            
             test.parameters["measured"] = measured.ToString();
 
 
@@ -2044,7 +2110,7 @@ namespace ControlBoardTest
                 this.GPIO.ClearBit(GPIO_Defs.FAN_FREQ_MEAS_EN.port, GPIO_Defs.FAN_FREQ_MEAS_EN.pin);
                 
 
-                log.Report("Measured: " + measured.ToString());
+                message.Report("Measured: " + measured.ToString());
 
                 if ((measured > lower) && (measured < upper))
                 {
@@ -2053,11 +2119,11 @@ namespace ControlBoardTest
 
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                 }
                 test.parameters["measured"] = measured.ToString();
 
@@ -2096,7 +2162,7 @@ namespace ControlBoardTest
                 {
                     //Prompt user to begin nebulizer therapy.
                     PromptUser_YesNo("Please start nebulizer therapy on screen and hit enter", test.name);
-                    log.Report("Please start Nebulizer therapy by pressing \"Start\"");
+                    message.Report("Please start Nebulizer therapy by pressing \"Start\"");
                     this.Vent.CMD_Write("set uim screen 5039");  //Nebulizer start screenID = 5039
                     this.Vent.CMD_Write("restart");
 
@@ -2110,7 +2176,7 @@ namespace ControlBoardTest
                     while (returnVal.Contains("nebulizerActive: 0") && (i < 15));
                     if (i >= 15)
                     {
-                        log.Report("Test timed out");
+                        message.Report("Test timed out");
                         this.Vent.CMD_Write("mfgmode");
                         return false;
                     }
@@ -2127,7 +2193,7 @@ namespace ControlBoardTest
 
 
 
-                log.Report("Measured: " + measured.ToString());
+                message.Report("Measured: " + measured.ToString());
 
                 if ((measured > lower) && (measured < upper))
                 {
@@ -2137,12 +2203,12 @@ namespace ControlBoardTest
 
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
 
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                 }
                 test.parameters["measured"] = measured.ToString();
             }
@@ -2178,7 +2244,7 @@ namespace ControlBoardTest
                 {
                     //Prompt user to begin nebulizer therapy.
                     PromptUser_YesNo("Please start nebulizer therapy on screen and hit enter", test.name);
-                    log.Report("Please start Nebulizer therapy by pressing \"Start\"");
+                    message.Report("Please start Nebulizer therapy by pressing \"Start\"");
                     this.Vent.CMD_Write("set uim screen 5039");  //Nebulizer start screenID = 5039
                     this.Vent.CMD_Write("restart");
 
@@ -2192,7 +2258,7 @@ namespace ControlBoardTest
                     while (returnVal.Contains("nebulizerActive: 0") && (i < 15));
                     if (i >= 15)
                     {
-                        log.Report("Test timed out");
+                        message.Report("Test timed out");
                         this.Vent.CMD_Write("mfgmode");
                         return false;
                     }
@@ -2228,7 +2294,7 @@ namespace ControlBoardTest
 
 
 
-            log.Report("Measured: " + measured.ToString());
+            message.Report("Measured: " + measured.ToString());
 
             if ((measured > lower) && (measured < upper))
             {
@@ -2238,12 +2304,12 @@ namespace ControlBoardTest
 
             if (success)
             {
-                log.Report(test.name + ": PASS");
+                message.Report(test.name + ": PASS");
 
             }
             else
             {
-                log.Report(test.name + ": FAIL");
+                message.Report(test.name + ": FAIL");
             }
             test.parameters["measured"] = measured.ToString();
         }
@@ -2334,15 +2400,15 @@ namespace ControlBoardTest
 
 
             }
-            log.Report("0x" + (measured >> 1).ToString() + (measured & 1).ToString());
+            message.Report("0x" + (measured >> 1).ToString() + (measured & 1).ToString());
             if (success)
             {
-                log.Report(test.name + ": PASS");
+                message.Report(test.name + ": PASS");
                 test.parameters["measured"] = "0x" + (measured >> 1).ToString() + (measured & 1).ToString();
             }
             else
             {
-                log.Report(test.name + ": FAIL");
+                message.Report(test.name + ": FAIL");
                 test.parameters["measured"] = "0x" + (measured >> 1).ToString() + (measured & 1).ToString();
             }
 
@@ -2411,15 +2477,15 @@ namespace ControlBoardTest
                 }
                 //string press = output.Substring(53, 8);
                 //var pressure = float.Parse(press) * 0.000980665; //Convert to kPa
-                log.Report("Measured: " + avePress.ToString() + " kPa");
+                message.Report("Measured: " + avePress.ToString() + " kPa");
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = avePress.ToString();
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = avePress.ToString();
                 }
 
@@ -2483,15 +2549,15 @@ namespace ControlBoardTest
                 //string press = output.Substring(53, 8);
                 //var pressure = float.Parse(press) * 0.000980665; //Convert to kPa
 
-                log.Report("Measured: " + aveTemp.ToString() + " C");
+                message.Report("Measured: " + aveTemp.ToString() + " C");
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = aveTemp.ToString();
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = aveTemp.ToString();
                 }
                
@@ -2500,6 +2566,70 @@ namespace ControlBoardTest
             }
             return success;
         }
+
+        private bool test_sysfault9(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+
+            if(this.powered && this.Vent.Connected && this.GPIO.Connected)
+            {
+                int timeout = int.Parse(test.parameters["timeout"]);
+                string response = "";
+                string fanAlarmStatus = "";
+
+
+                //Determine initial state, if the alarm is already active then this test should fail
+                response = this.Vent.CMD_Write("get vcm alarm status");
+                fanAlarmStatus = Regex.Match(response, @"(?<=kVentFanFailure\:)(\s+\w+)").Value;
+                if (fanAlarmStatus.Contains("off"))
+                {
+
+
+                    this.GPIO.SetBit(GPIO_Defs.FAN_FAULT_EN.port, GPIO_Defs.FAN_FAULT_EN.pin);
+
+
+                    int cnt = 0;
+                    do
+                    {
+                        response = this.Vent.CMD_Write("get vcm alarm status");
+                        fanAlarmStatus = Regex.Match(response, @"(?<=kVentFanFailure\:)(\s+\w+)").Value;
+                        cnt += 500;
+                        Thread.Sleep(500); //Don't overload the DUT CPU and wait a bit, expected number of cycles is two through this while loop
+                    } while (fanAlarmStatus.Contains("off") && (cnt < timeout));
+
+
+                    if (!fanAlarmStatus.Contains("off"))
+                    {
+                        success = true;
+                    }
+
+
+                    this.GPIO.ClearBit(GPIO_Defs.FAN_FAULT_EN.port, GPIO_Defs.FAN_FAULT_EN.pin);
+                }
+                
+
+
+                if (success)
+                {
+                    test.parameters["measured"] = "PASS";
+                    message.Report("Measured: kVentFanFailure " + "PASS");
+
+                }
+                else
+                {
+                    test.parameters["measured"] = "FAIL";
+                    message.Report("Measured: kVentFanFailure " + "FAIL");
+
+                }
+            }
+
+
+            return false;
+        }
+
+
+
+
         /******************************************************************************************************************************
          *  test_software_install
          *  
@@ -2520,36 +2650,53 @@ namespace ControlBoardTest
             bool success = false;
             float measured = 0;
 
-
-            /*TODO: 
-             * - Turn on speaker. Sound an alarm.
-             * - Move USB drive to UUT, copy OUT1.wav and OUT2.wav to USB drive.
-             * - Move USB drive to PC.
-             * - Open OUT1.wav or OUT2.wav and perform an amplitude check on the file. Confirm
-             */
-            this.Vent.CMD_Write("restart");
-            this.GPIO.SetBit(GPIO_Defs.SPKR_EN.port, GPIO_Defs.SPKR_EN.pin);
-            this.GPIO.SetBit(GPIO_Defs.FAN_FAULT_EN.port, GPIO_Defs.FAN_FAULT_EN.pin);
-            this.GPIO.SetBit(GPIO_Defs.PIEZO_EN.port, GPIO_Defs.PIEZO_EN.pin);
-
-            //The speaker should now alarm, and the piezo should begin to alarm as well IF the speaker is not loud enough and the microphone is not sensitive enough.
-            Thread.Sleep(5000);
-            var ok = this.PromptUser_YesNo("Does the piezo sound?", test.name);
-
-            if (!ok)
+            if (this.powered && this.Vent.Connected && this.GPIO.Connected)
             {
-                success = true;
+                /*TODO: 
+                 * - Turn on speaker. Sound an alarm.
+                 * - Move USB drive to UUT, copy OUT1.wav and OUT2.wav to USB drive.
+                 * - Move USB drive to PC.
+                 * - Open OUT1.wav or OUT2.wav and perform an amplitude check on the file. Confirm
+                 */
+                this.Vent.CMD_Write("restart");
+                this.GPIO.SetBit(GPIO_Defs.SPKR_EN.port, GPIO_Defs.SPKR_EN.pin);
+                this.GPIO.SetBit(GPIO_Defs.FAN_FAULT_EN.port, GPIO_Defs.FAN_FAULT_EN.pin);
+                
+
+                //The speaker should now alarm, and the piezo should begin to alarm as well IF the speaker is not loud enough and the microphone is not sensitive enough.
+                Thread.Sleep(10000);
+                this.GPIO.SetBit(GPIO_Defs.PIEZO_EN.port, GPIO_Defs.PIEZO_EN.pin);
+                var ok = this.PromptUser_YesNo("Does the piezo sound?", test.name);
+
+                if (!ok)
+                {
+                    success = true;
+                }
+
+
+
+                this.Vent.CMD_Write("mfgmode");
+                this.GPIO.ClearBit(GPIO_Defs.SPKR_EN.port, GPIO_Defs.SPKR_EN.pin);
+                Thread.Sleep(500);
+                this.GPIO.ClearBit(GPIO_Defs.FAN_FAULT_EN.port, GPIO_Defs.FAN_FAULT_EN.pin);
+                Thread.Sleep(500);
+                this.GPIO.ClearBit(GPIO_Defs.PIEZO_EN.port, GPIO_Defs.PIEZO_EN.pin);
+              
+                message.Report("Measured: " + "PASS");
+                
+                if (success)
+                {
+                    message.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                    message.Report("Measured: " + "PASS");
+                }
+                else
+                {
+                    message.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = "FAIL";
+                    message.Report("Measured: " + "FAIL");
+                }
             }
-
-            
-
-            this.Vent.CMD_Write("mfgmode");
-            this.GPIO.ClearBit(GPIO_Defs.SPKR_EN.port, GPIO_Defs.SPKR_EN.pin);
-            Thread.Sleep(500);
-            this.GPIO.ClearBit(GPIO_Defs.FAN_FAULT_EN.port, GPIO_Defs.FAN_FAULT_EN.pin);
-            Thread.Sleep(500);
-            this.GPIO.ClearBit(GPIO_Defs.PIEZO_EN.port, GPIO_Defs.PIEZO_EN.pin);
-            log.Report(test.name + measured.ToString());
 
             return success;
         }
@@ -2675,7 +2822,7 @@ namespace ControlBoardTest
                         Thread.Sleep(100);
                     }
                 }
-                log.Report("SV1&2 count = " + toggle.ToString());
+                message.Report("SV1&2 count = " + toggle.ToString());
 
                 if (count == toggle)
                 {
@@ -2683,12 +2830,12 @@ namespace ControlBoardTest
                 }
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = count.ToString();
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = count.ToString();
                 }
             }
@@ -2736,7 +2883,7 @@ namespace ControlBoardTest
                         Thread.Sleep(100);
                     }
                 }
-                log.Report("SV3&4 count = " + toggle.ToString());
+                message.Report("SV3&4 count = " + toggle.ToString());
 
                 if (count == toggle)
                 {
@@ -2744,12 +2891,12 @@ namespace ControlBoardTest
                 }
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = count.ToString();
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = count.ToString();
                 }
             }
@@ -2792,12 +2939,12 @@ namespace ControlBoardTest
 
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = i2c_error.ToString();
                 }
             }
@@ -2850,16 +2997,16 @@ namespace ControlBoardTest
                 }
                 averageCounts = averageCounts / cnt;
 
-                log.Report("Measured: " + averageCounts.ToString() + " counts");
+                message.Report("Measured: " + averageCounts.ToString() + " counts");
 
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = averageCounts.ToString();
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = averageCounts.ToString();
                 }
             }
@@ -2907,7 +3054,7 @@ namespace ControlBoardTest
                         Thread.Sleep(100);
                     }
                 }
-                log.Report("SV6 count = " + toggle.ToString());
+                message.Report("SV6 count = " + toggle.ToString());
 
                 if (count == toggle)
                 {
@@ -2915,12 +3062,12 @@ namespace ControlBoardTest
                 }
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = count.ToString();
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = count.ToString();
                 }
             }
@@ -2968,7 +3115,7 @@ namespace ControlBoardTest
                         Thread.Sleep(100);
                     }
                 }
-                log.Report("SV7 count = " + toggle.ToString());
+                message.Report("SV7 count = " + toggle.ToString());
 
                 if (count == toggle)
                 {
@@ -2976,12 +3123,12 @@ namespace ControlBoardTest
                 }
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = count.ToString();
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = count.ToString();
                 }
             }
@@ -3029,7 +3176,7 @@ namespace ControlBoardTest
                         Thread.Sleep(100);
                     }
                 }
-                log.Report("SV8 count = " + toggle.ToString());
+                message.Report("SV8 count = " + toggle.ToString());
 
                 if (count == toggle)
                 {
@@ -3037,12 +3184,12 @@ namespace ControlBoardTest
                 }
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = count.ToString();
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = count.ToString();
                 }
             }
@@ -3085,12 +3232,12 @@ namespace ControlBoardTest
 
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = i2c_error.ToString();
                 }
             }
@@ -3138,19 +3285,19 @@ namespace ControlBoardTest
                         Thread.Sleep(100);
                     }
                 }
-                log.Report("SV5 count = " + toggle.ToString());
+                message.Report("SV5 count = " + toggle.ToString());
                 if(count == toggle)
                 {
                     success = true;
                 }
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = count.ToString();
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = count.ToString();
                 }
             }
@@ -3193,12 +3340,12 @@ namespace ControlBoardTest
 
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = i2c_error.ToString();
                 }
             }
@@ -3251,7 +3398,7 @@ namespace ControlBoardTest
                 }
                 averageCounts = averageCounts / cnt;
 
-                log.Report("Measured: " + averageCounts.ToString() + " counts");
+                message.Report("Measured: " + averageCounts.ToString() + " counts");
 
                 if (success)
                 {
@@ -3316,12 +3463,12 @@ namespace ControlBoardTest
 
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = "FAIL";
                 }
             }
@@ -3374,12 +3521,12 @@ namespace ControlBoardTest
 
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = "FAIL";
                 }
             }
@@ -3430,12 +3577,12 @@ namespace ControlBoardTest
 
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = "FAIL";
                 }
             }
@@ -3475,12 +3622,12 @@ namespace ControlBoardTest
                 }
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = i2c_error.ToString();
                 }
             }
@@ -3535,9 +3682,9 @@ namespace ControlBoardTest
                     for(int i = 0; i < (fs*time); i++)
                     {
                         ledFlash[i] = this.GPIO.GetBit(GPIO_Defs.MEAS_AS_LED.port, GPIO_Defs.MEAS_AS_LED.pin);
-                        if (ledFlash[i] == 1) log.Report("LED is OFF");
-                        else if (ledFlash[i] == 0) log.Report("LED is ON");
-                        else log.Report("Something is wrong with GPIO.GetBit()");
+                        if (ledFlash[i] == 1) ;
+                        else if (ledFlash[i] == 0) ;
+                        else message.Report("Something is wrong with GPIO.GetBit()");
                         
                         Thread.Sleep(1000 / fs);
                     }
@@ -3547,7 +3694,7 @@ namespace ControlBoardTest
                         //Get average
                         var average = ledFlash.Average();
                         //if (average >= lower && average <= upper) ;
-                        log.Report("Average = " + average);
+                        message.Report("Average = " + average);
                         success = true;
                         
                     }
@@ -3563,12 +3710,12 @@ namespace ControlBoardTest
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = "FAIL";
                 }
             }
@@ -3576,13 +3723,13 @@ namespace ControlBoardTest
             {
                 if (!this.powered)
                 {
-                    log.Report("UUT is not powered");
+                    message.Report("UUT is not powered");
                     test.parameters["measured"] = "Device not powered";
                 }
                 
                 if (!this.GPIO.Connected)
                 {
-                    log.Report("GPIO Module is not connected");
+                    message.Report("GPIO Module is not connected");
                     test.parameters["measured"] = "GPIO module disconnected";
                 }
             }
@@ -3643,24 +3790,24 @@ namespace ControlBoardTest
                         success = true;
                     }
                 }
-                log.Report("BATT0 ASOC:" + batt0_ASOC);
-                log.Report("BATT0 RSOC:" + batt0_RSOC);
-                log.Report("BATT1 ASOC:" + batt1_ASOC);
-                log.Report("BATT1 RSOC:" + batt1_RSOC);
-                log.Report("BATT2 ASOC:" + batt2_ASOC);
-                log.Report("BATT2 RSOC:" + batt2_RSOC);
+                message.Report("BATT0 ASOC:" + batt0_ASOC);
+                message.Report("BATT0 RSOC:" + batt0_RSOC);
+                message.Report("BATT1 ASOC:" + batt1_ASOC);
+                message.Report("BATT1 RSOC:" + batt1_RSOC);
+                message.Report("BATT2 ASOC:" + batt2_ASOC);
+                message.Report("BATT2 RSOC:" + batt2_RSOC);
 
 
 
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
             }
@@ -3668,15 +3815,15 @@ namespace ControlBoardTest
             {
                 if (!this.powered)
                 {
-                    log.Report("UUT is not powered");
+                    message.Report("UUT is not powered");
                 }
                 if (!this.Vent.Connected)
                 {
-                    log.Report("UUT is not connected to Telnet");
+                    message.Report("UUT is not connected to Telnet");
                 }
                 if (!this.GPIO.Connected)
                 {
-                    log.Report("GPIO Module is not connected");
+                    message.Report("GPIO Module is not connected");
                 }
             }
 
@@ -3761,12 +3908,12 @@ namespace ControlBoardTest
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = measured.ToString();
                 }
             }
@@ -3774,15 +3921,15 @@ namespace ControlBoardTest
             {
                 if (!this.powered)
                 {
-                    log.Report("UUT is not powered");
+                    message.Report("UUT is not powered");
                 }
                 if (!this.Vent.Connected)
                 {
-                    log.Report("UUT is not connected to Telnet");
+                    message.Report("UUT is not connected to Telnet");
                 }
                 if (!this.GPIO.Connected)
                 {
-                    log.Report("GPIO Module is not connected");
+                    message.Report("GPIO Module is not connected");
                 }
             }
 
@@ -3963,7 +4110,7 @@ namespace ControlBoardTest
                 this.GPIO.SetBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
 
                 //Wait for battery to begin charging
-                log.Report("Waiting for charge led to light up ... ");
+                message.Report("Waiting for charge led to light up ... ");
 
                 int meas;
                 int time = 0;
@@ -3992,12 +4139,12 @@ namespace ControlBoardTest
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = "FAIL";
                 }
             }
@@ -4059,14 +4206,14 @@ namespace ControlBoardTest
 
                 //Fill in measurement parameter
                 test.parameters["measured"] = ave_mVolts.ToString();
-                log.Report("Measured: " + ave_mVolts.ToString() + "V");
+                message.Report("Measured: " + ave_mVolts.ToString() + "V");
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                 }
             }
 
@@ -4145,14 +4292,14 @@ namespace ControlBoardTest
 
                 //Fill in measurement parameter
                 test.parameters["measured"] = meas.ToString();
-                log.Report("Measured: " + meas.ToString() + "A");
+                message.Report("Measured: " + meas.ToString() + "A");
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");   
+                    message.Report(test.name + ": PASS");   
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                 }
             }
 
@@ -4230,14 +4377,14 @@ namespace ControlBoardTest
 
                 //Fill in measurement parameter
                 test.parameters["measured"] = meas.ToString();
-                log.Report("Measured: " + meas.ToString() + "A");
+                message.Report("Measured: " + meas.ToString() + "A");
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                 }
             }
 
@@ -4318,14 +4465,14 @@ namespace ControlBoardTest
 
                 //Fill in measurement parameter
                 test.parameters["measured"] = meas.ToString();
-                log.Report("Measured: " + meas.ToString() + "A");
+                message.Report("Measured: " + meas.ToString() + "A");
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                 }
             }
 
@@ -4347,7 +4494,7 @@ namespace ControlBoardTest
                 this.GPIO.SetBit(GPIO_Defs.MEAS_NC_NC.port, GPIO_Defs.MEAS_NC_NC.pin);
                 Thread.Sleep(DMM_DELAY);
                 var measured = this.DMM.Get_Ohms();
-                log.Report("NC measured: " + measured.ToString());
+                message.Report("NC measured: " + measured.ToString());
 
                 if((measured > lower) && (measured < upper))
                 {
@@ -4357,7 +4504,7 @@ namespace ControlBoardTest
                     this.Vent.CMD_Write("restart");
                     Thread.Sleep(DMM_DELAY);
                     measured = this.DMM.Get_Ohms();
-                    log.Report("NO measured: " + measured.ToString());
+                    message.Report("NO measured: " + measured.ToString());
                     if ((measured > lower) && (measured < upper))
                     {
                         success = true;
@@ -4366,12 +4513,12 @@ namespace ControlBoardTest
                 }
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = "PASS";
                 }
 
@@ -4443,12 +4590,12 @@ namespace ControlBoardTest
 
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = "FAIL";
                 }
 
@@ -4517,12 +4664,12 @@ namespace ControlBoardTest
 
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = "FAIL";
                 }
 
@@ -4591,12 +4738,12 @@ namespace ControlBoardTest
 
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = "FAIL";
                 }
 
@@ -4651,12 +4798,12 @@ namespace ControlBoardTest
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = "PASS";
                 }
             }
@@ -4714,12 +4861,12 @@ namespace ControlBoardTest
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = "PASS";
                 }
             }
@@ -4765,12 +4912,12 @@ namespace ControlBoardTest
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = "PASS";
                 }
             }
@@ -4816,12 +4963,12 @@ namespace ControlBoardTest
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = "PASS";
                 }
             }
@@ -4886,16 +5033,16 @@ namespace ControlBoardTest
 
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = ave_mVolts.ToString();
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = ave_mVolts.ToString();
                 }
 
-                log.Report("Measured: " + ave_mVolts.ToString());
+                message.Report("Measured: " + ave_mVolts.ToString());
             }
             return success;
         }
@@ -4952,16 +5099,16 @@ namespace ControlBoardTest
 
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = ave_mVolts.ToString();
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = ave_mVolts.ToString();
                 }
 
-                log.Report("Measured: " + ave_mVolts.ToString());
+                message.Report("Measured: " + ave_mVolts.ToString());
             }
             return success;
         }
@@ -4997,7 +5144,12 @@ namespace ControlBoardTest
 
                 if(src_match == xdc_only)
                 {
+                    message.Report("XDC: OK");
                     ok++;
+                }
+                else
+                {
+                    message.Report("XDC: Not OK");
                 }
                 //Internal Battery
                 this.PPS.Set_Output(true, 16, 9);
@@ -5018,7 +5170,7 @@ namespace ControlBoardTest
                 }
                 else
                 {
-                    message.Report("Internal: ");
+                    message.Report("Internal: Not OK");
 
                 }
                 //External Battery 1
@@ -5035,6 +5187,12 @@ namespace ControlBoardTest
                 if (src_match == eb1_only)
                 {
                     ok++;
+                    message.Report("External 1: OK");
+                }
+                else
+                {
+                    message.Report("External 1: Not OK");
+
                 }
 
                 //External Battery 2
@@ -5051,6 +5209,12 @@ namespace ControlBoardTest
                 if (src_match == eb2_only)
                 {
                     ok++;
+                    message.Report("External 2: OK");
+                }
+                else
+                {
+                    message.Report("External 2: Not OK");
+
                 }
 
                 this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
@@ -5062,15 +5226,15 @@ namespace ControlBoardTest
                 {
                     success = true;
                 }
-                log.Report("Measured: " + ok.ToString());
+                message.Report("Measured: " + ok.ToString());
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = ok.ToString();
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = ok.ToString();
                 }
             }
@@ -5130,16 +5294,16 @@ namespace ControlBoardTest
                 //TODO: Parse meas for the correct revision
 
 
-                log.Report("Measured: " + revision_meas);
+                message.Report("Measured: " + revision_meas);
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = revision_meas;
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = revision_meas;
                 }
             }
@@ -5188,16 +5352,16 @@ namespace ControlBoardTest
 
                 //TODO: Parse meas for the correct revision
 
-                log.Report("Measured: " + revision_meas);
+                message.Report("Measured: " + revision_meas);
                 test.parameters["measured"] = revision_meas;
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");            
+                    message.Report(test.name + ": PASS");            
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                 }
             }
 
@@ -5225,25 +5389,44 @@ namespace ControlBoardTest
 
                 this.GPIO.SetBit(GPIO_Defs.MEAS_PIEZO.port, GPIO_Defs.MEAS_PIEZO.pin);
 
+                
+
+
+                //Disconnect from Telnet, power down the device. Then measure the super cap again
+                this.Vent.Disconnect();
+                this.GPIO.ClearBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+                this.powered = false;
+
+                Thread.Sleep(2000); //Wait a couple seconds, gives time for board to discharge a bit
+
                 measured = this.DMM.Get_Volts();
+
+                var power = this.test_power_on(message, log, 15000);
+                if (power)
+                {
+                    Thread.Sleep(20000); //Need to wait for ip address to be collected
+                    this.Vent.Connect(this.Vent._ip_address, "mfgmode", false);
+                }
+
 
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_PIEZO.port, GPIO_Defs.MEAS_PIEZO.pin);
 
-
+                
                 if ((measured <= upper) && (measured >= lower))
                 {
                     success = true;
                 }
 
                 test.parameters["measured"] = measured.ToString();
+                message.Report("Measured: " + measured.ToString());
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                 }
             }
 
@@ -5287,12 +5470,12 @@ namespace ControlBoardTest
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = "FAIL";
                 }
             }
@@ -5332,12 +5515,12 @@ namespace ControlBoardTest
                 //Fill in measurement parameter
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = "FAIL";
                 }
             }
@@ -5382,12 +5565,12 @@ namespace ControlBoardTest
 
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = i2c_error.ToString();
                 }
             }
@@ -5429,12 +5612,12 @@ namespace ControlBoardTest
 
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = i2c_error.ToString();
                 }
             }
@@ -5470,12 +5653,12 @@ namespace ControlBoardTest
 
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = "FAIL";
                 }
             }
@@ -5511,12 +5694,12 @@ namespace ControlBoardTest
 
                 if (success)
                 {
-                    log.Report(test.name + ": PASS");
+                    message.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
                 }
                 else
                 {
-                    log.Report(test.name + ": FAIL");
+                    message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = "FAIL";
                 }
             }

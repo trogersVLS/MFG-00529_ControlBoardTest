@@ -41,6 +41,19 @@ namespace ControlBoardTest
             this.result = null;
 
         }
+        public void SetResult(bool result)
+        {
+            if (result)
+            {
+                this.result = "PASS";
+            }
+            else
+            {
+                this.result = "FAIL";
+            }
+        }
+
+
     }
     /******************************************************************************************************************************************
      *                                               Functional Test Class

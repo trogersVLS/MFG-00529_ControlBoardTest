@@ -152,7 +152,7 @@ namespace ControlBoardTest
             float freq;
 
             this.Device.ReadTimeout = 2000;
-            freq_str = this.Query(":MEAS:FREQ?", 5000);
+            //freq_str = this.Query(":MEAS:FREQ?", 5000);
             int cnt = 0;
             bool ok;
             do

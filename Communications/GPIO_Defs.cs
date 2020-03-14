@@ -127,9 +127,10 @@ namespace GPIO
             MEAS_O2_SV2N_EN =   new GPIO_PIN(DigitalPortType.FirstPortCL, 3); //Bit 3
             //FirstPortCH -> 4 bits wide --> OUTPUTS
             FAN_FREQ_MEAS_EN =  new GPIO_PIN(DigitalPortType.FirstPortCH, 0); //Bit 4
-            VFAN_MEAS_EN =      new GPIO_PIN(DigitalPortType.FirstPortCH, 1); //Bit 5
+            VFAN_MEAS_EN =      new GPIO_PIN(DigitalPortType.FirstPortCH, 2); //Bit 5
             MEAS_BATT_CHG_EN =  new GPIO_PIN(DigitalPortType.FirstPortCH, 2); //Bit 6
-            
+            MEAS_PIEZO =        new GPIO_PIN(DigitalPortType.FirstPortCH, 3); //Bit 7 
+
 
             //SecondPortA -> 8 bits wide --> OUTPUTS
             FAN_FAULT_EN =      new GPIO_PIN(DigitalPortType.SecondPortA, 0); //Bit 0
@@ -151,7 +152,6 @@ namespace GPIO
             SOV_SV11 =          new GPIO_PIN(DigitalPortType.ThirdPortB, 6); //Measure with GPIO
             OAX1_OFF = new GPIO_PIN(DigitalPortType.ThirdPortB, 7); //Measure with GPIO
             OAX2_OFF = new GPIO_PIN(DigitalPortType.ThirdPortCL, 0); //Measure with GPIO
-            MEAS_PIEZO = new GPIO_PIN(DigitalPortType.ThirdPortCL, 1); //Measure with GPIO
 
             //SecondPortCL -> 4 bits wide --> OUTPUTS
             
