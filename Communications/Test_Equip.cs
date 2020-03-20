@@ -10,7 +10,7 @@ namespace ControlBoardTest
 {
     public class Test_Equip
     {
-        private readonly int QUERY_DELAY = 1500; //millisecond delay for SCPI queries
+        private readonly int QUERY_DELAY = 3000; //millisecond delay for SCPI queries
         string name;
         string comm;
         SerialPort Device;
@@ -179,8 +179,15 @@ namespace ControlBoardTest
         {
             string ohms_str = "";
             float ohms;
+            bool ok = false;
+            int cnt = 0;
+            do
+            {
+                ohms_str = this.Query(":MEAS:RES?", 5000);
+                ok = float.TryParse(ohms_str, out ohms);
+                cnt++;
 
-            ohms_str = this.Query(":MEAS:RES?", 2000);
+            } while (!ok && (cnt < 10));
 
             try
             {
@@ -188,7 +195,7 @@ namespace ControlBoardTest
             }
             catch
             {
-                ohms = 0;
+                ohms = -1;
             }
 
             return ohms;
@@ -207,8 +214,10 @@ namespace ControlBoardTest
                 {
                     this.Device.ReadTimeout = 5000;
 
-                    this.Device.Write("SYST:REM\n\r");
-                    this.Device.Write(cmd +"\r\n");
+                    //this.Device.Write("SYST:REM\n\r");
+                    //this.Device.Write("*RST\n\r");
+                    Thread.Sleep(1000);
+                    this.Device.Write(cmd +"\n");
                     Thread.Sleep(this.QUERY_DELAY);
                     int num = this.Device.Read(byte_response, 0, byte_response.Length);
                     response = Encoding.ASCII.GetString(byte_response, 0, byte_response.Length);

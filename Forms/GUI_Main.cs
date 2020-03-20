@@ -31,9 +31,15 @@ namespace ControlBoardTest
 {
 
 
-    public partial class ControlBoardTest : Form
+    public partial class MainForm : Form
     {
-        const string REVISION = "A";
+        readonly string REVISION = "A";
+
+        readonly string VERSION = Assembly.GetExecutingAssembly().GetName().Version.Major.ToString() + "." +
+                                  Assembly.GetExecutingAssembly().GetName().Version.Minor.ToString();
+        readonly string ABOUT_VERSION = Assembly.GetExecutingAssembly().GetName().Version.Major.ToString() + "." +
+                                  Assembly.GetExecutingAssembly().GetName().Version.Minor.ToString() + "." +
+                                  Assembly.GetExecutingAssembly().GetName().Version.Build.ToString();
 
         //Non designer GUI components
         GUIConsoleWriter ConsoleLog;
@@ -79,11 +85,12 @@ namespace ControlBoardTest
         private List<TestData> failedTests;
         private List<TestData> passedTests;
 
-        public ControlBoardTest(GUIConsoleWriter logConsole = null)
+        public MainForm(GUIConsoleWriter logConsole = null)
         {
             this.ConsoleLog = logConsole;
             //Initialize the GUI components
             InitializeComponent();
+            this.Text += " v" + this.VERSION;
 
             //Initialize program settings from configuration file
             this.InitSettings();
@@ -177,7 +184,7 @@ namespace ControlBoardTest
 
             //All installation specific settings stored in settings.xml
             XmlDocument configuration = new XmlDocument();
-            configuration.Load(@"..\..\Configuration\settings.xml");
+            configuration.Load(@".\Configuration\settings.xml");
 
             foreach(XmlNode xml in configuration.DocumentElement.ChildNodes)
             {
@@ -190,13 +197,13 @@ namespace ControlBoardTest
                         this.MFG_CODE = xml.Attributes["MFG_CODE"].Value;
                         this.DB_FILEPATH = xml.Attributes["DatabasePath"].Value;
                         this.DB_CON = new SQLiteConnection("Data Source=" + this.DB_FILEPATH + ";Version=3");
-                        this.DHCP_ENABLED = bool.Parse(xml.Attributes["DHCP_Enable"].Value);
-                        this.DHCP_START = xml.Attributes["DHCP_Start"].Value; 
-                        this.DHCP_END = xml.Attributes["DHCP_End"].Value;
+                        //this.DHCP_ENABLED = bool.Parse(xml.Attributes["DHCP_Enable"].Value);
+                        //this.DHCP_START = xml.Attributes["DHCP_Start"].Value; 
+                        //this.DHCP_END = xml.Attributes["DHCP_End"].Value;
                     }
                     catch (Exception e)
                     {
-                        MessageBox.Show("Program has encountered an error in the configuration file", "Configuration");
+                        MessageBox.Show("Program has encountered an error in the configuration file\n\rERROR: " + e.Message, "Configuration");
                         throw e;
                     }
                 }
@@ -219,7 +226,7 @@ namespace ControlBoardTest
                             }
                             catch (Exception e)
                             {
-                                MessageBox.Show("Program has encountered an error in the configuration file", "Configuration");
+                                MessageBox.Show("Program has encountered an error in the configuration file\n\rERROR: " + e.Message, "Configuration");
                                 throw e;
                             }
                         }
@@ -237,7 +244,7 @@ namespace ControlBoardTest
                             }
                             catch (Exception e)
                             {
-                                MessageBox.Show("Program has encountered an error in the configuration file", "Configuration");
+                                MessageBox.Show("Program has encountered an error in the configuration file\n\rERROR: " + e.Message, "Configuration");
                                 throw e;
                             }
                         }
@@ -255,7 +262,7 @@ namespace ControlBoardTest
                             }
                             catch (Exception e)
                             {
-                                MessageBox.Show("Program has encountered an error in the configuration file", "Configuration");
+                                MessageBox.Show("Program has encountered an error in the configuration file\n\rERROR: " + e.Message, "Configuration");
                                 throw e;
                             }
                         }
@@ -271,7 +278,7 @@ namespace ControlBoardTest
                     }
                     catch (Exception e)
                     {
-                        MessageBox.Show("Program has encountered an error in the configuration file", "Configuration");
+                        MessageBox.Show("Program has encountered an error in the configuration file\n\rERROR: " + e.Message, "Configuration");
                         throw e;
                     }
 
@@ -285,7 +292,7 @@ namespace ControlBoardTest
                     }
                     catch (Exception e)
                     {
-                        MessageBox.Show("Program has encountered an error in the configuration file", "Configuration");
+                        MessageBox.Show("Program has encountered an error in the configuration file\n\rERROR: " + e.Message, "Configuration");
                         throw e;
                     }
                 }
@@ -298,7 +305,7 @@ namespace ControlBoardTest
                     }
                     catch (Exception e)
                     {
-                        MessageBox.Show("Program has encountered an error in the configuration file", "Configuration");
+                        MessageBox.Show("Program has encountered an error in the configuration file\n\rERROR: " + e.Message, "Configuration");
                         throw e;
                     }
                 }
@@ -315,7 +322,7 @@ namespace ControlBoardTest
                     }
                     catch (Exception e)
                     {
-                        MessageBox.Show("Program has encountered an error in the configuration file", "Configuration");
+                        MessageBox.Show("Program has encountered an error in the configuration file\n\rERROR: " + e.Message, "Configuration");
                         throw e;
                     }
 
@@ -477,12 +484,12 @@ namespace ControlBoardTest
 
             if (success)
             {
-                message.Report(test.name + ": PASS");
+                //message.Report(test.name + ": PASS");
 
             }
             else
             {
-                message.Report(test.name + ": FAIL");
+                //message.Report(test.name + ": FAIL");
                 success = false;
             }
 
@@ -815,7 +822,7 @@ namespace ControlBoardTest
             string testID = testid.ToString();
             string serialNumber = serial;
             string testName = test.name;
-            string result = test.result;
+            string result = test.parameters["result"];
             string upperBound;
             string lowerBound;
             string measured;
@@ -1127,8 +1134,9 @@ namespace ControlBoardTest
         }
 
         private void About_Version_Click(object sender, EventArgs e)
-        {
-            MessageBox.Show("Version: 01.00\nRevision: A", "Version", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        {   
+
+            MessageBox.Show("Version: " + this.ABOUT_VERSION + "\n\rRevision: : " + this.REVISION  , "Version", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void File_ChangeUser_Click(object sender, EventArgs e)
@@ -1185,7 +1193,7 @@ namespace ControlBoardTest
             {  
                 this.Output_Window.AppendText("Test Name: " + test.name + ", ");
                 this.Output_Window.AppendText("Measured: " + test.parameters["measured"] + ", ");
-                this.Output_Window.AppendText("Result: " + test.result + "\n");
+                this.Output_Window.AppendText("Result: " + test.parameters["result"] + "\n\r");
             }
 
 
@@ -1201,7 +1209,7 @@ namespace ControlBoardTest
             {
                 this.Output_Window.AppendText("Test Name: " + test.name + ", ");
                 this.Output_Window.AppendText("Measured: " + test.parameters["measured"] + ", ");
-                this.Output_Window.AppendText("Result: " + test.result + "\n");
+                this.Output_Window.AppendText("Result: " + test.parameters["result"] + "\n\r");
             }
 
         }

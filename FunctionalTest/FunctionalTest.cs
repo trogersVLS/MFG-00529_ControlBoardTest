@@ -27,7 +27,6 @@ namespace ControlBoardTest
         public string name;                             // Human readable test name
         public string method_name;                      // Method name in the Tests.cs file
         public MethodInfo testinfo;                     // Pointer to the method used to run the test
-        public string result;                           // Result of the test
         public Dictionary<string,string> parameters;                    // Dictionary of parameters used in the test
 
         public TestData(int step, string name, string method_name, MethodInfo function, Dictionary<string,string> parameters)
@@ -38,18 +37,18 @@ namespace ControlBoardTest
             this.testinfo = function;
             this.parameters = parameters;
             this.parameters.Add("measured", "Not tested");
-            this.result = null;
+            this.parameters.Add("result", "Not tested");
 
         }
         public void SetResult(bool result)
         {
             if (result)
             {
-                this.result = "PASS";
+                this.parameters["result"] = "PASS";
             }
             else
             {
-                this.result = "FAIL";
+                this.parameters["result"] = "FAIL";
             }
         }
 
@@ -204,6 +203,14 @@ namespace ControlBoardTest
             }
 
             return result;
+        }
+
+        private void NotifyUser(string message)
+        {
+            var output = System.Windows.Forms.MessageBox.Show(message, "Notification", System.Windows.Forms.MessageBoxButtons.OK);
+
+
+            return;
         }
 
         /******************************************************************************************************************************************

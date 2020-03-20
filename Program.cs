@@ -49,7 +49,7 @@ namespace ControlBoardTest
 
 
 
-            Application.Run(new ControlBoardTest(log_console));
+            Application.Run(new MainForm(log_console));
 
 
         }

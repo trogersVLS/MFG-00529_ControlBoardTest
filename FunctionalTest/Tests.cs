@@ -2145,7 +2145,7 @@ namespace ControlBoardTest
          *                          returns false if the software does not update successfully
          * 
          ******************************************************************************************************************************/
-        private bool test_high_fan_volt(IProgress<string> message, IProgress<string> log, TestData test)
+        private bool test_high_fan(IProgress<string> message, IProgress<string> log, TestData test)
         {
             
             bool success = false;
@@ -2156,16 +2156,19 @@ namespace ControlBoardTest
                 float upper = float.Parse(test.parameters["upper"]);
                 float lower = float.Parse(test.parameters["lower"]);
 
+                this.NotifyUser("Please clear all alarms");
+
+                this.Vent.CMD_Write("restart");
+
+                this.Vent.CMD_Write("set uim screen 5039");  //Nebulizer start screenID = 5039
+
+                this.NotifyUser("Please start the nebulizer");
+
                 //Determine if the nebulizer needs to be running.
                 string returnVal = this.Vent.CMD_Write("get vcm monitors");
                 if (returnVal.Contains("nebulizerActive: 0"))
                 {
-                    //Prompt user to begin nebulizer therapy.
-                    PromptUser_YesNo("Please start nebulizer therapy on screen and hit enter", test.name);
-                    message.Report("Please start Nebulizer therapy by pressing \"Start\"");
-                    this.Vent.CMD_Write("set uim screen 5039");  //Nebulizer start screenID = 5039
-                    this.Vent.CMD_Write("restart");
-
+                    
                     int i = 0;
                     do
                     {
@@ -2174,31 +2177,35 @@ namespace ControlBoardTest
                         returnVal = this.Vent.CMD_Write("get vcm monitors");
                     }
                     while (returnVal.Contains("nebulizerActive: 0") && (i < 15));
-                    if (i >= 15)
-                    {
-                        message.Report("Test timed out");
-                        this.Vent.CMD_Write("mfgmode");
-                        return false;
-                    }
                 }
                 //Connect the desired voltage node to the DMM
                 this.GPIO.SetBit(GPIO_Defs.VFAN_MEAS_EN.port, GPIO_Defs.VFAN_MEAS_EN.pin);
                 Thread.Sleep(DMM_DELAY);
 
                 //Measure the voltage
-                float measured = this.DMM.Get_Volts();
+                float v_measured = this.DMM.Get_Volts();
                 this.GPIO.ClearBit(GPIO_Defs.VFAN_MEAS_EN.port, GPIO_Defs.VFAN_MEAS_EN.pin);
 
+
+                //this.GPIO.SetBit(GPIO_Defs.FAN_FREQ_MEAS_EN.port, GPIO_Defs.FAN_FREQ_MEAS_EN.pin);
+                //float f_measured = this.DMM.Get_Freq();
+                //this.GPIO.ClearBit(GPIO_Defs.FAN_FREQ_MEAS_EN.port, GPIO_Defs.FAN_FREQ_MEAS_EN.pin);
+
+
+
+                if ((v_measured > lower) && (v_measured < upper))
+                {
+                    success = true;
+                }
+
+
+                this.Vent.CMD_Write("set uim screen 5039");  //Nebulizer start screenID = 5039
+                this.NotifyUser("Please turn off nebulizer therapy");
                 var response = this.Vent.CMD_Write("mfgmode");
 
 
 
-                message.Report("Measured: " + measured.ToString());
-
-                if ((measured > lower) && (measured < upper))
-                {
-                    success = true;
-                }
+                message.Report("Measured: " + v_measured.ToString());
 
 
                 if (success)
@@ -2210,7 +2217,7 @@ namespace ControlBoardTest
                 {
                     message.Report(test.name + ": FAIL");
                 }
-                test.parameters["measured"] = measured.ToString();
+                test.parameters["measured"] = v_measured.ToString();
             }
 
             return success;
@@ -2624,7 +2631,7 @@ namespace ControlBoardTest
             }
 
 
-            return false;
+            return success;
         }
 
 
@@ -2731,6 +2738,18 @@ namespace ControlBoardTest
 
             this.GPIO.ClearBit(GPIO_Defs.SPKR_EN.port, GPIO_Defs.SPKR_EN.pin);
 
+
+            if (success)
+            {
+                message.Report(test.name + ": PASS");
+                test.parameters["measured"] = "PASS";
+            }
+            else
+            {
+                message.Report(test.name + ": FAIL");
+                test.parameters["measured"] = "FAIIL";
+            }
+
             return success;
         }
         /******************************************************************************************************************************
@@ -2757,21 +2776,21 @@ namespace ControlBoardTest
             {
                 //Connect piezo alarm
                 this.GPIO.SetBit(GPIO_Defs.PIEZO_EN.port, GPIO_Defs.PIEZO_EN.pin);
-
+                this.Vent.CMD_Write("restart");
                 //Prompt user to hear piezo.
                 Thread.Sleep(5000);
                 if(this.PromptUser_YesNo("Does the piezo alarm?", test.name))
                 {
                     success = true;
-                    test.result = "PASS";
+                    test.parameters["measured"] = "PASS";
                 }
                 else
                 {
                     success = false;
-                    test.result = "FAIL";
+                    test.parameters["measured"] = "FAIL";
                 }
 
-
+                this.Vent.CMD_Write("mfgmode");
                 this.GPIO.ClearBit(GPIO_Defs.PIEZO_EN.port, GPIO_Defs.PIEZO_EN.pin);
             }
 
@@ -2822,7 +2841,7 @@ namespace ControlBoardTest
                         Thread.Sleep(100);
                     }
                 }
-                message.Report("SV1&2 count = " + toggle.ToString());
+                message.Report("SV1&2 count = " + count.ToString());
 
                 if (count == toggle)
                 {
@@ -2883,7 +2902,7 @@ namespace ControlBoardTest
                         Thread.Sleep(100);
                     }
                 }
-                message.Report("SV3&4 count = " + toggle.ToString());
+                message.Report("SV3&4 count = " + count.ToString());
 
                 if (count == toggle)
                 {
@@ -3054,8 +3073,7 @@ namespace ControlBoardTest
                         Thread.Sleep(100);
                     }
                 }
-                message.Report("SV6 count = " + toggle.ToString());
-
+                message.Report("SV6 count = " + count.ToString());
                 if (count == toggle)
                 {
                     success = true;
@@ -3115,8 +3133,7 @@ namespace ControlBoardTest
                         Thread.Sleep(100);
                     }
                 }
-                message.Report("SV7 count = " + toggle.ToString());
-
+                message.Report("SV7 count = " + count.ToString());
                 if (count == toggle)
                 {
                     success = true;
@@ -3161,11 +3178,11 @@ namespace ControlBoardTest
                     this.Vent.CMD_Write("set vcm sv 8 1");
                     Thread.Sleep(100);
 
-                    if (this.GPIO.GetBit(GPIO_Defs.EXHL_SV8.port, GPIO_Defs.EXHL_SV8.pin) == 1)
+                    if (this.GPIO.GetBit(GPIO_Defs.EXHL_SV8.port, GPIO_Defs.EXHL_SV8.pin) == 0)
                     {
                         this.Vent.CMD_Write("set vcm sv 8 0");
                         Thread.Sleep(100);
-                        if (this.GPIO.GetBit(GPIO_Defs.EXHL_SV8.port, GPIO_Defs.EXHL_SV8.pin) == 0)
+                        if (this.GPIO.GetBit(GPIO_Defs.EXHL_SV8.port, GPIO_Defs.EXHL_SV8.pin) == 1)
                         {
                             count++;
                         }
@@ -3176,8 +3193,7 @@ namespace ControlBoardTest
                         Thread.Sleep(100);
                     }
                 }
-                message.Report("SV8 count = " + toggle.ToString());
-
+                message.Report("SV8 count = " + count.ToString());
                 if (count == toggle)
                 {
                     success = true;
@@ -3285,7 +3301,7 @@ namespace ControlBoardTest
                         Thread.Sleep(100);
                     }
                 }
-                message.Report("SV5 count = " + toggle.ToString());
+                message.Report("SV5 count = " + count.ToString());
                 if(count == toggle)
                 {
                     success = true;
@@ -3428,16 +3444,16 @@ namespace ControlBoardTest
         private bool test_rotary_valve_1(IProgress<string> message, IProgress<string> log, TestData test)
         {
             bool success = false;
-
+            int DELAY = 1000;
 
             if (this.powered && this.Vent.Connected)
             {
                 var response = this.Vent.CMD_Write("set vcm rotaryv 1 0"); //Command UUT to home motor
-                Thread.Sleep(500);
+                Thread.Sleep(DELAY);
 
                 //Command UUT to move motor to pos 4 --> opposite of home position
                 response = this.Vent.CMD_Write("set vcm rotaryv 1 4");
-                Thread.Sleep(250);
+                Thread.Sleep(DELAY);
 
                 var measured = this.GPIO.GetBit(GPIO_Defs.MEAS_RV1_HOME.port, GPIO_Defs.MEAS_RV1_HOME.pin);
 
@@ -3448,8 +3464,9 @@ namespace ControlBoardTest
 
                    
                     response = this.Vent.CMD_Write("set vcm rotaryv 1 2");
+                    Thread.Sleep(DELAY);
                     response = this.Vent.CMD_Write("set vcm rotaryv 1 0");
-                    Thread.Sleep(250);
+                    Thread.Sleep(DELAY);
                     measured = this.GPIO.GetBit(GPIO_Defs.MEAS_RV1_HOME.port, GPIO_Defs.MEAS_RV1_HOME.pin);
                
 
@@ -3490,15 +3507,16 @@ namespace ControlBoardTest
         private bool test_rotary_valve_2(IProgress<string> message, IProgress<string> log, TestData test)
         {
             bool success = false;
-
+            int DELAY = 500;
 
             if (this.powered && this.Vent.Connected)
             {
 
                 //Command UUT to move motor to pos 4 --> Opposite of the home position
                 var response = this.Vent.CMD_Write("set vcm rotaryv 2 0");
+                Thread.Sleep(DELAY);
                 response = this.Vent.CMD_Write("set vcm rotaryv 2 2");
-                Thread.Sleep(250);
+                Thread.Sleep(DELAY);
 
                 var measured = this.GPIO.GetBit(GPIO_Defs.MEAS_RV2_HOME.port, GPIO_Defs.MEAS_RV2_HOME.pin);
 
@@ -3508,8 +3526,9 @@ namespace ControlBoardTest
 
 
                     response = this.Vent.CMD_Write("set vcm rotaryv 2 4");
+                    Thread.Sleep(DELAY);
                     response = this.Vent.CMD_Write("set vcm rotaryv 2 0");
-                    Thread.Sleep(250);
+                    Thread.Sleep(DELAY);
                     measured = this.GPIO.GetBit(GPIO_Defs.MEAS_RV2_HOME.port, GPIO_Defs.MEAS_RV2_HOME.pin);
                     if (measured == 1)
                     {
@@ -3548,14 +3567,14 @@ namespace ControlBoardTest
         private bool test_metering_valve(IProgress<string> message, IProgress<string> log, TestData test)
         {
             bool success = false;
-            
+            int DELAY = 500;
 
             if (this.powered && this.Vent.Connected)
             {
 
                 //Command UUT to read from device Exhalation board
                 var response = this.Vent.CMD_Write("set vcm metering pos 1000");
-
+                Thread.Sleep(DELAY);
 
                 var measured = this.GPIO.GetBit(GPIO_Defs.MEAS_MV_HOME.port, GPIO_Defs.MEAS_MV_HOME.pin);
 
@@ -3565,7 +3584,7 @@ namespace ControlBoardTest
 
 
                     response = this.Vent.CMD_Write("set vcm metering home");
-                    Thread.Sleep(250);
+                    Thread.Sleep(DELAY);
                     measured = this.GPIO.GetBit(GPIO_Defs.MEAS_MV_HOME.port, GPIO_Defs.MEAS_MV_HOME.pin);
                     if(measured == 0)
                     {
@@ -3660,13 +3679,17 @@ namespace ControlBoardTest
 
             if(this.powered && this.GPIO.Connected)
             {
+                this.NotifyUser("Please clear all alarms before proceeding");
 
                 //Measure CN309m.21 --> Alarm Silence LED Cathode --> Should be HIGH
                 var startVal = this.GPIO.GetBit(GPIO_Defs.MEAS_AS_LED.port, GPIO_Defs.MEAS_AS_LED.pin);
 
                 if (startVal == 1)
-                {   
+                {
                     //LED is currently off --> We may continue with test
+
+                    
+
 
                     //Toggle Alarm Silence Button
                     this.GPIO.SetBit(GPIO_Defs.AS_BTN_ON.port, GPIO_Defs.AS_BTN_ON.pin);
@@ -3735,6 +3758,33 @@ namespace ControlBoardTest
             }
 
             
+            return success;
+        }
+        private bool test_pb_led(IProgress<string> message, IProgress<string> log, TestData test)
+        {
+            bool success = false;
+            if (this.powered && this.GPIO.Connected)
+            {
+
+
+                var measured = this.GPIO.GetBit(GPIO_Defs.MEAS_ON_LED.port, GPIO_Defs.MEAS_ON_LED.pin);
+                if(measured == 0)
+                {
+                    success = true;
+                }
+
+                if (success)
+                {
+                    message.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                }
+                else
+                {
+                    message.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = "FAIL";
+                }
+            }
+
             return success;
         }
 
@@ -3879,9 +3929,9 @@ namespace ControlBoardTest
                     var powerArray = powerOutput.Split('\r');
 
 
-                    var BAT0_Data = powerArray[8].Trim().Substring(7).Split(',');
-                    var BAT1_Data = powerArray[6].Trim().Substring(8).Split(',');
-                    var BAT2_Data = powerArray[7].Trim().Substring(8).Split(',');
+                    var BAT0_Data = powerArray[9].Trim().Substring(7).Split(',');
+                    var BAT1_Data = powerArray[7].Trim().Substring(8).Split(',');
+                    var BAT2_Data = powerArray[8].Trim().Substring(8).Split(',');
 
                     //Get the ASOC or RSOC Values from the power array
                     if ((int.Parse(BAT0_Data[kIndex]) > lower) && (int.Parse(BAT0_Data[kIndex]) < upper))
@@ -3997,6 +4047,18 @@ namespace ControlBoardTest
                 Thread.Sleep(250);
                 this.GPIO.ClearBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
                 this.PPS.Set_Output(false);
+
+
+                if (success)
+                {
+                    message.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                }
+                else
+                {
+                    message.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = "FAIIL";
+                }
             }
 
             return success;
@@ -4035,6 +4097,17 @@ namespace ControlBoardTest
                 Thread.Sleep(250);
                 this.GPIO.ClearBit(GPIO_Defs.BAT1_EN.port, GPIO_Defs.BAT1_EN.pin);
                 this.PPS.Set_Output(false);
+
+                if (success)
+                {
+                    message.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                }
+                else
+                {
+                    message.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = "FAIIL";
+                }
             }
 
             return success;
@@ -4073,6 +4146,17 @@ namespace ControlBoardTest
                 Thread.Sleep(250);
                 this.GPIO.ClearBit(GPIO_Defs.BAT2_EN.port, GPIO_Defs.BAT2_EN.pin);
                 this.PPS.Set_Output(false);
+
+                if (success)
+                {
+                    message.Report(test.name + ": PASS");
+                    test.parameters["measured"] = "PASS";
+                }
+                else
+                {
+                    message.Report(test.name + ": FAIL");
+                    test.parameters["measured"] = "FAIIL";
+                }
             }
 
             return success;
@@ -4173,7 +4257,7 @@ namespace ControlBoardTest
 
 
                 //Set telemetry channels
-                int channelNum = this.Vent.TLMChannels["Sensor:VppoMonitor_F_mv"];
+                int channelNum = this.Vent.TLMChannels["Sensor:VchargeMonitor_F_mv"];
 
                 this.Vent.CMD_Write("set vcm telemetry " + channelNum + " 0 0 0");
 
@@ -4490,25 +4574,57 @@ namespace ControlBoardTest
             if(this.powered && this.Vent.Connected && this.GPIO.Connected && this.DMM.Connected)
             {
                 //Measure NC
+                this.NotifyUser("Please clear all alarms before continuing. If the alarm cannot be cleared, this test will fail");
+
 
                 this.GPIO.SetBit(GPIO_Defs.MEAS_NC_NC.port, GPIO_Defs.MEAS_NC_NC.pin);
-                Thread.Sleep(DMM_DELAY);
-                var measured = this.DMM.Get_Ohms();
-                message.Report("NC measured: " + measured.ToString());
+                Thread.Sleep(1000);
+                var nc_measured = this.DMM.Get_Ohms();
+                this.GPIO.ClearBit(GPIO_Defs.MEAS_NC_NC.port, GPIO_Defs.MEAS_NC_NC.pin);
+                this.GPIO.SetBit(GPIO_Defs.MEAS_NC_NO.port, GPIO_Defs.MEAS_NC_NO.pin);
+                Thread.Sleep(1000);
+                var no_measured = this.DMM.Get_Ohms();
 
-                if((measured > lower) && (measured < upper))
+                message.Report("No alarms:");
+                message.Report("NC measured: " + nc_measured.ToString());
+                message.Report("NO measured: " + no_measured.ToString());
+
+                this.GPIO.ClearBit(GPIO_Defs.MEAS_NC_NO.port, GPIO_Defs.MEAS_NC_NO.pin);
+
+
+                //Try again with alarms
+                //this.Vent.CMD_Write("restart");
+                this.GPIO.SetBit(GPIO_Defs.FAN_FAULT_EN.port, GPIO_Defs.FAN_FAULT_EN.pin);
+
+                string response;
+                string fanAlarmStatus;
+                int cnt = 0;
+                int timeout = 30000;
+                do
                 {
-                    this.GPIO.ClearBit(GPIO_Defs.MEAS_NC_NC.port, GPIO_Defs.MEAS_NC_NC.pin);
-                    this.GPIO.SetBit(GPIO_Defs.MEAS_NC_NO.port, GPIO_Defs.MEAS_NC_NO.pin);
+                    response = this.Vent.CMD_Write("get vcm alarm status");
+                    fanAlarmStatus = Regex.Match(response, @"(?<=kVentFanFailure\:)(\s+\w+)").Value;
+                    cnt += 500;
+                    Thread.Sleep(500); //Don't overload the DUT CPU and wait a bit, expected number of cycles is two through this while loop
+                } while (fanAlarmStatus.Contains("off") && (cnt < timeout));
 
-                    this.Vent.CMD_Write("restart");
-                    Thread.Sleep(DMM_DELAY);
-                    measured = this.DMM.Get_Ohms();
-                    message.Report("NO measured: " + measured.ToString());
-                    if ((measured > lower) && (measured < upper))
-                    {
-                        success = true;
-                    }
+                this.GPIO.SetBit(GPIO_Defs.MEAS_NC_NC.port, GPIO_Defs.MEAS_NC_NC.pin);
+                Thread.Sleep(1000);
+                var no_measured_alarm = this.DMM.Get_Ohms(); //Should be short
+                this.GPIO.ClearBit(GPIO_Defs.MEAS_NC_NC.port, GPIO_Defs.MEAS_NC_NC.pin);
+                this.GPIO.SetBit(GPIO_Defs.MEAS_NC_NO.port, GPIO_Defs.MEAS_NC_NO.pin);
+                Thread.Sleep(1000);
+                var nc_measured_alarm = this.DMM.Get_Ohms(); //Should be open
+
+
+                
+                message.Report("With alarms: ");
+                message.Report("NC measured: " + nc_measured_alarm.ToString());
+                message.Report("NO measured: " + no_measured_alarm.ToString());
+
+                if ((nc_measured > lower) && (nc_measured < upper) && (no_measured > 1000) && (no_measured_alarm > lower) && (no_measured_alarm < upper) && (nc_measured_alarm > 1000))
+                {
+                    success = true;                     
 
                 }
                 if (success)
@@ -4519,12 +4635,13 @@ namespace ControlBoardTest
                 else
                 {
                     message.Report(test.name + ": FAIL");
-                    test.parameters["measured"] = "PASS";
+                    test.parameters["measured"] = "FAIL";
                 }
 
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_NC_NC.port, GPIO_Defs.MEAS_NC_NC.pin);
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_NC_NO.port, GPIO_Defs.MEAS_NC_NO.pin);
-                this.Vent.CMD_Write("mfgmode");
+                this.GPIO.ClearBit(GPIO_Defs.FAN_FAULT_EN.port, GPIO_Defs.FAN_FAULT_EN.pin);
+                //this.Vent.CMD_Write("mfgmode");
             }
             return success;
 
@@ -4914,12 +5031,15 @@ namespace ControlBoardTest
                 {
                     message.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
+                    test.parameters["result"] = "PASS";
                 }
                 else
                 {
                     message.Report(test.name + ": FAIL");
                     test.parameters["measured"] = "PASS";
+                    test.parameters["result"] = "PASS";
                 }
+                
             }
 
             return success;
@@ -5346,7 +5466,31 @@ namespace ControlBoardTest
 
                 if ((revision_meas == revision))
                 {
-                    success = true;
+                    //success = true;
+
+                    //Perform the necessary blower.ctrl stuff now!
+                    int ok = 0;
+                    response = this.Vent.QNX_Write("/opt/vls/kvstore /fs/etfs/config/uim/datastore/deviceconfig update blower.ctrl 1");
+                    Thread.Sleep(500);
+                    response = this.Vent.QNX_Write("/opt/vls/kvstore /fs/etfs/config/uim/datastore/deviceconfig list");
+                    if (response.Contains("blower.ctrl\t1"))
+                    {
+                        ok++;
+                    }
+                    response = this.Vent.QNX_Write("/opt/vls/kvstore /fs/sd0/config/uim/datastore/deviceconfig update blower.ctrl 1");
+                    Thread.Sleep(500);
+                    response = this.Vent.QNX_Write("/opt/vls/kvstore /fs/sd0/config/uim/datastore/deviceconfig list");
+                    if (response.Contains("blower.ctrl\t1"))
+                    {
+                        ok++;
+                    }
+                    if(ok == 2)
+                    {
+                        success = true;
+                    }
+
+
+
                 }
 
 

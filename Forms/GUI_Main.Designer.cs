@@ -1,6 +1,6 @@
 ﻿namespace ControlBoardTest
 {
-    partial class ControlBoardTest
+    partial class MainForm
     {
         /// <summary>
         /// Required designer variable.
@@ -29,7 +29,7 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ControlBoardTest));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             this.MainPanel = new System.Windows.Forms.Panel();
             this.StatusPanel = new System.Windows.Forms.Panel();
             this.FailCountIndicator = new System.Windows.Forms.Button();
@@ -452,7 +452,7 @@
             this.Status_UserTag.Size = new System.Drawing.Size(45, 17);
             this.Status_UserTag.Text = "<user>";
             // 
-            // ControlBoardTest
+            // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -465,7 +465,7 @@
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Menu = this.MenuBar;
             this.MinimumSize = new System.Drawing.Size(500, 458);
-            this.Name = "ControlBoardTest";
+            this.Name = "MainForm";
             this.RightToLeft = System.Windows.Forms.RightToLeft.No;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Control Board Functional Test";

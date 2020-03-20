@@ -33,6 +33,8 @@ namespace ControlBoardTest
 
             if (File.Exists(DB_FILE))
             {
+                //File.Create(".\\log.txt");
+                File.WriteAllText(".\\logfile.txt", "Made it heree");
                 this.db_con = new SQLiteConnection("Data Source=.\\Database\\MFG_527.db;Version=3");
             }
             else
@@ -40,6 +42,7 @@ namespace ControlBoardTest
                 //Display error message, and close application
 
                 MessageBox.Show(ErrorMessage, "ERROR", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Application.Exit();
 
             }
             
