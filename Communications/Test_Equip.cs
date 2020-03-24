@@ -10,7 +10,7 @@ namespace ControlBoardTest
 {
     public class Test_Equip
     {
-        private readonly int QUERY_DELAY = 3000; //millisecond delay for SCPI queries
+        private readonly int QUERY_DELAY = 3010; //millisecond delay for SCPI queries
         string name;
         string comm;
         SerialPort Device;
@@ -204,7 +204,7 @@ namespace ControlBoardTest
         private string Query(string cmd, int query_delay = 0)
         {
             string response = "";
-            byte[] byte_response = new byte[128];
+            byte[] byte_response = new byte[256]; // TROGERS,  upped response buffer to accomodate errors.
             if(this.comm == "RS232")
             {   if(query_delay == 0)
                 {

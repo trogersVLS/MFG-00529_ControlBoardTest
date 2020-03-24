@@ -1744,7 +1744,7 @@ namespace ControlBoardTest
 
                 this.Vent.CMD_Write("set vcm sv 9 0");
                 //Connect the desired voltage node to the DMM
-                this.GPIO.SetBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
+                //this.GPIO.SetBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
                 this.GPIO.SetBit(GPIO_Defs.MEAS_O2_SV1N_EN.port, GPIO_Defs.MEAS_O2_SV1N_EN.pin);
                 Thread.Sleep(DMM_DELAY);
 
@@ -1810,7 +1810,7 @@ namespace ControlBoardTest
 
                 this.Vent.CMD_Write("set vcm sv 10 0");
                 //Connect the desired voltage node to the DMM
-                this.GPIO.SetBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
+                //this.GPIO.SetBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
                 this.GPIO.SetBit(GPIO_Defs.MEAS_O2_SV2N_EN.port, GPIO_Defs.MEAS_O2_SV2N_EN.pin);
                 Thread.Sleep(DMM_DELAY);
 

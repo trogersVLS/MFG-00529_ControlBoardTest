@@ -1,5 +1,5 @@
 
-![Ventec Life Systems](./FunctionalTest/Assets/vls_logo.png)
+![Ventec Life Systems](./Assets/vls_logo.png)
 # MFG-00529 Rev A: 
 ## Software Specification - Control Board Test Station
 

@@ -4,9 +4,9 @@
   <Installation Location="VLS" EQID="1010" MFG_CODE="V" DatabasePath =".\\Database\\MFG_527.db" DHCP_Enable="false" DHCP_Start="10.10.1.1" DHCP_End="10.10.1.100"/>
 
   <EquipAddr>
-    <DMM protocol="RS232" address="COM4" name="FLUKE" baudrate="115200" stopbits="1"/>
-    <PPS protocol="RS232" address="COM3" name="HEWLETT" baudrate="1200" stopbits="2"/>
-    <SOM protocol="RS232" address="COM18" name="SOM" baudrate="115200"/>
+    <DMM protocol="RS232" address="COM3" name="FLUKE" baudrate="115200" stopbits="1"/>
+    <PPS protocol="RS232" address="COM4" name="HEWLETT" baudrate="600" stopbits="2"/>
+    <SOM protocol="RS232" address="COM20" name="SOM" baudrate="115200"/>
     
   </EquipAddr>
 
@@ -76,8 +76,8 @@
     <test name="Sensor: Buttons" method_name="test_buttons" qual="true" port="FirstPortCH" pin="5"/>   
     <test name="Solenoid: SV9 Off" method_name="test_sv9_off" qual="false" upper="12.5" lower="10.5"/>
     <test name="Solenoid: SV10 Off" method_name="test_sv10_off" qual="false" upper="12.5" lower="10.5"/>
-    <test name="Solenoid: SV9 ON" method_name="test_sv9_on" qual="false" upper="0.3" lower="-0.3"/>
-    <test name="Solenoid: SV10 ON" method_name="test_sv9_on" qual="false" upper="0.3" lower="-0.3"/>
+    <test name="Solenoid: SV9 ON" method_name="test_sv9_on" qual="false" upper="10" lower="-0.3"/>
+    <test name="Solenoid: SV10 ON" method_name="test_sv9_on" qual="false" upper="10" lower="-0.3"/>
     <test name="Solenoid: Shut-Off Valve" method_name="test_sov" qual="true" on_state="low" off_state ="high"/>
     <test name="Signal: Exhl SV 6" method_name="test_exhl_sv6" qual="true" toggle="10" upper="10" lower="10"/>
     <test name="Signal: Exhl SV 7" method_name="test_exhl_sv7" qual="true" toggle="10" upper="10" lower="10"/>
