@@ -59,7 +59,7 @@ namespace GPIO
                 //this.SetPort(DigitalPortType.ThirdPortCH, 0);
 
 
-                //this.SetPort_Output(DigitalPortType.FourthPortA);
+                this.SetPort_Input(DigitalPortType.FourthPortA);
                 //this.SetPort_Output(DigitalPortType.FourthPortB);
                 //this.SetPort_Output(DigitalPortType.FourthPortCL);
                 //this.SetPort_Output(DigitalPortType.FourthPortCH);
@@ -77,6 +77,19 @@ namespace GPIO
 
         }
 
+        public void ClearAllButPower()
+        {
+            this.SetPort(DigitalPortType.FirstPortA, (ushort)(1<<(GPIO_Defs.AC_EN.pin)));
+            this.SetPort(DigitalPortType.FirstPortB, 0);
+            this.SetPort(DigitalPortType.FirstPortCL, 0);
+            this.SetPort(DigitalPortType.FirstPortCH, 0);
+
+            this.SetPort(DigitalPortType.SecondPortA, 0);
+            this.SetPort(DigitalPortType.SecondPortB, 0);
+            this.SetPort(DigitalPortType.SecondPortCL, 0);
+            this.SetPort(DigitalPortType.SecondPortCH, 0);
+        }
+
         public void ClearAll()
         {
             this.SetPort(DigitalPortType.FirstPortA, 0);
@@ -84,11 +97,20 @@ namespace GPIO
             this.SetPort(DigitalPortType.FirstPortCL, 0);
             this.SetPort(DigitalPortType.FirstPortCH, 0);
 
-
             this.SetPort(DigitalPortType.SecondPortA, 0);
             this.SetPort(DigitalPortType.SecondPortB, 0);
             this.SetPort(DigitalPortType.SecondPortCL, 0);
             this.SetPort(DigitalPortType.SecondPortCH, 0);
+
+            this.SetPort(DigitalPortType.ThirdPortA, 0);
+            this.SetPort(DigitalPortType.ThirdPortB, 0);
+            this.SetPort(DigitalPortType.ThirdPortCL, 0);
+            this.SetPort(DigitalPortType.ThirdPortCH, 0);
+
+            this.SetPort(DigitalPortType.FourthPortA, 0);
+            this.SetPort(DigitalPortType.FourthPortB, 0);
+            this.SetPort(DigitalPortType.FourthPortCL, 0);
+            this.SetPort(DigitalPortType.FourthPortCH, 0);
         }
 
         public bool SetBit(DigitalPortType port, int bit)

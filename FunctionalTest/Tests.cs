@@ -3474,9 +3474,29 @@ namespace ControlBoardTest
                     {
                         success = true;
                     }
-
                 }
+                Thread.Sleep(1000);
+                if (!success)
+                {
+                    if (measured == 0)
+                    {
+                        //Starting off good, the home flag is not set. Now move 
 
+
+
+                        response = this.Vent.CMD_Write("set vcm rotaryv 1 2");
+                        Thread.Sleep(DELAY);
+                        response = this.Vent.CMD_Write("set vcm rotaryv 1 0");
+                        Thread.Sleep(DELAY);
+                        measured = this.GPIO.GetBit(GPIO_Defs.MEAS_RV1_HOME.port, GPIO_Defs.MEAS_RV1_HOME.pin);
+
+
+                        if (measured == 1)
+                        {
+                            success = true;
+                        }
+                    }
+                }
 
                 if (success)
                 {

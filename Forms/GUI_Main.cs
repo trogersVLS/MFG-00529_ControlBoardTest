@@ -110,10 +110,10 @@ namespace ControlBoardTest
         {
 
             //Show login form
-            var login = new LoginForm(this.DB_FILEPATH);
+            //var login = new LoginForm(this.DB_FILEPATH);
 
-            this.USER_ID = login.ShowForm();
-            login.Dispose();
+            this.USER_ID = new USER("User", true);
+            //login.Dispose();
 
             if (this.USER_ID == null)
             {   
@@ -457,7 +457,7 @@ namespace ControlBoardTest
             var param = new object[] { message, log, test};
 
             try
-            {   
+            {
                 
                 message.Report("Starting test: " + test.name + "\n");
                 //log.Report("Starting test: " + test.method_name);
@@ -480,6 +480,8 @@ namespace ControlBoardTest
                 MessageBox.Show(errormessage, "Exception caught", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
             }
+            this.GPIO.ClearAllButPower();
+            message.Report("Clear GPIO ...");
             test.SetResult(success);
 
             if (success)
@@ -569,6 +571,7 @@ namespace ControlBoardTest
                         UpdateStatus("pass");
                         this.RESULT = "PASS";
 
+
                         
                     }
                     else
@@ -577,6 +580,8 @@ namespace ControlBoardTest
                         UpdateStatus("fail");
                     }
                     MessageBox.Show(this.RESULT, "RESULTS");
+                    
+                    Button_PowerUp_Click(null, null);
                     LogTestResult();
                 }
             }
@@ -1211,6 +1216,13 @@ namespace ControlBoardTest
                 this.Output_Window.AppendText("Measured: " + test.parameters["measured"] + ", ");
                 this.Output_Window.AppendText("Result: " + test.parameters["result"] + "\n\r");
             }
+
+        }
+
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            this.GPIO.ClearBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+            this.GPIO.ClearAll();
 
         }
     }
