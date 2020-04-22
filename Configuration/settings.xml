@@ -38,7 +38,7 @@
     <test name="Motor: High Speed Fan" method_name="test_high_fan" qual="false" upper="12.5" lower="10.5" frequency="175" tolerance="15"/>
     <test name="Motor: Cough Valve"  method_name="test_cough_valve" qual="true" toggle="10"/>
     <test name="Alarms: Nurse Call" method_name="test_nurse_call" qual="true" upper="5" lower="0"/>
-    <test name="Alarm: Speaker" method_name="test_speaker" qual="true"/>
+    <!--<test name="Alarm: Speaker" method_name="test_speaker" qual="true"/>-->
     <test name="Alarms: Piezo" method_name="test_piezo" qual="true"/>
     <test name="Sensor: Microphone" method_name="test_microphone" qual="true"/>
     <test name="LED: Alarm Silence"  method_name="test_as_led" qual="true" timeout="60" fs="100" time="10"/>
@@ -98,7 +98,6 @@
     <test name="Power: VPPO Monitor" method_name="test_vppo_monitor" qual="true" samples="100"/>
     <test name="Power: XDC Diode" method_name="test_extdc_diode" qual="true" tolerance="50" upper="26" lower="22" samples="100"/>
     <test name="Power: CPLD Supply" method_name="test_cpld_diode" qual="true"/>
-    <test name="Power: Supercap" method_name="test_supercap" qual="false" upper="5.3" lower="4.5"/>
     <test name="Battery: Temp Test" method_name="test_batt_temp" qual="true" index="6" upper="3500" lower="2832"/>
     <test name="Battery: Comms Test" method_name="test_batt_comms" qual="true" index="3"/>
     <test name="Battery: IB Diode" method_name="test_batt0_diode" qual="true" tolerance="50" upper="18" lower="15" samples="100"/>
@@ -111,11 +110,8 @@
     <test name="Battery: XB2 Source" method_name="test_batt2_source" qual="true"/>
     <test name="Battery: XB2 Charge" method_name="test_batt2_charge" qual="false" delay="1000" timeout="30" upper="1.8" lower="1.2"/> 
     <test name="Alarm: System Fault 9" method_name="test_sysfault9" qual="true" timeout="15000"/>
+    <test name="Power: Supercap" method_name="test_supercap" qual="false" upper="5.3" lower="4.5"/>
 
-
-    
-    
-    
   </tests>
 
 </Settings>

@@ -28,7 +28,7 @@ namespace ControlBoardTest
     partial class FunctionalTest
     {
 
-        const int DMM_DELAY = 600;
+        const int DMM_DELAY = 100;
         const int FREQ_DELAY = 1000;
 
         private bool dummy_test(IProgress<string> message = null, IProgress<string> log = null, object test = null)

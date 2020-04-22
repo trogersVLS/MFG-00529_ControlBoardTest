@@ -216,7 +216,7 @@ namespace ControlBoardTest
 
                     //this.Device.Write("SYST:REM\n\r");
                     //this.Device.Write("*RST\n\r");
-                    Thread.Sleep(1000);
+                    Thread.Sleep(200); // TROGERS - Brought down to 200 from 1000
                     this.Device.Write(cmd +"\n");
                     Thread.Sleep(this.QUERY_DELAY);
                     int num = this.Device.Read(byte_response, 0, byte_response.Length);
