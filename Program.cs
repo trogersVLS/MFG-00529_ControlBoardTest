@@ -28,7 +28,7 @@ namespace ControlBoardTest
         [STAThread]
         static void Main()
         {
-            int ms = 500;
+            //int ms = 500;
             GUIConsoleWriter log_console = new GUIConsoleWriter();
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
@@ -95,7 +95,7 @@ namespace ControlBoardTest
         }
         private static void TestPPS()
         {
-            Test_Equip pps = new Test_Equip("HEWLETT", "RS232", 1200, 2, "COM3");
+            Test_Equip pps = new Test_Equip("HEWLETT", "RS232", 1200, 2, "COM7");
             pps.Connect();
 
             pps.PPS_Init();
@@ -137,10 +137,10 @@ namespace ControlBoardTest
 
         private static void test_cpld_rev(VLS_Tlm vent)
         {
-            bool success = false;
+           // bool success = false;
             string response;
-            string revision;
-            string revision_meas;
+           // string revision;
+            //string revision_meas;
 
         
            
@@ -160,7 +160,7 @@ namespace ControlBoardTest
 
             test.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
 
-            int x = 9;
+            //int x = 9;
             test.ClearBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
 
             return;
@@ -248,22 +248,6 @@ namespace ControlBoardTest
                 Thread.Sleep(ms);
                 test.ClearBit(DigitalPortType.SecondPortCH, i);
             }
-        }
-        private static void TestUSBSwitch(int ms, int toggles)
-        {
-            MccDaq_GPIO test = new MccDaq_GPIO();
-
-            test.SetPort_Output(GPIO_Defs.USB_TGL.port);
-            
-
-            for (int i = 0; i < toggles; i++)
-            {
-                test.SetBit(GPIO_Defs.USB_TGL.port, GPIO_Defs.USB_TGL.pin);
-                Thread.Sleep(ms);
-                test.ClearBit(GPIO_Defs.USB_TGL.port, GPIO_Defs.USB_TGL.pin);
-                Thread.Sleep(ms);
-            }
-           
         }
     }
 

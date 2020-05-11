@@ -94,27 +94,20 @@
     <Compile Include="Communications\GPIO_Defs.cs" />
     <Compile Include="Communications\Programmer.cs" />
     <Compile Include="Communications\VOCSN_Serial.cs" />
-    <Compile Include="Forms\AddUserForm.cs">
+    <Compile Include="Forms\final_result.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Forms\AddUserForm.Designer.cs">
-      <DependentUpon>AddUserForm.cs</DependentUpon>
+    <Compile Include="Forms\final_result.Designer.cs">
+      <DependentUpon>final_result.cs</DependentUpon>
     </Compile>
-    <Compile Include="Forms\ChangePassForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Forms\ChangePassForm.Designer.cs">
-      <DependentUpon>ChangePassForm.cs</DependentUpon>
+    <Compile Include="Forms\final_result1.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>final_result.resx</DependentUpon>
     </Compile>
     <Compile Include="FunctionalTest\Tests.cs" />
     <Compile Include="Communications\GPIO.cs" />
     <Compile Include="Communications\Test_Equip.cs" />
-    <Compile Include="Forms\LoginForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Forms\LoginForm.Designer.cs">
-      <DependentUpon>LoginForm.cs</DependentUpon>
-    </Compile>
     <Compile Include="Communications\VOCSN_Telnet.cs" />
     <Compile Include="MccDaqFiles\Digital.cs" />
     <Compile Include="MccDaqFiles\ErrorDefs.cs" />
@@ -127,11 +120,10 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <EmbeddedResource Include="Forms\AddUserForm.resx">
-      <DependentUpon>AddUserForm.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Forms\ChangePassForm.resx">
-      <DependentUpon>ChangePassForm.cs</DependentUpon>
+    <EmbeddedResource Include="Forms\final_result.resx">
+      <DependentUpon>final_result.cs</DependentUpon>
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>final_result1.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\GUI_Main.resx">
       <DependentUpon>GUI_Main.cs</DependentUpon>
@@ -145,9 +137,6 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <EmbeddedResource Include="Forms\LoginForm.resx">
-      <DependentUpon>LoginForm.cs</DependentUpon>
-    </EmbeddedResource>
     <None Include="packages.config" />
     <None Include="ProgramLoad\CPLDLoad\%24%24FlashPro_09088.L%24%24" />
     <None Include="ProgramLoad\CPLDLoad\cpld_erase.tcl" />
@@ -5336,8 +5325,17 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Assets\FAIL.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\PASS.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Assets\vlslogo.ico" />
-    <Content Include="Configuration\settings.xml" />
+    <Content Include="Configuration\settings.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <SubType>Designer</SubType>
+    </Content>
     <Content Include="Configuration\TextFile1.txt" />
     <Content Include="ProgramLoad\HerculesErase\ccs_base\common\bin\CCReg.dll" />
     <Content Include="ProgramLoad\HerculesErase\ccs_base\common\bin\fsutil.dll" />

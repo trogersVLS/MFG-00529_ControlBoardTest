@@ -60,11 +60,11 @@ namespace GPIO
 
 
                 this.SetPort_Input(DigitalPortType.FourthPortA);
-                //this.SetPort_Output(DigitalPortType.FourthPortB);
+                this.SetPort_Input(DigitalPortType.FourthPortB);
                 //this.SetPort_Output(DigitalPortType.FourthPortCL);
                 //this.SetPort_Output(DigitalPortType.FourthPortCH);
             }
-            catch (Exception e)
+            catch (Exception )
             {
                 MessageBox.Show("GPIO is not connected\nPlease connect the GPIO module and restart the application", "GPIO ERROR", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
@@ -73,8 +73,8 @@ namespace GPIO
         }
         ~MccDaq_GPIO()
         {
-            ClearAll();
-
+            //ClearAll();
+            this.gpio_board = null;
         }
 
         public void ClearAllButPower()
@@ -123,9 +123,6 @@ namespace GPIO
                 var newVal = (short)(currVal | (1 << bit));
                 this.gpio_board.DOut(port, newVal);
                 success = true;
-
-
-                
             }
             catch(Exception e)
             {

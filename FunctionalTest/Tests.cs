@@ -17,6 +17,7 @@ using System.Diagnostics;
 using MccDaq;
 using GPIO;
 using System.Text.RegularExpressions;
+using System.Windows.Forms;
 
 namespace ControlBoardTest
 {
@@ -28,7 +29,8 @@ namespace ControlBoardTest
     partial class FunctionalTest
     {
 
-        const int DMM_DELAY = 100;
+        const int DMM_DELAY = 100;     //this is for when you close the relay 
+        const int RELAY_DELAY = 10;    //this is for when you release the relay.  
         const int FREQ_DELAY = 1000;
 
         private bool dummy_test(IProgress<string> message = null, IProgress<string> log = null, object test = null)
@@ -636,12 +638,19 @@ namespace ControlBoardTest
                     message.Report("Device did not power up correctly");
                 }
             }
-            else
-            {
-                success = false;
-            }
+
+            //else    //we can never get here, so I have removed it.   DLR
+              //  success = false;
 
          
+            return success;
+        }
+
+        // simulate successful power up
+        public bool test_power_on()
+        {
+            bool success = true;
+            Thread.Sleep(3000);
             return success;
         }
 
@@ -660,49 +669,23 @@ namespace ControlBoardTest
         public bool test_power_on(IProgress<string> message, IProgress<string> log, TestData test)
         {
             bool success = false;
-            
+
             //Determine if the devices are properly connected
             if (this.GPIO.Connected && this.SOM.Connected)
             {
-                string output;
                 int timeout;
+                string output;
 
                 test.parameters.TryGetValue("timeout", out output);
                 timeout = int.Parse(output, System.Globalization.NumberStyles.Integer);
 
-                //Enables the AC power supply
-                this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
-
-                //Toggles the power button in case the device does not begin booting right away (device was successfully powered down by the power button prior to testing).
-                this.GPIO.SetBit(GPIO_Defs.PB_BTN_ON.port, GPIO_Defs.PB_BTN_ON.pin);
-                Thread.Sleep(500);
-                this.GPIO.ClearBit(GPIO_Defs.PB_BTN_ON.port,GPIO_Defs.PB_BTN_ON.pin);
-
-                message.Report("Powering up ... ");
-
-                if (this.SOM.ReadUntil("screen driver", out output, 20000))
-                {   
-                    //May need to calibrate touchscreen, which requires user interaction
-                    if(!this.SOM.ReadUntil("calib-touch", out output, 5000))
-                    {
-                        //Device needs touchscreen calibration
-                        do
-                        {
-                            this.PromptUser_YesNo("Please perform the touch screen calibration\n\nThen press \"OK\"", "Touchscreen Calibration");
-                        } while (!this.SOM.ReadUntil("calib-touch", out output, 5000));
-                    }
-                    if (this.SOM.ReadUntil("Storyboard", out output, 50000))
-                    {
-
-                        this.powered = true;
-                        message.Report("Successfully powered up");
-                        success = true;
-
-
-                    }
+                success = Power_On(message);
+                if (success)
+                {
+                    this.powered = true;
+                    message.Report("Successfully powered up");
                 }
-
-                if (!success)
+                else
                 {
                     //this.GPIO.ClearBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
                 }
@@ -712,21 +695,50 @@ namespace ControlBoardTest
                 if (!this.SOM.Connected)
                 {
                     message.Report("SOM serial port is not connected");
-                    
                 }
-                
+
                 if (!this.GPIO.Connected)
                 {
                     message.Report("GPIO device is not connected");
-                   
                 }
             }
-
-            
-
            
             return success;
         }
+
+        bool Power_On(IProgress<string> message)
+        {
+            bool success = false;
+            //Enables the AC power supply
+            this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+
+            //Toggles the power button in case the device does not begin booting right away (device was successfully powered down by the power button prior to testing).
+            this.GPIO.SetBit(GPIO_Defs.PB_BTN_ON.port, GPIO_Defs.PB_BTN_ON.pin);
+            Thread.Sleep(500);
+            this.GPIO.ClearBit(GPIO_Defs.PB_BTN_ON.port, GPIO_Defs.PB_BTN_ON.pin);
+
+            message.Report("Powering up ... ");
+
+            string output;
+            if (this.SOM.ReadUntil("screen driver", out output, 20000))
+            {
+                //May need to calibrate touchscreen, which requires user interaction
+                if (!this.SOM.ReadUntil("calib-touch", out output, 5000))
+                {
+                    //Device needs touchscreen calibration
+                    do
+                    {
+                        this.PromptUser_YesNo("Please perform the touch screen calibration\n\nThen press \"OK\"", "Touchscreen Calibration");
+                    } while (!this.SOM.ReadUntil("calib-touch", out output, 5000));
+                }
+                if (this.SOM.ReadUntil("Storyboard", out output, 50000))
+                {
+                    success = true;
+                }
+            }
+            return success;
+        }
+
         public bool test_power_on(IProgress<string> message, IProgress<string> log, int timeout)
         {
             bool success = false;
@@ -879,34 +891,10 @@ namespace ControlBoardTest
         private bool test_lcd(IProgress<string> message, IProgress<string> log, TestData test)
         {
             //Assumptions - Unit has been powered on
-            bool result;
-            string measured;
             bool success = false;
-            
-
-            //Clear the queue
-
 
             //Blocking until user input is given --> Possible options are: "yes", or "no" 
-            //message.Report("Is the LCD screen clear?");
-
-            result = this.PromptUser_YesNo("Is the LCD screen clear?", test.name);
-
-            if (result)
-            {
-                //message.Report("Test Passed!");
-                measured = "pass";
-                success = true;
-
-            }
-            else
-            {
-
-                measured = this.PromptUser("Describe the failure", test.name);
-
-                //message.Report("Test Failed");
-                success = false;
-            }
+            success = this.PromptUser_YesNo("Are LCD colors correct and display free of defects?", test.name);
 
             //Fill in measurement parameter
             if (success)
@@ -950,12 +938,12 @@ namespace ControlBoardTest
 
                 //Connect the desired voltage node to the DMM
                 this.GPIO.SetBit(GPIO_Defs.MEAS_3V3_HOT_EN.port, GPIO_Defs.MEAS_3V3_HOT_EN.pin);
-                Thread.Sleep(DMM_DELAY);
-
+                
                 //Measure the voltage and disconnect DMM
+                Thread.Sleep(DMM_DELAY);
                 float measured = this.DMM.Get_Volts();
-                this.GPIO.ClearBit(GPIO_Defs.MEAS_3V3_HOT_EN.port, GPIO_Defs.MEAS_3V3_HOT_EN.pin);
 
+                this.GPIO.ClearBit(GPIO_Defs.MEAS_3V3_HOT_EN.port, GPIO_Defs.MEAS_3V3_HOT_EN.pin);
 
                 message.Report("Measured: " + measured.ToString() + " V\n");
 
@@ -1004,19 +992,17 @@ namespace ControlBoardTest
 
             if (this.powered && this.GPIO.Connected && this.Vent.Connected)
             {
-
                 upper = float.Parse(test.parameters["upper"], System.Globalization.NumberStyles.Float);
                 lower = float.Parse(test.parameters["lower"], System.Globalization.NumberStyles.Float);
 
-
                 //Connect the desired voltage node to the DMM
                 this.GPIO.SetBit(GPIO_Defs.MEAS_5V0_HOT_EN.port, GPIO_Defs.MEAS_5V0_HOT_EN.pin);
-                Thread.Sleep(DMM_DELAY);
 
                 //Measure the voltage and disconnect DMM
+                Thread.Sleep(DMM_DELAY);
                 float measured = this.DMM.Get_Volts();
-                this.GPIO.ClearBit(GPIO_Defs.MEAS_5V0_HOT_EN.port, GPIO_Defs.MEAS_5V0_HOT_EN.pin);
 
+                this.GPIO.ClearBit(GPIO_Defs.MEAS_5V0_HOT_EN.port, GPIO_Defs.MEAS_5V0_HOT_EN.pin);
 
                 message.Report("Measured: " + measured.ToString() + " V\n");
 
@@ -1062,19 +1048,17 @@ namespace ControlBoardTest
 
             if (this.powered && this.GPIO.Connected && this.Vent.Connected)
             {
-
                 upper = float.Parse(test.parameters["upper"], System.Globalization.NumberStyles.Float);
                 lower = float.Parse(test.parameters["lower"], System.Globalization.NumberStyles.Float);
 
-
                 //Connect the desired voltage node to the DMM
                 this.GPIO.SetBit(GPIO_Defs.MEAS_5V3_EN.port, GPIO_Defs.MEAS_5V3_EN.pin);
-                Thread.Sleep(DMM_DELAY);
-
+                
                 //Measure the voltage and disconnect DMM
+                Thread.Sleep(DMM_DELAY);
                 float measured = this.DMM.Get_Volts();
-                this.GPIO.ClearBit(GPIO_Defs.MEAS_5V3_EN.port, GPIO_Defs.MEAS_5V3_EN.pin);
 
+                this.GPIO.ClearBit(GPIO_Defs.MEAS_5V3_EN.port, GPIO_Defs.MEAS_5V3_EN.pin);
 
                 message.Report("Measured: " + measured.ToString() + " V\n");
 
@@ -1120,19 +1104,17 @@ namespace ControlBoardTest
 
             if (this.powered && this.GPIO.Connected && this.Vent.Connected)
             {
-
                 upper = float.Parse(test.parameters["upper"], System.Globalization.NumberStyles.Float);
                 lower = float.Parse(test.parameters["lower"], System.Globalization.NumberStyles.Float);
 
-
                 //Connect the desired voltage node to the DMM
                 this.GPIO.SetBit(GPIO_Defs.MEAS_12V0_EN.port, GPIO_Defs.MEAS_12V0_EN.pin);
-                Thread.Sleep(DMM_DELAY);
 
                 //Measure the voltage and disconnect DMM
+                Thread.Sleep(DMM_DELAY);
                 float measured = this.DMM.Get_Volts();
-                this.GPIO.ClearBit(GPIO_Defs.MEAS_12V0_EN.port, GPIO_Defs.MEAS_12V0_EN.pin);
 
+                this.GPIO.ClearBit(GPIO_Defs.MEAS_12V0_EN.port, GPIO_Defs.MEAS_12V0_EN.pin);
 
                 message.Report("Measured: " + measured.ToString() + " V\n");
 
@@ -1178,19 +1160,17 @@ namespace ControlBoardTest
 
             if (this.powered && this.GPIO.Connected && this.Vent.Connected)
             {
-
                 upper = float.Parse(test.parameters["upper"], System.Globalization.NumberStyles.Float);
                 lower = float.Parse(test.parameters["lower"], System.Globalization.NumberStyles.Float);
 
-
                 //Connect the desired voltage node to the DMM
-                this.GPIO.SetBit(GPIO_Defs.MEAS_3V3_EN.port, GPIO_Defs.MEAS_3V3_EN.pin);
-                Thread.Sleep(DMM_DELAY);
+                this.GPIO.SetBit(GPIO_Defs.MEAS_3V3_EN.port, GPIO_Defs.MEAS_3V3_EN.pin);                
 
                 //Measure the voltage and disconnect DMM
+                Thread.Sleep(DMM_DELAY);
                 float measured = this.DMM.Get_Volts();
-                this.GPIO.ClearBit(GPIO_Defs.MEAS_3V3_EN.port, GPIO_Defs.MEAS_3V3_EN.pin);
 
+                this.GPIO.ClearBit(GPIO_Defs.MEAS_3V3_EN.port, GPIO_Defs.MEAS_3V3_EN.pin);
 
                 message.Report("Measured: " + measured.ToString() + " V\n");
 
@@ -1236,19 +1216,17 @@ namespace ControlBoardTest
 
             if (this.powered && this.GPIO.Connected && this.Vent.Connected)
             {
-
                 upper = float.Parse(test.parameters["upper"], System.Globalization.NumberStyles.Float);
                 lower = float.Parse(test.parameters["lower"], System.Globalization.NumberStyles.Float);
 
-
                 //Connect the desired voltage node to the DMM
-                this.GPIO.SetBit(GPIO_Defs.MEAS_1V2_EN.port, GPIO_Defs.MEAS_1V2_EN.pin);
-                Thread.Sleep(DMM_DELAY);
+                this.GPIO.SetBit(GPIO_Defs.MEAS_1V2_EN.port, GPIO_Defs.MEAS_1V2_EN.pin);                              
 
                 //Measure the voltage and disconnect DMM
+                Thread.Sleep(DMM_DELAY);
                 float measured = this.DMM.Get_Volts();
-                this.GPIO.ClearBit(GPIO_Defs.MEAS_1V2_EN.port, GPIO_Defs.MEAS_1V2_EN.pin);
 
+                this.GPIO.ClearBit(GPIO_Defs.MEAS_1V2_EN.port, GPIO_Defs.MEAS_1V2_EN.pin);
 
                 message.Report("Measured: " + measured.ToString() + " V\n");
 
@@ -1294,19 +1272,17 @@ namespace ControlBoardTest
 
             if (this.powered && this.GPIO.Connected && this.Vent.Connected)
             {
-
                 upper = float.Parse(test.parameters["upper"], System.Globalization.NumberStyles.Float);
                 lower = float.Parse(test.parameters["lower"], System.Globalization.NumberStyles.Float);
 
-
                 //Connect the desired voltage node to the DMM
                 this.GPIO.SetBit(GPIO_Defs.MEAS_VREF_EN.port, GPIO_Defs.MEAS_VREF_EN.pin);
-                Thread.Sleep(DMM_DELAY);
-
+               
                 //Measure the voltage and disconnect DMM
+                Thread.Sleep(DMM_DELAY);
                 float measured = this.DMM.Get_Volts();
-                this.GPIO.ClearBit(GPIO_Defs.MEAS_VREF_EN.port, GPIO_Defs.MEAS_VREF_EN.pin);
 
+                this.GPIO.ClearBit(GPIO_Defs.MEAS_VREF_EN.port, GPIO_Defs.MEAS_VREF_EN.pin);
 
                 message.Report("Measured: " + measured.ToString() + " V\n");
 
@@ -1352,19 +1328,17 @@ namespace ControlBoardTest
 
             if (this.powered && this.GPIO.Connected && this.Vent.Connected)
             {
-
                 upper = float.Parse(test.parameters["upper"], System.Globalization.NumberStyles.Float);
                 lower = float.Parse(test.parameters["lower"], System.Globalization.NumberStyles.Float);
-
-
+                
                 //Connect the desired voltage node to the DMM
                 this.GPIO.SetBit(GPIO_Defs.MEAS_3V3A_EN.port, GPIO_Defs.MEAS_3V3A_EN.pin);
-                Thread.Sleep(DMM_DELAY);
-
+                
                 //Measure the voltage and disconnect DMM
+                Thread.Sleep(DMM_DELAY);
                 float measured = this.DMM.Get_Volts();
-                this.GPIO.ClearBit(GPIO_Defs.MEAS_3V3A_EN.port, GPIO_Defs.MEAS_3V3A_EN.pin);
 
+                this.GPIO.ClearBit(GPIO_Defs.MEAS_3V3A_EN.port, GPIO_Defs.MEAS_3V3A_EN.pin);
 
                 message.Report("Measured: " + measured.ToString() + " V\n");
 
@@ -1410,19 +1384,17 @@ namespace ControlBoardTest
 
             if (this.powered && this.GPIO.Connected && this.Vent.Connected)
             {
-
                 upper = float.Parse(test.parameters["upper"], System.Globalization.NumberStyles.Float);
                 lower = float.Parse(test.parameters["lower"], System.Globalization.NumberStyles.Float);
-
-
+                
                 //Connect the desired voltage node to the DMM
                 this.GPIO.SetBit(GPIO_Defs.MEAS_30V_EN.port, GPIO_Defs.MEAS_30V_EN.pin);
-                Thread.Sleep(DMM_DELAY);
-
+                
                 //Measure the voltage and disconnect DMM
+                Thread.Sleep(DMM_DELAY);
                 float measured = this.DMM.Get_Volts();
-                this.GPIO.ClearBit(GPIO_Defs.MEAS_30V_EN.port, GPIO_Defs.MEAS_30V_EN.pin);
 
+                this.GPIO.ClearBit(GPIO_Defs.MEAS_30V_EN.port, GPIO_Defs.MEAS_30V_EN.pin);
 
                 message.Report("Measured: " + measured.ToString() + " V\n");
 
@@ -1467,20 +1439,18 @@ namespace ControlBoardTest
             float lower = 0;
 
             if (this.powered && this.GPIO.Connected && this.Vent.Connected)
-            {
-                
+            {                
                 upper = float.Parse(test.parameters["upper"], System.Globalization.NumberStyles.Float);
                 lower = float.Parse(test.parameters["lower"], System.Globalization.NumberStyles.Float);
                 
-
                 //Connect the desired voltage node to the DMM
                 this.GPIO.SetBit(GPIO_Defs.MEAS_36V_EN.port, GPIO_Defs.MEAS_36V_EN.pin);
-                Thread.Sleep(DMM_DELAY);
-
+                
                 //Measure the voltage and disconnect DMM
+                Thread.Sleep(DMM_DELAY);
                 float measured = this.DMM.Get_Volts();
-                this.GPIO.ClearBit(GPIO_Defs.MEAS_36V_EN.port, GPIO_Defs.MEAS_36V_EN.pin);
 
+                this.GPIO.ClearBit(GPIO_Defs.MEAS_36V_EN.port, GPIO_Defs.MEAS_36V_EN.pin);
 
                 message.Report("Measured: " + measured.ToString() + " V\n");
 
@@ -1539,16 +1509,13 @@ namespace ControlBoardTest
 
                 ventOutput = this.Vent.CMD_Write("set vcm testmgr speed " + speed.ToString());
 
-                Thread.Sleep(500);
-                
-
-
                 //Connect the desired voltage node to the DMM
                 this.GPIO.SetBit(GPIO_Defs.MEAS_FREQ_BLOWER.port, GPIO_Defs.MEAS_FREQ_BLOWER.pin);
-                Thread.Sleep(1000);
-
-                //Measure the voltage
+                
+                //Measure the frequency with the DMM.  It can do this.  DLR
+                Thread.Sleep(DMM_DELAY);
                 measured = this.DMM.Get_Freq() * 60; //Convert to RPM
+
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_FREQ_BLOWER.port, GPIO_Defs.MEAS_FREQ_BLOWER.pin);
 
                 this.Vent.CMD_Write("set vcm testmgr stop");
@@ -1614,16 +1581,14 @@ namespace ControlBoardTest
 
                 ventOutput = this.Vent.CMD_Write("set vcm testmgr o2speed " + speed.ToString());
 
-                Thread.Sleep(500);
                 //Measure value
-
-
                 //Connect the desired voltage node to the DMM
                 this.GPIO.SetBit(GPIO_Defs.MEAS_FREQ_PUMP.port, GPIO_Defs.MEAS_FREQ_PUMP.pin);
-                Thread.Sleep(DMM_DELAY);
-
+                
                 //Measure the voltage
+                Thread.Sleep(DMM_DELAY);
                 measured = this.DMM.Get_Freq(); //Convert to RPM
+
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_FREQ_PUMP.port, GPIO_Defs.MEAS_FREQ_PUMP.pin);
 
                 measured = measured * 6;
@@ -1668,16 +1633,11 @@ namespace ControlBoardTest
          ******************************************************************************************************************************/
         private bool test_sov(IProgress<string> message, IProgress<string> log, TestData test)
         {
-            bool success = false;
-            
-           
+            bool success = false;       
             string output;
-
             int measured;
 
-            test.parameters.TryGetValue("on_state", out output);
-
-            
+            test.parameters.TryGetValue("on_state", out output);            
 
             this.Vent.CMD_Write("set vcm sv 11 1");
 
@@ -1746,12 +1706,14 @@ namespace ControlBoardTest
                 //Connect the desired voltage node to the DMM
                 //this.GPIO.SetBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
                 this.GPIO.SetBit(GPIO_Defs.MEAS_O2_SV1N_EN.port, GPIO_Defs.MEAS_O2_SV1N_EN.pin);
-                Thread.Sleep(DMM_DELAY);
-
+                
                 //Measure the voltage
+                Thread.Sleep(DMM_DELAY);
                 measured = this.DMM.Get_Volts();
+
                 this.GPIO.ClearBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_O2_SV1N_EN.port, GPIO_Defs.MEAS_O2_SV1N_EN.pin);
+
                 this.Vent.CMD_Write("set vcm sv 9 0");
 
 
@@ -1812,12 +1774,14 @@ namespace ControlBoardTest
                 //Connect the desired voltage node to the DMM
                 //this.GPIO.SetBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
                 this.GPIO.SetBit(GPIO_Defs.MEAS_O2_SV2N_EN.port, GPIO_Defs.MEAS_O2_SV2N_EN.pin);
-                Thread.Sleep(DMM_DELAY);
-
+                
                 //Measure the voltage
+                Thread.Sleep(DMM_DELAY);
                 measured = this.DMM.Get_Volts();
-                this.GPIO.ClearBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
+
+                //this.GPIO.ClearBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_O2_SV2N_EN.port, GPIO_Defs.MEAS_O2_SV2N_EN.pin);
+
                 this.Vent.CMD_Write("set vcm sv 10 0");
 
 
@@ -1876,14 +1840,15 @@ namespace ControlBoardTest
                 //Connect the desired voltage node to the DMM
                 this.GPIO.SetBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
                 this.GPIO.SetBit(GPIO_Defs.MEAS_O2_SV1N_EN.port, GPIO_Defs.MEAS_O2_SV1N_EN.pin);
-                Thread.Sleep(DMM_DELAY);
 
                 //Measure the voltage
+                Thread.Sleep(DMM_DELAY);
                 measured = this.DMM.Get_Volts();
+
                 this.GPIO.ClearBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_O2_SV1N_EN.port, GPIO_Defs.MEAS_O2_SV1N_EN.pin);
-                this.Vent.CMD_Write("set vcm sv 9 0");
 
+                this.Vent.CMD_Write("set vcm sv 9 0");
 
                 message.Report("Measured: " + measured.ToString() + " V\n");
 
@@ -1939,14 +1904,15 @@ namespace ControlBoardTest
                 //Connect the desired voltage node to the DMM
                 this.GPIO.SetBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
                 this.GPIO.SetBit(GPIO_Defs.MEAS_O2_SV2N_EN.port, GPIO_Defs.MEAS_O2_SV2N_EN.pin);
-                Thread.Sleep(DMM_DELAY);
 
                 //Measure the voltage
+                Thread.Sleep(DMM_DELAY);
                 measured = this.DMM.Get_Volts();
+
                 this.GPIO.ClearBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_O2_SV2N_EN.port, GPIO_Defs.MEAS_O2_SV2N_EN.pin);
-                this.Vent.CMD_Write("set vcm sv 10 0");
 
+                this.Vent.CMD_Write("set vcm sv 10 0");
 
                 message.Report("Measured: " + measured.ToString() + " V\n");
 
@@ -1970,8 +1936,9 @@ namespace ControlBoardTest
                     test.parameters["measured"] = measured.ToString();
                 }
 
-                this.GPIO.ClearBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
-                this.GPIO.ClearBit(GPIO_Defs.MEAS_O2_SV2N_EN.port, GPIO_Defs.MEAS_O2_SV2N_EN.pin);
+               //why are we clearing this twice.  We already did it just above    DLR
+                // this.GPIO.ClearBit(GPIO_Defs.EXT_O2_DIS.port, GPIO_Defs.EXT_O2_DIS.pin);
+               // this.GPIO.ClearBit(GPIO_Defs.MEAS_O2_SV2N_EN.port, GPIO_Defs.MEAS_O2_SV2N_EN.pin);
 
             }
             return success;
@@ -1991,42 +1958,98 @@ namespace ControlBoardTest
         private bool test_cough_valve(IProgress<string> message, IProgress<string> log, TestData test)
         {
             bool success = false;
+           
+            //we will test the cough valve in 3 positions. Recall lthat we don't know where the valve left off of last time.  So two possible outcomes after 2 cycles are possible. 
+            int pos1 = 0;
+            int pos2 = 0;
+
+            int pos1a = 0;
+            int pos2a = 0;
+
+            byte flag = 0;
+
+            int value;
+
+
+            message.Report(test.name + " Test cough valve position 0");
+
+            //examine the at rest leftover positions of the cough valve
+            pos1 = this.GPIO.GetBit(GPIO_Defs.COUGH_POS1.port, GPIO_Defs.COUGH_POS1.pin);
+            pos2 = this.GPIO.GetBit(GPIO_Defs.COUGH_POS2.port, GPIO_Defs.COUGH_POS2.pin);
             
+            //now try to move the valve with a command string 0.  This is arbitrary.  we could start with command string 1, it doesn't matter 
 
-            int num;
+            this.Vent.CMD_Write("set vcm coughv 0");//this may or may not move the valve, depending upon where it left off.   
+            Thread.Sleep(150); //Value doesn't really matter, the device doesn't drive the valve any faster
+            pos1a = this.GPIO.GetBit(GPIO_Defs.COUGH_POS1.port, GPIO_Defs.COUGH_POS1.pin);
+            pos2a= this.GPIO.GetBit(GPIO_Defs.COUGH_POS2.port, GPIO_Defs.COUGH_POS2.pin);
 
-            test.parameters.TryGetValue("toggle", out var toggle);
-            num = int.Parse(toggle);
-            for (int i = 0; i < num*2; i++)
-            {
-                this.Vent.CMD_Write("set vcm coughv " + (i%2).ToString() );
-                Thread.Sleep(250); //Value doesn't really matter, the device doesn't drive the valve any faster
-                
+            //now, if they moved they will change state, this is good.  If they don't move then try the other command  and see if they move. 
+
+            if ((pos1 == pos1a) && (pos2 == pos2a))
+            {//valve did not move with a  command string 0 so try command string 1
+                flag = 1;  //so we know what way to try next time around 
+                this.Vent.CMD_Write("set vcm coughv 1");
+                Thread.Sleep(150); //Value doesn't really matter, the device doesn't drive the valve any faster
+                pos1a = this.GPIO.GetBit(GPIO_Defs.COUGH_POS1.port, GPIO_Defs.COUGH_POS1.pin);
+                pos2a = this.GPIO.GetBit(GPIO_Defs.COUGH_POS2.port, GPIO_Defs.COUGH_POS2.pin);
+
+                if ((pos1 != pos1a) && (pos2 != pos2a))  //aha, they changed state so the valve had to move one direction on the second try . 
+                    success = true; 
             }
 
-            if (this.PromptUser_YesNo("Does the cough valve actuate?", test.name))
-            {   
+            else if ((pos1 != pos1a) && (pos2 != pos2a))  //the valve moved with the first try, this is good too 
                 success = true;
-            }
-            else
-            {
-                success = false;
+
+
+
+            if (success)//no point in continuing if the valve failed 
+            { //now try the other state.  If we made it here then we managed to get the valve to move one way.  Need to check both directions. 
+                message.Report(test.name + " Test cough valve position 1");
+
+                pos1 = this.GPIO.GetBit(GPIO_Defs.COUGH_POS1.port, GPIO_Defs.COUGH_POS1.pin);
+                pos2 = this.GPIO.GetBit(GPIO_Defs.COUGH_POS2.port, GPIO_Defs.COUGH_POS2.pin);
+
+                if (flag == 1)
+                {
+                    this.Vent.CMD_Write("set vcm coughv 0");
+                    Thread.Sleep(150); //Value doesn't really matter, the device doesn't drive the valve any faster
+                }
+
+                if (flag == 0)
+                {
+                    this.Vent.CMD_Write("set vcm coughv 1");
+                    Thread.Sleep(150); //Value doesn't really matter, the device doesn't drive the valve any faster
+                }
+
+                pos1a = this.GPIO.GetBit(GPIO_Defs.COUGH_POS1.port, GPIO_Defs.COUGH_POS1.pin);
+                pos2a = this.GPIO.GetBit(GPIO_Defs.COUGH_POS2.port, GPIO_Defs.COUGH_POS2.pin);
+
+                if ((pos1 != pos1a) && (pos2 != pos2a))  //the valve moved with the second try, this is good too 
+                    success = true;
             }
 
+
+            value = 10*(pos1 + pos1a) + pos2 + pos2a;    
+            
             //Fill in measurement parameter
             if (success)
             {
-                message.Report(test.name + ": PASS");
+                message.Report(test.name + ": PASS at " + value.ToString());
                 test.parameters["measured"] ="PASS";
             }
             else
             {
-                message.Report(test.name + ": FAIL");
+                message.Report(test.name + ": FAIL at " + value.ToString());
                 test.parameters["measured"] = "FAIL";
             }
 
             return success;
         }
+
+
+
+ 
 
         /******************************************************************************************************************************
          *  test_low_fan_volt
@@ -2041,26 +2064,25 @@ namespace ControlBoardTest
          ******************************************************************************************************************************/
         private bool test_low_fan_volt(IProgress<string> message, IProgress<string> log, TestData test)
         {
-            string str_value;
-            bool value_available;
+            //string str_value;
+            //bool value_available;
             bool success = false;
 
             // Get parameters from test data object
             float upper = float.Parse(test.parameters["upper"]);
             float lower = float.Parse(test.parameters["lower"]);
-
-
-            
-            
+                                
 
             //Connect the desired voltage node to the DMM
             this.GPIO.SetBit(GPIO_Defs.VFAN_MEAS_EN.port, GPIO_Defs.VFAN_MEAS_EN.pin);
-            Thread.Sleep(DMM_DELAY);
 
             //Measure the voltage
+            Thread.Sleep(DMM_DELAY);
             float measured = this.DMM.Get_Volts();
+
             this.GPIO.ClearBit(GPIO_Defs.VFAN_MEAS_EN.port, GPIO_Defs.VFAN_MEAS_EN.pin);
-            string val;
+
+            //string val;
 
             message.Report("Measured: " + measured.ToString());
 
@@ -2069,11 +2091,16 @@ namespace ControlBoardTest
                 success = true;
             }
 
+            if (success)
+            {
+                message.Report(test.name + ": PASS");
+            }
+            else
+            {
+                message.Report(test.name + ": FAIL");
+            }
 
-            
             test.parameters["measured"] = measured.ToString();
-
-
 
             return success;
         }
@@ -2099,16 +2126,14 @@ namespace ControlBoardTest
 
             if (this.powered && this.DMM.Connected && this.GPIO.Connected)
             {
-
-
                 //Connect the desired voltage node to the DMM
                 this.GPIO.SetBit(GPIO_Defs.FAN_FREQ_MEAS_EN.port, GPIO_Defs.FAN_FREQ_MEAS_EN.pin);
-                Thread.Sleep(DMM_DELAY);
 
                 //Measure the voltage
+                Thread.Sleep(DMM_DELAY);
                 float measured = this.DMM.Get_Freq();
+
                 this.GPIO.ClearBit(GPIO_Defs.FAN_FREQ_MEAS_EN.port, GPIO_Defs.FAN_FREQ_MEAS_EN.pin);
-                
 
                 message.Report("Measured: " + measured.ToString());
 
@@ -2156,7 +2181,7 @@ namespace ControlBoardTest
                 float upper = float.Parse(test.parameters["upper"]);
                 float lower = float.Parse(test.parameters["lower"]);
 
-                this.NotifyUser("Please clear all alarms");
+                //this.NotifyUser("Please clear all alarms");
 
                 this.Vent.CMD_Write("restart");
 
@@ -2180,38 +2205,27 @@ namespace ControlBoardTest
                 }
                 //Connect the desired voltage node to the DMM
                 this.GPIO.SetBit(GPIO_Defs.VFAN_MEAS_EN.port, GPIO_Defs.VFAN_MEAS_EN.pin);
-                Thread.Sleep(DMM_DELAY);
 
                 //Measure the voltage
+                Thread.Sleep(DMM_DELAY);
                 float v_measured = this.DMM.Get_Volts();
+
                 this.GPIO.ClearBit(GPIO_Defs.VFAN_MEAS_EN.port, GPIO_Defs.VFAN_MEAS_EN.pin);
-
-
-                //this.GPIO.SetBit(GPIO_Defs.FAN_FREQ_MEAS_EN.port, GPIO_Defs.FAN_FREQ_MEAS_EN.pin);
-                //float f_measured = this.DMM.Get_Freq();
-                //this.GPIO.ClearBit(GPIO_Defs.FAN_FREQ_MEAS_EN.port, GPIO_Defs.FAN_FREQ_MEAS_EN.pin);
-
-
 
                 if ((v_measured > lower) && (v_measured < upper))
                 {
                     success = true;
                 }
-
-
-                this.Vent.CMD_Write("set uim screen 5039");  //Nebulizer start screenID = 5039
-                this.NotifyUser("Please turn off nebulizer therapy");
-                var response = this.Vent.CMD_Write("mfgmode");
-
-
-
+                
+                //this.NotifyUser("Please turn off nebulizer therapy");
+                var response = this.Vent.CMD_Write("restart");
+                response = this.Vent.CMD_Write("mfgmode");
+                
                 message.Report("Measured: " + v_measured.ToString());
-
-
+                
                 if (success)
                 {
                     message.Report(test.name + ": PASS");
-
                 }
                 else
                 {
@@ -2285,21 +2299,16 @@ namespace ControlBoardTest
 
             //Connect the desired voltage node to the DMM
             this.GPIO.SetBit(GPIO_Defs.FAN_FREQ_MEAS_EN.port, GPIO_Defs.FAN_FREQ_MEAS_EN.pin);
-            Thread.Sleep(DMM_DELAY);
 
             //Measure the voltage
-            float measured = this.DMM.Get_Freq();
-            this.GPIO.ClearBit(GPIO_Defs.FAN_FREQ_MEAS_EN.port, GPIO_Defs.FAN_FREQ_MEAS_EN.pin);
-            //Connect the desired voltage node to the DMM
-            this.GPIO.SetBit(GPIO_Defs.VFAN_MEAS_EN.port, GPIO_Defs.VFAN_MEAS_EN.pin);
             Thread.Sleep(DMM_DELAY);
+            float measured = this.DMM.Get_Freq();
 
+            this.GPIO.ClearBit(GPIO_Defs.FAN_FREQ_MEAS_EN.port, GPIO_Defs.FAN_FREQ_MEAS_EN.pin);
 
             var response = this.Vent.CMD_Write("restart");
             PromptUser_YesNo("Please turn off nebulizer therapy now.", test.name);
             response = this.Vent.CMD_Write("mfgmode");
-
-
 
             message.Report("Measured: " + measured.ToString());
 
@@ -2320,8 +2329,6 @@ namespace ControlBoardTest
             }
             test.parameters["measured"] = measured.ToString();
         }
-            
-            
 
             return success;
         }
@@ -2350,12 +2357,8 @@ namespace ControlBoardTest
         private bool test_buttons(IProgress<string> message, IProgress<string> log, TestData test)
         {
             bool success = false;
-
-
-            int measured=0;
+            int measured=0;      
             
-            
-
             //Get Initial State
             var output = this.Vent.CMD_Write("get vcm buttons");
             var buttonStateMatches = Regex.Matches(output, @"(?'button'\s+\w+,)(?'state'\s+\d)(?'falling',\s+\w+\s\w+,)(?'fState'\s+\d)(?'rising',\s+\w+\s\w+)(?'rState'\s+\d)");
@@ -2366,13 +2369,15 @@ namespace ControlBoardTest
             if (currState == 0)
             {
                 this.GPIO.SetBit(GPIO_Defs.AS_BTN_ON.port, GPIO_Defs.AS_BTN_ON.pin);
-                Thread.Sleep(200);
+                Thread.Sleep(DMM_DELAY);
 
                 output = this.Vent.CMD_Write("get vcm buttons");
                 this.GPIO.ClearBit(GPIO_Defs.AS_BTN_ON.port, GPIO_Defs.AS_BTN_ON.pin);
+                Thread.Sleep(RELAY_DELAY);
 
                 buttonStateMatches = Regex.Matches(output, @"(?'button'\s+\w+,)(?'state'\s+\d)(?'falling',\s+\w+\s\w+,)(?'fState'\s+\d)(?'rising',\s+\w+\s\w+)(?'rState'\s+\d)");
 
+                //Build binary num representing measured data.
                 onState = int.Parse(buttonStateMatches[0].Groups["state"].Value);
                 asState = int.Parse(buttonStateMatches[1].Groups["state"].Value);
                 currState = (onState << 1) | asState;
@@ -2387,10 +2392,12 @@ namespace ControlBoardTest
                     measured = 0;
                 }
                 this.GPIO.SetBit(GPIO_Defs.PB_BTN_ON.port, GPIO_Defs.PB_BTN_ON.pin);
-                Thread.Sleep(200);
+                Thread.Sleep(DMM_DELAY);
 
                 output = this.Vent.CMD_Write("get vcm buttons");
                 this.GPIO.ClearBit(GPIO_Defs.PB_BTN_ON.port, GPIO_Defs.PB_BTN_ON.pin);
+                Thread.Sleep(RELAY_DELAY);
+
 
                 buttonStateMatches = Regex.Matches(output, @"(?'button'\s+\w+,)(?'state'\s+\d)(?'falling',\s+\w+\s\w+,)(?'fState'\s+\d)(?'rising',\s+\w+\s\w+)(?'rState'\s+\d)");
 
@@ -2404,8 +2411,6 @@ namespace ControlBoardTest
                     measured |= currState;
                 }
 
-
-
             }
             message.Report("0x" + (measured >> 1).ToString() + (measured & 1).ToString());
             if (success)
@@ -2418,15 +2423,10 @@ namespace ControlBoardTest
                 message.Report(test.name + ": FAIL");
                 test.parameters["measured"] = "0x" + (measured >> 1).ToString() + (measured & 1).ToString();
             }
-
-
-
-
-
-            //Build binary num representing measured data.
+                       
 
             this.GPIO.SetBit(GPIO_Defs.AS_BTN_ON.port, GPIO_Defs.AS_BTN_ON.pin);
-            Thread.Sleep(100);
+            Thread.Sleep(RELAY_DELAY);
             this.GPIO.ClearBit(GPIO_Defs.AS_BTN_ON.port, GPIO_Defs.AS_BTN_ON.pin);
             this.GPIO.ClearBit(GPIO_Defs.PB_BTN_ON.port, GPIO_Defs.PB_BTN_ON.pin);
 
@@ -2573,7 +2573,14 @@ namespace ControlBoardTest
             }
             return success;
         }
-
+        /******************************************************************************************************************************/
+        //
+        //
+        //
+        //
+        //
+        /******************************************************************************************************************************/
+        //
         private bool test_sysfault9(IProgress<string> message, IProgress<string> log, TestData test)
         {
             bool success = false;
@@ -2638,7 +2645,7 @@ namespace ControlBoardTest
 
 
         /******************************************************************************************************************************
-         *  test_software_install
+         * test_microphone
          *  
          *  Function: Installs software via USB drive to the UUT. Requires some user interaction to finish the software update. 
          *            Loads software onto a USB drive, then switches the USB drive to the UUT. Powers the UUT up, and shorts CN309m.25 and CN309m.26 together
@@ -2655,7 +2662,7 @@ namespace ControlBoardTest
         private bool test_microphone(IProgress<string> message, IProgress<string> log, TestData test)
         {
             bool success = false;
-            float measured = 0;
+           // float measured = 0;
 
             if (this.powered && this.Vent.Connected && this.GPIO.Connected)
             {
@@ -2668,27 +2675,30 @@ namespace ControlBoardTest
                 this.Vent.CMD_Write("restart");
                 this.GPIO.SetBit(GPIO_Defs.SPKR_EN.port, GPIO_Defs.SPKR_EN.pin);
                 this.GPIO.SetBit(GPIO_Defs.FAN_FAULT_EN.port, GPIO_Defs.FAN_FAULT_EN.pin);
-                
+
+                //Toggles the power button to clear any active errors   //dlr
+                //THIS SHOULD CLEAR THE PIEZO IF IT IS CURRENTLY ALARMING.  VERIFY THAT THE BUTTON IS NOT A TOGGLE. 
+                this.GPIO.SetBit(GPIO_Defs.PB_BTN_ON.port, GPIO_Defs.PB_BTN_ON.pin);
+                Thread.Sleep(500);
+                this.GPIO.ClearBit(GPIO_Defs.PB_BTN_ON.port, GPIO_Defs.PB_BTN_ON.pin);
+                                
+                // Give the piezo time to react to the speaker and turn off before enabling the GPIO
+                Thread.Sleep(7000);
+                this.GPIO.SetBit(GPIO_Defs.PIEZO_EN.port, GPIO_Defs.PIEZO_EN.pin);
 
                 //The speaker should now alarm, and the piezo should begin to alarm as well IF the speaker is not loud enough and the microphone is not sensitive enough.
-                Thread.Sleep(10000);
-                this.GPIO.SetBit(GPIO_Defs.PIEZO_EN.port, GPIO_Defs.PIEZO_EN.pin);
-                var ok = this.PromptUser_YesNo("Does the piezo sound?", test.name);
+                var ok = this.PromptUser_YesNo("Is the piezo alarm off?\n\nNote: The loud speaker should be on and beeping.", test.name);
 
-                if (!ok)
+                if (ok)
                 {
                     success = true;
                 }
-
-
-
+                
                 this.Vent.CMD_Write("mfgmode");
                 this.GPIO.ClearBit(GPIO_Defs.SPKR_EN.port, GPIO_Defs.SPKR_EN.pin);
-                Thread.Sleep(500);
                 this.GPIO.ClearBit(GPIO_Defs.FAN_FAULT_EN.port, GPIO_Defs.FAN_FAULT_EN.pin);
-                Thread.Sleep(500);
                 this.GPIO.ClearBit(GPIO_Defs.PIEZO_EN.port, GPIO_Defs.PIEZO_EN.pin);
-              
+
                 message.Report("Measured: " + "PASS");
                 
                 if (success)
@@ -2725,7 +2735,7 @@ namespace ControlBoardTest
             
 
             //Enable the speaker
-            this.GPIO.SetBit(GPIO_Defs.SPKR_EN.port, GPIO_Defs.SPKR_EN.pin);
+            this.GPIO.SetBit(GPIO_Defs.SPKR_EN.port, GPIO_Defs.SPKR_EN.pin);            
 
             //Restart the VCM app.
             this.Vent.CMD_Write("restart");
@@ -2736,8 +2746,8 @@ namespace ControlBoardTest
             //Put device back into MFGmode
             this.Vent.CMD_Write("mfgmode");
 
+            //Disable the speaker
             this.GPIO.ClearBit(GPIO_Defs.SPKR_EN.port, GPIO_Defs.SPKR_EN.pin);
-
 
             if (success)
             {
@@ -2776,9 +2786,10 @@ namespace ControlBoardTest
             {
                 //Connect piezo alarm
                 this.GPIO.SetBit(GPIO_Defs.PIEZO_EN.port, GPIO_Defs.PIEZO_EN.pin);
+
                 this.Vent.CMD_Write("restart");
+                
                 //Prompt user to hear piezo.
-                Thread.Sleep(5000);
                 if(this.PromptUser_YesNo("Does the piezo alarm?", test.name))
                 {
                     success = true;
@@ -3382,7 +3393,7 @@ namespace ControlBoardTest
         private bool test_flow_spi(IProgress<string> message, IProgress<string> log, TestData test)
         {
             bool success = true;
-            int i2c_error = 0;
+            //int i2c_error = 0;
             int samples;
 
             if (this.powered && this.Vent.Connected)
@@ -3444,7 +3455,7 @@ namespace ControlBoardTest
         private bool test_rotary_valve_1(IProgress<string> message, IProgress<string> log, TestData test)
         {
             bool success = false;
-            int DELAY = 1000;
+            int DELAY = 500;
 
             if (this.powered && this.Vent.Connected)
             {
@@ -3475,7 +3486,7 @@ namespace ControlBoardTest
                         success = true;
                     }
                 }
-                Thread.Sleep(1000);
+
                 if (!success)
                 {
                     if (measured == 0)
@@ -3699,6 +3710,10 @@ namespace ControlBoardTest
 
             if(this.powered && this.GPIO.Connected)
             {
+                // Set DUT to Alarm screen
+                //this.Vent.CMD_Write("restart");
+                //this.Vent.CMD_Write("set uim screen 5023");
+
                 this.NotifyUser("Please clear all alarms before proceeding");
 
                 //Measure CN309m.21 --> Alarm Silence LED Cathode --> Should be HIGH
@@ -3706,11 +3721,8 @@ namespace ControlBoardTest
 
                 if (startVal == 1)
                 {
-                    //LED is currently off --> We may continue with test
-
+                    //LED is currently off --> We may continue with test                                
                     
-
-
                     //Toggle Alarm Silence Button
                     this.GPIO.SetBit(GPIO_Defs.AS_BTN_ON.port, GPIO_Defs.AS_BTN_ON.pin);
                     Thread.Sleep(500);
@@ -3720,14 +3732,13 @@ namespace ControlBoardTest
                     var fs = int.Parse(test.parameters["fs"]);
                     var time = int.Parse(test.parameters["time"]);
 
-
                     int[] ledFlash = new int[fs * time]; // List to hold all of
                     for(int i = 0; i < (fs*time); i++)
                     {
                         ledFlash[i] = this.GPIO.GetBit(GPIO_Defs.MEAS_AS_LED.port, GPIO_Defs.MEAS_AS_LED.pin);
-                        if (ledFlash[i] == 1) ;
-                        else if (ledFlash[i] == 0) ;
-                        else message.Report("Something is wrong with GPIO.GetBit()");
+
+                        if (!(ledFlash[i] == 1 || ledFlash[i] == 0))
+                            message.Report("Something is wrong with GPIO.GetBit()");
                         
                         Thread.Sleep(1000 / fs);
                     }
@@ -3750,6 +3761,10 @@ namespace ControlBoardTest
                 {
                     success = false;
                 }
+
+                //var response = this.Vent.CMD_Write("restart");
+                //response = this.Vent.CMD_Write("mfgmode");
+
                 //Fill in measurement parameter
                 if (success)
                 {
@@ -3780,6 +3795,15 @@ namespace ControlBoardTest
             
             return success;
         }
+
+/****************************************************************************************************/
+//
+//
+//
+//
+/****************************************************************************************************/
+
+
         private bool test_pb_led(IProgress<string> message, IProgress<string> log, TestData test)
         {
             bool success = false;
@@ -3830,9 +3854,9 @@ namespace ControlBoardTest
             bool success = false;
             
             int measured = 0;
-            int retry = 0;
+            //int retry = 0;
             string powerOutput = "";
-            string matchPattern = @"(?'battery'^\s+[a-zA-Z0-9]+:)(?'present'\s+\d+,)(?'charge'\s+\d+,)(?'err'\s+\d+,)(?'RSOC'\s+\d+,)(?'ASOC'\s+\d+,)(?'temp'\s+\d+)";
+            //string matchPattern = @"(?'battery'^\s+[a-zA-Z0-9]+:)(?'present'\s+\d+,)(?'charge'\s+\d+,)(?'err'\s+\d+,)(?'RSOC'\s+\d+,)(?'ASOC'\s+\d+,)(?'temp'\s+\d+)";
 
             if (this.powered && this.Vent.Connected && this.GPIO.Connected)
             {
@@ -4045,9 +4069,9 @@ namespace ControlBoardTest
                 this.PPS.Set_Output(true, 16, 5);
 
                 this.GPIO.SetBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
-                Thread.Sleep(250);
+                Thread.Sleep(250); // wanta little more than just the standard relay delay
                 this.GPIO.ClearBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
-                Thread.Sleep(250);
+                Thread.Sleep(RELAY_DELAY);
 
                 //Confirm that device is still running.
                 var response = this.Vent.CMD_Write("ping uim");
@@ -4066,6 +4090,7 @@ namespace ControlBoardTest
                 this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
                 Thread.Sleep(250);
                 this.GPIO.ClearBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
+                Thread.Sleep(RELAY_DELAY);
                 this.PPS.Set_Output(false);
 
 
@@ -4077,7 +4102,7 @@ namespace ControlBoardTest
                 else
                 {
                     message.Report(test.name + ": FAIL");
-                    test.parameters["measured"] = "FAIIL";
+                    test.parameters["measured"] = "FAIL";
                 }
             }
 
@@ -4097,7 +4122,7 @@ namespace ControlBoardTest
                 this.GPIO.SetBit(GPIO_Defs.BAT1_EN.port, GPIO_Defs.BAT1_EN.pin);
                 Thread.Sleep(250);
                 this.GPIO.ClearBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
-                Thread.Sleep(250);
+                Thread.Sleep(RELAY_DELAY);
 
                 //Confirm that device is still running.
                 var response = this.Vent.CMD_Write("ping uim");
@@ -4116,6 +4141,7 @@ namespace ControlBoardTest
                 this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
                 Thread.Sleep(250);
                 this.GPIO.ClearBit(GPIO_Defs.BAT1_EN.port, GPIO_Defs.BAT1_EN.pin);
+                Thread.Sleep(RELAY_DELAY);
                 this.PPS.Set_Output(false);
 
                 if (success)
@@ -4126,7 +4152,7 @@ namespace ControlBoardTest
                 else
                 {
                     message.Report(test.name + ": FAIL");
-                    test.parameters["measured"] = "FAIIL";
+                    test.parameters["measured"] = "FAIL";
                 }
             }
 
@@ -4146,7 +4172,7 @@ namespace ControlBoardTest
                 this.GPIO.SetBit(GPIO_Defs.BAT2_EN.port, GPIO_Defs.BAT2_EN.pin);
                 Thread.Sleep(250);
                 this.GPIO.ClearBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
-                Thread.Sleep(250);
+                Thread.Sleep(RELAY_DELAY);
 
                 //Confirm that device is still running.
                 var response = this.Vent.CMD_Write("ping uim");
@@ -4165,6 +4191,7 @@ namespace ControlBoardTest
                 this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
                 Thread.Sleep(250);
                 this.GPIO.ClearBit(GPIO_Defs.BAT2_EN.port, GPIO_Defs.BAT2_EN.pin);
+                Thread.Sleep(RELAY_DELAY);
                 this.PPS.Set_Output(false);
 
                 if (success)
@@ -4175,7 +4202,7 @@ namespace ControlBoardTest
                 else
                 {
                     message.Report(test.name + ": FAIL");
-                    test.parameters["measured"] = "FAIIL";
+                    test.parameters["measured"] = "FAIL";
                 }
             }
 
@@ -4212,6 +4239,7 @@ namespace ControlBoardTest
                 this.GPIO.SetBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);
                 this.GPIO.SetBit(GPIO_Defs.TEMP_BATT0.port, GPIO_Defs.TEMP_BATT0.pin);
                 this.GPIO.SetBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
+                Thread.Sleep(RELAY_DELAY);
 
                 //Wait for battery to begin charging
                 message.Report("Waiting for charge led to light up ... ");
@@ -4238,7 +4266,6 @@ namespace ControlBoardTest
                 this.GPIO.ClearBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);
                 this.GPIO.ClearBit(GPIO_Defs.TEMP_BATT0.port, GPIO_Defs.TEMP_BATT0.pin);
                 this.GPIO.ClearBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
-
 
                 //Fill in measurement parameter
                 if (success)
@@ -4273,7 +4300,7 @@ namespace ControlBoardTest
                 this.GPIO.SetBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);
                 this.GPIO.SetBit(GPIO_Defs.TEMP_BATT0.port, GPIO_Defs.TEMP_BATT0.pin);
                 this.GPIO.SetBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
-
+                Thread.Sleep(RELAY_DELAY);
 
 
                 //Set telemetry channels
@@ -4306,7 +4333,6 @@ namespace ControlBoardTest
                 this.GPIO.ClearBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);
                 this.GPIO.ClearBit(GPIO_Defs.TEMP_BATT0.port, GPIO_Defs.TEMP_BATT0.pin);
                 this.GPIO.ClearBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
-
 
                 //Fill in measurement parameter
                 test.parameters["measured"] = ave_mVolts.ToString();
@@ -4365,14 +4391,14 @@ namespace ControlBoardTest
                 this.GPIO.SetBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);
                 this.GPIO.SetBit(GPIO_Defs.TEMP_BATT0.port, GPIO_Defs.TEMP_BATT0.pin);
                 this.GPIO.SetBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
+                Thread.Sleep(DMM_DELAY);
 
-                
-                
+
 
                 float meas;
                 int time = 0;
 
-                Thread.Sleep(delay);
+                //Thread.Sleep(delay);
 
                 do
                 {
@@ -4392,7 +4418,6 @@ namespace ControlBoardTest
                 this.GPIO.ClearBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);
                 this.GPIO.ClearBit(GPIO_Defs.TEMP_BATT0.port, GPIO_Defs.TEMP_BATT0.pin);
                 this.GPIO.ClearBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
-
 
                 //Fill in measurement parameter
                 test.parameters["measured"] = meas.ToString();
@@ -4450,14 +4475,14 @@ namespace ControlBoardTest
                 this.GPIO.SetBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);
                 this.GPIO.SetBit(GPIO_Defs.TEMP_BATT2.port, GPIO_Defs.TEMP_BATT2.pin);
                 this.GPIO.SetBit(GPIO_Defs.BAT1_EN.port, GPIO_Defs.BAT1_EN.pin);
-
+                Thread.Sleep(DMM_DELAY);
 
 
 
                 float meas;
                 int time = 0;
 
-                Thread.Sleep(delay);
+                //Thread.Sleep(delay);
 
                 do
                 {
@@ -4477,7 +4502,6 @@ namespace ControlBoardTest
                 this.GPIO.ClearBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);
                 this.GPIO.ClearBit(GPIO_Defs.TEMP_BATT2.port, GPIO_Defs.TEMP_BATT2.pin);
                 this.GPIO.ClearBit(GPIO_Defs.BAT1_EN.port, GPIO_Defs.BAT1_EN.pin);
-
 
                 //Fill in measurement parameter
                 test.parameters["measured"] = meas.ToString();
@@ -4535,14 +4559,14 @@ namespace ControlBoardTest
                 this.GPIO.SetBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);
                 this.GPIO.SetBit(GPIO_Defs.TEMP_BATT1.port, GPIO_Defs.TEMP_BATT1.pin);
                 this.GPIO.SetBit(GPIO_Defs.BAT2_EN.port, GPIO_Defs.BAT2_EN.pin);
-
+                Thread.Sleep(DMM_DELAY);
 
 
 
                 float meas;
                 int time = 0;
 
-                Thread.Sleep(delay);
+                //Thread.Sleep(delay);
 
                 
                 do
@@ -4565,7 +4589,6 @@ namespace ControlBoardTest
                 this.GPIO.ClearBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);
                 this.GPIO.ClearBit(GPIO_Defs.TEMP_BATT1.port, GPIO_Defs.TEMP_BATT1.pin);
                 this.GPIO.ClearBit(GPIO_Defs.BAT2_EN.port, GPIO_Defs.BAT2_EN.pin);
-
 
                 //Fill in measurement parameter
                 test.parameters["measured"] = meas.ToString();
@@ -4594,15 +4617,20 @@ namespace ControlBoardTest
             if(this.powered && this.Vent.Connected && this.GPIO.Connected && this.DMM.Connected)
             {
                 //Measure NC
-                this.NotifyUser("Please clear all alarms before continuing. If the alarm cannot be cleared, this test will fail");
+                //this.NotifyUser("Please clear all alarms before continuing. If the alarm cannot be cleared, this test will fail");
 
 
                 this.GPIO.SetBit(GPIO_Defs.MEAS_NC_NC.port, GPIO_Defs.MEAS_NC_NC.pin);
-                Thread.Sleep(1000);
+
+                Thread.Sleep(DMM_DELAY);
                 var nc_measured = this.DMM.Get_Ohms();
+
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_NC_NC.port, GPIO_Defs.MEAS_NC_NC.pin);
+                Thread.Sleep(RELAY_DELAY);
+
                 this.GPIO.SetBit(GPIO_Defs.MEAS_NC_NO.port, GPIO_Defs.MEAS_NC_NO.pin);
-                Thread.Sleep(1000);
+
+                Thread.Sleep(DMM_DELAY);
                 var no_measured = this.DMM.Get_Ohms();
 
                 message.Report("No alarms:");
@@ -4610,11 +4638,12 @@ namespace ControlBoardTest
                 message.Report("NO measured: " + no_measured.ToString());
 
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_NC_NO.port, GPIO_Defs.MEAS_NC_NO.pin);
-
+                Thread.Sleep(RELAY_DELAY);
 
                 //Try again with alarms
                 //this.Vent.CMD_Write("restart");
                 this.GPIO.SetBit(GPIO_Defs.FAN_FAULT_EN.port, GPIO_Defs.FAN_FAULT_EN.pin);
+                Thread.Sleep(RELAY_DELAY);
 
                 string response;
                 string fanAlarmStatus;
@@ -4629,14 +4658,17 @@ namespace ControlBoardTest
                 } while (fanAlarmStatus.Contains("off") && (cnt < timeout));
 
                 this.GPIO.SetBit(GPIO_Defs.MEAS_NC_NC.port, GPIO_Defs.MEAS_NC_NC.pin);
-                Thread.Sleep(1000);
+
+                Thread.Sleep(DMM_DELAY);
                 var no_measured_alarm = this.DMM.Get_Ohms(); //Should be short
+
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_NC_NC.port, GPIO_Defs.MEAS_NC_NC.pin);
+                Thread.Sleep(RELAY_DELAY);
+
                 this.GPIO.SetBit(GPIO_Defs.MEAS_NC_NO.port, GPIO_Defs.MEAS_NC_NO.pin);
-                Thread.Sleep(1000);
+
+                Thread.Sleep(DMM_DELAY);
                 var nc_measured_alarm = this.DMM.Get_Ohms(); //Should be open
-
-
                 
                 message.Report("With alarms: ");
                 message.Report("NC measured: " + nc_measured_alarm.ToString());
@@ -4661,6 +4693,7 @@ namespace ControlBoardTest
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_NC_NC.port, GPIO_Defs.MEAS_NC_NC.pin);
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_NC_NO.port, GPIO_Defs.MEAS_NC_NO.pin);
                 this.GPIO.ClearBit(GPIO_Defs.FAN_FAULT_EN.port, GPIO_Defs.FAN_FAULT_EN.pin);
+
                 //this.Vent.CMD_Write("mfgmode");
             }
             return success;
@@ -4680,7 +4713,7 @@ namespace ControlBoardTest
             if (this.powered && this.Vent.Connected && this.PPS.Connected)
             {
                 //Set the power supply to the lower voltage and highest current capability.
-                this.PPS.Set_Output(true, lower, 9);
+                this.PPS.Set_Output(true, lower, 7);
                 //Confirm that device is in mfgmode to prevent overcurrent and accidental shutoff
                 this.Vent.CMD_Write("mfgmode");
                 //Set telemetry channels
@@ -4688,6 +4721,7 @@ namespace ControlBoardTest
                 this.Vent.CMD_Write("set vcm telemetry " + channelNum + " 0 0 0");
 
                 this.GPIO.SetBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
+                Thread.Sleep(RELAY_DELAY);
                 this.GPIO.ClearBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
 
                 success = true;
@@ -4695,7 +4729,7 @@ namespace ControlBoardTest
                 {
                     float high_val = (float)i * (1 + (tolerance / 100));
                     float low_val = (float)i * (1 - (tolerance / 100));
-                    this.PPS.Set_Output(true, i, 9);
+                    this.PPS.Set_Output(true, i, 7);
                     Thread.Sleep(1000);
                     response = this.Vent.CMD_Write("get vcm telemetry " + samples.ToString());
 
@@ -4722,8 +4756,8 @@ namespace ControlBoardTest
                 this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
                 Thread.Sleep(1000);
                 this.GPIO.ClearBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
-                this.PPS.Set_Output(false);
-                
+
+                this.PPS.Set_Output(false);                
 
                 if (success)
                 {
@@ -4753,7 +4787,7 @@ namespace ControlBoardTest
             if (this.powered && this.Vent.Connected && this.PPS.Connected)
             {
                 //Set the power supply to the lower voltage and highest current capability.
-                this.PPS.Set_Output(true, lower, 9);
+                this.PPS.Set_Output(true, lower, 7);
                 //Confirm that device is in mfgmode to prevent overcurrent and accidental shutoff
                 this.Vent.CMD_Write("mfgmode");
                 //Set telemetry channels
@@ -4761,7 +4795,7 @@ namespace ControlBoardTest
                 this.Vent.CMD_Write("set vcm telemetry " + channelNum + " 0 0 0");
 
                 this.GPIO.SetBit(GPIO_Defs.BAT1_EN.port, GPIO_Defs.BAT1_EN.pin);
-                Thread.Sleep(500);
+                Thread.Sleep(RELAY_DELAY);
                 this.GPIO.ClearBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
 
                 success = true;
@@ -4769,7 +4803,7 @@ namespace ControlBoardTest
                 {
                     float high_val = (float)i * (1 + (tolerance / 100));
                     float low_val = (float)i * (1 - (tolerance / 100));
-                    this.PPS.Set_Output(true, i, 9);
+                    this.PPS.Set_Output(true, i, 7);
                     Thread.Sleep(1000);
                     response = this.Vent.CMD_Write("get vcm telemetry " + samples.ToString());
 
@@ -4796,8 +4830,8 @@ namespace ControlBoardTest
                 this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
                 Thread.Sleep(1000);
                 this.GPIO.ClearBit(GPIO_Defs.BAT1_EN.port, GPIO_Defs.BAT1_EN.pin);
-                this.PPS.Set_Output(false);
 
+                this.PPS.Set_Output(false);
 
                 if (success)
                 {
@@ -4827,7 +4861,7 @@ namespace ControlBoardTest
             if (this.powered && this.Vent.Connected && this.PPS.Connected)
             {
                 //Set the power supply to the lower voltage and highest current capability.
-                this.PPS.Set_Output(true, lower, 9);
+                this.PPS.Set_Output(true, lower, 7);
                 //Confirm that device is in mfgmode to prevent overcurrent and accidental shutoff
                 this.Vent.CMD_Write("mfgmode");
                 //Set telemetry channels
@@ -4843,7 +4877,7 @@ namespace ControlBoardTest
                 {
                     float high_val = (float)i * (1 + (tolerance / 100));
                     float low_val = (float)i * (1 - (tolerance / 100));
-                    this.PPS.Set_Output(true, i, 9);
+                    this.PPS.Set_Output(true, i, 7);
                     Thread.Sleep(1000);
                     response = this.Vent.CMD_Write("get vcm telemetry " + samples.ToString());
 
@@ -4870,8 +4904,8 @@ namespace ControlBoardTest
                 this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
                 Thread.Sleep(1000);
                 this.GPIO.ClearBit(GPIO_Defs.BAT2_EN.port, GPIO_Defs.BAT2_EN.pin);
-                this.PPS.Set_Output(false);
 
+                this.PPS.Set_Output(false);
 
                 if (success)
                 {
@@ -4926,7 +4960,7 @@ namespace ControlBoardTest
                         success = true;
                         break;
                     }
-                    Thread.Sleep(50);
+                    Thread.Sleep(10);
                     time++;
                 } while (time < timeout);
 
@@ -4941,7 +4975,7 @@ namespace ControlBoardTest
                 else
                 {
                     message.Report(test.name + ": FAIL");
-                    test.parameters["measured"] = "PASS";
+                    test.parameters["measured"] = "FAIL";
                 }
             }
 
@@ -4974,11 +5008,12 @@ namespace ControlBoardTest
 
                 //Confirm external power is on.
                 this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+
                 //Confirm that batteries are off to make sure that no charging is occurring
                 this.GPIO.ClearBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
                 this.GPIO.ClearBit(GPIO_Defs.BAT1_EN.port, GPIO_Defs.BAT1_EN.pin);
                 this.GPIO.ClearBit(GPIO_Defs.BAT2_EN.port, GPIO_Defs.BAT2_EN.pin);
-
+                Thread.Sleep(RELAY_DELAY);
 
                 int time = 0;
                 int meas;
@@ -5004,7 +5039,7 @@ namespace ControlBoardTest
                 else
                 {
                     message.Report(test.name + ": FAIL");
-                    test.parameters["measured"] = "PASS";
+                    test.parameters["measured"] = "FAIL";
                 }
             }
 
@@ -5056,8 +5091,8 @@ namespace ControlBoardTest
                 else
                 {
                     message.Report(test.name + ": FAIL");
-                    test.parameters["measured"] = "PASS";
-                    test.parameters["result"] = "PASS";
+                    test.parameters["measured"] = "FAIL";
+                    test.parameters["result"] = "FAIL";
                 }
                 
             }
@@ -5109,7 +5144,7 @@ namespace ControlBoardTest
                 else
                 {
                     message.Report(test.name + ": FAIL");
-                    test.parameters["measured"] = "PASS";
+                    test.parameters["measured"] = "FAIL";
                 }
             }
 
@@ -5136,8 +5171,8 @@ namespace ControlBoardTest
             bool success = false;
 
 
-            int upper;
-            int lower;
+            //int upper;
+           // int lower;
             int samples = int.Parse(test.parameters["samples"]);
             double ave_mVolts = 0;
             var count = 0;
@@ -5186,13 +5221,17 @@ namespace ControlBoardTest
             }
             return success;
         }
+
+
+        /******************************************************************************************************************/
+
         private bool test_extdc_diode(IProgress<string> message, IProgress<string> log, TestData test)
         {
             bool success = false;
 
 
-            int upper;
-            int lower;
+           // int upper;
+           // int lower;
             int samples = int.Parse(test.parameters["samples"]);
             double ave_mVolts = 0;
             var count = 0;
@@ -5253,14 +5292,18 @@ namespace ControlBoardTest
             return success;
         }
 
+
+        /******************************************************************************************************************/
+
+
         private bool test_cpld_diode(IProgress<string> message, IProgress<string> log, TestData test)
         {
             bool success = false;
             string response;
-            bool ib_ok;
-            bool eb1_ok;
-            bool xdc_ok;
-            bool eb2_ok;
+            //bool ib_ok;
+            //bool eb1_ok;
+            //bool xdc_ok;
+            //bool eb2_ok;
 
 
             int xdc_only = 8;
@@ -5274,11 +5317,11 @@ namespace ControlBoardTest
             {
                 int ok = 0;
 
+                //Confirm external power is on.
                 this.GPIO.SetBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
-                Thread.Sleep(1000);
                 response = this.Vent.CMD_Write("get vcm power");
-                //Match the Source OK bits and confirm that the xdc bit is the only ok bit.
 
+                //Match the Source OK bits and confirm that the xdc bit is the only ok bit.
                 var src_match = Convert.ToInt32(Regex.Match(response, @"((?<=source:\s)\d+)").Value);
                 
 
@@ -5292,8 +5335,9 @@ namespace ControlBoardTest
                     message.Report("XDC: Not OK");
                 }
                 //Internal Battery
-                this.PPS.Set_Output(true, 16, 9);
+                this.PPS.Set_Output(true, 16, 7);
                 this.GPIO.SetBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
+                Thread.Sleep(RELAY_DELAY);
                 this.GPIO.ClearBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
 
                 Thread.Sleep(1000);
@@ -5315,6 +5359,7 @@ namespace ControlBoardTest
                 }
                 //External Battery 1
                 this.GPIO.SetBit(GPIO_Defs.BAT1_EN.port, GPIO_Defs.BAT1_EN.pin);
+                Thread.Sleep(RELAY_DELAY);
                 this.GPIO.ClearBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
 
                 Thread.Sleep(1000);
@@ -5337,6 +5382,7 @@ namespace ControlBoardTest
 
                 //External Battery 2
                 this.GPIO.SetBit(GPIO_Defs.BAT2_EN.port, GPIO_Defs.BAT2_EN.pin);
+                Thread.Sleep(RELAY_DELAY);
                 this.GPIO.ClearBit(GPIO_Defs.BAT1_EN.port, GPIO_Defs.BAT1_EN.pin);
 
                 Thread.Sleep(1000);
@@ -5541,7 +5587,7 @@ namespace ControlBoardTest
         private bool test_supercap(IProgress<string> message, IProgress<string> log, TestData test)
         {
             bool success = false;
-            string response;
+           // string response;
             float measured;
             float upper;
             float lower;
@@ -5565,17 +5611,17 @@ namespace ControlBoardTest
 
                 measured = this.DMM.Get_Volts();
 
-                var power = this.test_power_on(message, log, 15000);
-                if (power)
-                {
-                    Thread.Sleep(20000); //Need to wait for ip address to be collected
-                    this.Vent.Connect(this.Vent._ip_address, "mfgmode", false);
-                }
+                //var power = this.test_power_on(message, log, 15000);
+                //if (power)
+                //{
+                //    Thread.Sleep(20000); //Need to wait for ip address to be collected
+                //    this.Vent.Connect(this.Vent._ip_address, "mfgmode", false);
+                //}
 
 
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_PIEZO.port, GPIO_Defs.MEAS_PIEZO.pin);
 
-                
+
                 if ((measured <= upper) && (measured >= lower))
                 {
                     success = true;
@@ -5602,7 +5648,7 @@ namespace ControlBoardTest
         {
             bool success = false;
             string response;
-            float measured;
+           // float measured;
             string filename = test.parameters["filename"];
             
 
@@ -5652,7 +5698,7 @@ namespace ControlBoardTest
         {
             bool success = false;
             string response;
-            float measured;
+            //float measured;
             string filename = test.parameters["filename"];
 
 

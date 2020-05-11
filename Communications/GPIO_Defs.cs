@@ -52,9 +52,6 @@ namespace GPIO
         public static readonly GPIO_PIN EXT_O2_DIS;
 
         public static readonly GPIO_PIN WDOG_DIS;
-        public static readonly GPIO_PIN USB_TGL;
-
-        public static readonly GPIO_PIN MEAS_BATT_CHG_EN;
 
         public static readonly GPIO_PIN AC_EN;
 
@@ -74,6 +71,10 @@ namespace GPIO
         public static readonly GPIO_PIN EXHL_SV7;
         public static readonly GPIO_PIN EXHL_SV8;
         public static readonly GPIO_PIN SOV_SV11;
+
+        //Cough Valve Signals   //dlr
+        public static readonly GPIO_PIN COUGH_POS1;
+        public static readonly GPIO_PIN COUGH_POS2;
 
 
         //Measurement Signals
@@ -95,9 +96,9 @@ namespace GPIO
         public static readonly GPIO_PIN MEAS_RV1_HOME;
         public static readonly GPIO_PIN MEAS_RV2_HOME;
 
-        public static readonly GPIO_PIN MV_HOME_EN;
-        public static readonly GPIO_PIN RV1_HOME_EN;
-        public static readonly GPIO_PIN RV2_HOME_EN;
+        //public static readonly GPIO_PIN MV_HOME_EN;
+        //public static readonly GPIO_PIN RV1_HOME_EN;
+       // public static readonly GPIO_PIN RV2_HOME_EN;
 
         public static readonly GPIO_PIN PIEZO_EN;
         public static readonly GPIO_PIN MEAS_PIEZO_N;
@@ -198,8 +199,8 @@ namespace GPIO
             SOV_SV11 =          new GPIO_PIN(DigitalPortType.FourthPortA, 6); //Measure with GPIO
             OAX1_OFF =          new GPIO_PIN(DigitalPortType.FourthPortA, 7); //Measure with GPIO
         //FourthPortB
-            //
-            //
+            COUGH_POS1 =       new GPIO_PIN(DigitalPortType.FourthPortB, 0); //Measure with GPIO 
+            COUGH_POS2 =       new GPIO_PIN(DigitalPortType.FourthPortB, 1); //Measure with GPIO
             //
             //
             //

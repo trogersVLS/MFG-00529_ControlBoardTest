@@ -41,8 +41,8 @@ namespace ControlBoardTest
             string cpld_name = "FlashPro";
             string herc_search = "Select * from Win32_SerialPort";
             string herc_name = "XDS2xx";
-            string som_search = "Select * from Win32_SerialPort";
-            string som_name = "USB";
+            //string som_search = "Select * from Win32_SerialPort";
+           // string som_name = "USB";
 
 
             string name = "";

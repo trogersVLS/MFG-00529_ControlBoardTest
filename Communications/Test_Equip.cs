@@ -11,7 +11,7 @@ namespace ControlBoardTest
     public class Test_Equip
     {
         private readonly int QUERY_DELAY = 3010; //millisecond delay for SCPI queries
-        string name;
+        //string name;
         string comm;
         SerialPort Device;
         string address;
@@ -183,7 +183,7 @@ namespace ControlBoardTest
             int cnt = 0;
             do
             {
-                ohms_str = this.Query(":MEAS:RES?", 5000);
+                ohms_str = this.Query(":MEAS:RES?", 1000);
                 ok = float.TryParse(ohms_str, out ohms);
                 cnt++;
 
@@ -245,7 +245,7 @@ namespace ControlBoardTest
         public bool Set_Output(bool state, float voltage = 0, float current = 0)
         {
             bool success = false;
-            float amps;
+            //float amps;
             string status;
             if (state)
             {
@@ -275,7 +275,7 @@ namespace ControlBoardTest
 
         public float Set_Current(float current)
         {
-            string amp_str = "";
+            //string amp_str = "";
             float amps = 0;
 
             this.Device.Write("Current " + current.ToString() + "\r\n");
@@ -285,7 +285,7 @@ namespace ControlBoardTest
         }
         public float Set_Voltage(float volts)
         {
-            string volt_str = "";
+            //string volt_str = "";
             float voltage = 0;
 
             this.Device.Write("Voltage " + volts.ToString() + "\r\n");

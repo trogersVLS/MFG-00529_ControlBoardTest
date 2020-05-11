@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using GPIO;
 using VLS;
 using System.Data.SQLite;
+using System.Windows.Forms;
 
 
 
@@ -38,7 +39,7 @@ namespace ControlBoardTest
             this.parameters = parameters;
             this.parameters.Add("measured", "Not tested");
             this.parameters.Add("result", "Not tested");
-
+           
         }
         public void SetResult(bool result)
         {
@@ -60,14 +61,14 @@ namespace ControlBoardTest
     public partial class FunctionalTest
     {
         //Test specific data --> To be stored in results file and in database
-        private string serial;             //Test serial number
-        private string location;
-        private int eqid;
-        private string user_id;
-        private string timestamp;
+        private string serial="27B-6";             //Test serial number
+        private string location="earth";
+        private int eqid=42;
+        private string user_id="everett";
+        private string timestamp=null;
         public string result;
         public bool test;
-        private Hashtable Parameters;
+       // private Hashtable Parameters;
 
 
         private MccDaq_GPIO GPIO;
@@ -111,32 +112,160 @@ namespace ControlBoardTest
             //This constructor is used for production
 
             this.DEBUG = debug;
+/********************************************************************/
+
             try
             {
                 this.GPIO = GPIO;
+            }
+
+            catch
+            {
+                //Something didn't work. Update user
+                System.Windows.Forms.MessageBox.Show("Error! Invalid GPIO object", "Error");
+
+            }
+
+ /********************************************************************/
+
+
+            try
+            {
                 this.GPIO.ConnectDevice();
-                this.DMM = DMM;
+               
+            }
+            catch
+            {
+
+                System.Windows.Forms.MessageBox.Show("Error! GPIO connect Universal Library ", "Error");
+
+            }
+
+/********************************************************************/
+
+            try
+            {
+               this.DMM = DMM;
+                
+            }
+            catch
+            {
+
+                System.Windows.Forms.MessageBox.Show("Error! Test instrument DMM object ", "Error");
+           }
+
+            /********************************************************************/
+
+            try
+            {
+                             
                 this.DMM.Connect();
+               
+            }
+            catch
+            {
+
+                System.Windows.Forms.MessageBox.Show("Error! RS232 DMM control init", "Error");
+
+            }
+
+            /********************************************************************/
+
+            try
+            {
+               
                 this.PPS = PPS;
+              
+            }
+            catch
+            {
+
+                System.Windows.Forms.MessageBox.Show("Error! Test Instrument PPS object", "Error");
+
+            }
+
+
+            /********************************************************************/
+
+            try
+            {
                 this.PPS.Connect();
+                
+            }
+            catch
+            {
+
+                System.Windows.Forms.MessageBox.Show("Error! RS232 PPS control init", "Error");
+
+            }
+
+            /********************************************************************/
+
+            try
+            {
                 this.SOM = SOM;
-                this.SOM.Connect();
 
             }
             catch
             {
-                //Something didn't work. Update user
 
-                System.Windows.Forms.MessageBox.Show("Error! Something happened", "Error");
-                
+                System.Windows.Forms.MessageBox.Show("Error! UUT SOM debug output object", "Error");
+
             }
+
+            /********************************************************************/
+
+            try
+            {
+               this.SOM.Connect();
+
+            }
+            catch
+            {
+                System.Windows.Forms.MessageBox.Show("Error! UUT SOM debug output RS232 connect", "Error");
+
+            }
+
+            /********************************************************************/
+
 
         }
 
+
+
+
+        /************************************************************************************************************************************************/
+        public bool ConnectToTelnet(string _ip_address)
+        {
+            if (_ip_address != null)
+            {
+                this.Vent = new VLS_Tlm(_ip_address);
+            }
+
+            //There's a long delay between the device booting to the VCM app and the device acquiring an IP address.
+            var success = this.Vent.Connect(_ip_address, "mfgmode", true);
+            int count = 15;
+            while (!this.Vent.Connected)
+            {
+                count--;
+                Thread.Sleep(1000);
+            }
+            if (success)
+            {
+                //Once connected, set to MFG mode so that we can begin testing the various functions
+            }
+            else
+            {
+                this.Vent = null;
+            }
+
+            return success;
+        }
+
+
+
         public bool ConnectToTelnet(string _ip_address, IProgress<string> message, IProgress<string> logs)
         {   
-
-            
             if (_ip_address != null)
             {   
                 this.Vent = new VLS_Tlm(_ip_address);
@@ -144,13 +273,11 @@ namespace ControlBoardTest
             }
 
             //There's a long delay between the device booting to the VCM app and the device acquiring an IP address.
-            var success = this.Vent.Connect(_ip_address, "mfgmode", true);
-            
+            var success = this.Vent.Connect(_ip_address, "mfgmode", true);            
             if (success)
             {
                 message.Report("Connected!");
                 //Once connected, set to MFG mode so that we can begin testing the various functions
-          
             }
             else
             {
@@ -160,6 +287,10 @@ namespace ControlBoardTest
 
             return success;
         }
+
+
+        /************************************************************************************************************************************************/
+
         public bool DisconnectTelnet()
         {
             try
@@ -167,6 +298,7 @@ namespace ControlBoardTest
                 if (this.Vent != null)
                 {
                     this.Vent.Disconnect();
+                    this.Vent.Connected = false;
                 }
             }
             catch
@@ -188,10 +320,12 @@ namespace ControlBoardTest
 
             return input;
         }
+
+
         private bool PromptUser_YesNo(string question, string TestName)
         {
             bool result;
-            var output = System.Windows.Forms.MessageBox.Show(question, TestName, System.Windows.Forms.MessageBoxButtons.YesNo, System.Windows.Forms.MessageBoxIcon.Question);
+            var output = System.Windows.Forms.MessageBox.Show(question, TestName, System.Windows.Forms.MessageBoxButtons.YesNo, System.Windows.Forms.MessageBoxIcon.Question );
 
             if(output == System.Windows.Forms.DialogResult.Yes)
             {
@@ -224,14 +358,14 @@ namespace ControlBoardTest
          *             - message  --> Progress interface variable. Used to update the text in the output box.  
          *             - TestList --> List of TestStep. Used to tell RunTest which tests need to be run.
          * **********************************************************************************************************/
-        async public void RunTest(IProgress<int> progress, IProgress<string> message, IProgress<string> logs, List<TestData> TestList)
+        public void RunTest(IProgress<int> progress, IProgress<string> message, IProgress<string> logs, List<TestData> TestList)
         {
             int i = 0;
             bool success = true;
 
             try
             {
-               
+              
 
                 foreach (TestData test in TestList)
                 {
@@ -283,6 +417,11 @@ namespace ControlBoardTest
         }
         public void EndTest()
         {
+
+
+
+
+           
             this.GPIO.ClearAll();
             this.PPS.Set_Output(false);
             this.DisconnectTelnet();
@@ -335,7 +474,7 @@ namespace ControlBoardTest
         {
             
             SQLiteCommand cmd;
-            SQLiteDataReader dr;
+            //SQLiteDataReader dr;
             bool success = false;
             
 
