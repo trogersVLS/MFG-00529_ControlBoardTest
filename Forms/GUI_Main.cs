@@ -374,7 +374,7 @@ namespace ControlBoardTest
             this.Check_SingleTest.Enabled = false;
 
             this.DisplayMessage("Please enter the serial number");
-            this.Field_SerialNumber.Focus();
+            this.ActiveControl = Field_SerialNumber;
         }
 
         /******************************************************************************************************
@@ -494,104 +494,119 @@ namespace ControlBoardTest
             Progress<string> message = new Progress<string>(s => this.DisplayMessage(s));
             Progress<string> log = new Progress<string>(s => this.LogMessage(s));
             
-            if (Check_FCT.Checked)
+            // We didn't successfuly connect
+            if(!this.Telnet || !this.Powered)
             {
-                if(this.Powered && this.Telnet)
-                {                   
-                    LogTestInstance();
-                    int pass = 0;
-                    int fail = 0;
-                    int total = this.Tests.Count;
-                    bool success = true;
+                // Turn off the power after the test is complete
+                Button_PowerUp_Click(null, null);
+
+                // reset GUI
+                this.Button_Run.BackColor = System.Drawing.Color.SkyBlue;
+                this.Button_Run.Text = "Start";
+
+                // Update panel settings
+                this.Panel_Settings.Enabled = true;
+                this.Panel_Actions.Enabled = true;
+                this.Panel_Status.Enabled = true;
+
+                return;
+            }
+
+
+            if (Check_FCT.Checked)
+            {               
+                LogTestInstance();
+                int pass = 0;
+                int fail = 0;
+                int total = this.Tests.Count;
+                bool success = true;
                                         
-                    foreach (TestData test in this.Tests)
+                foreach (TestData test in this.Tests)
+                {
+                    await Task.Factory.StartNew(() => (success = this.RunTest(this.TEST_ID, this.SERIAL_NUM, test, message, log)));
+
+                    if (!success)
                     {
-                        await Task.Factory.StartNew(() => (success = this.RunTest(this.TEST_ID, this.SERIAL_NUM, test, message, log)));
-
-                        if (!success)
-                        {
-                            fail++;
-                            failedTests.Add(test);
-                        }
-                        else
-                        {
-                            pass++;
-                            passedTests.Add(test);
-                        }
-                        test.SetResult(success);
-
-                        UpdateTestCount(pass, fail);
-                        this.ProgressBar.Value = ((pass + fail) * 100) / total;
+                        fail++;
+                        failedTests.Add(test);
                     }
-
-                    // Turn off the power after the test is complete
-                    Button_PowerUp_Click(null, null);
-
-                    // Show PASS/FAIL message
-                    DisplayResult(fail);    
-
-                    // Reset the serial number if we passed 
-                    if (fail == 0)
+                    else
                     {
-                        this.Field_SerialNumber.Text = "";
-                        this.Field_SerialNumber.Focus();
+                        pass++;
+                        passedTests.Add(test);
                     }
+                    test.SetResult(success);
 
-                    LogTestResult();
+                    UpdateTestCount(pass, fail);
+                    this.ProgressBar.Value = ((pass + fail) * 100) / total;
                 }
+
+                // Turn off the power after the test is complete
+                Button_PowerUp_Click(null, null);
+
+                // Show PASS/FAIL message
+                DisplayResult(fail);    
+
+                // Reset the serial number if we passed 
+                if (fail == 0)
+                {                    
+                    // Update panel settings
+                    this.Panel_Settings.Enabled = true;
+                    this.Field_SerialNumber.Text = "";
+                    this.ActiveControl = Field_SerialNumber;
+                }
+
+                LogTestResult();          
             }
             else if (Check_SingleTest.Checked)
             {
-                if(this.Powered && this.Telnet)
+                try
                 {
-                    try
+                    //Get selected test
+                    TestData TestToRun;
+                    string selectedTest = this.Dropdown_Test_List.SelectedItem.ToString();
+                    if(selectedTest != null)
                     {
-                        //Get selected test
-                        TestData TestToRun;
-                        string selectedTest = this.Dropdown_Test_List.SelectedItem.ToString();
-                        if(selectedTest != null)
+                        foreach(TestData t in this.Tests)
                         {
-                            foreach(TestData t in this.Tests)
+                            if(t.name == selectedTest)
                             {
-                                if(t.name == selectedTest)
+                                LogTestInstance();
+                                TestToRun = t;
+                                this.ProgressBar.Value = 30;
+                                bool success = true;
+
+                                await Task.Factory.StartNew(() => (success = this.RunTest(this.TEST_ID, this.SERIAL_NUM, TestToRun, message, log)));
+                                this.ProgressBar.Value = 100;
+                                LogTestResult();
+
+                                if (success)
                                 {
-                                    LogTestInstance();
-                                    TestToRun = t;
-                                    this.ProgressBar.Value = 30;
-                                    bool success = true;
-
-                                    await Task.Factory.StartNew(() => (success = this.RunTest(this.TEST_ID, this.SERIAL_NUM, TestToRun, message, log)));
-                                    this.ProgressBar.Value = 100;
-                                    LogTestResult();
-
-                                    if (success)
-                                    {
-                                        this.UpdateTestCount(1, 0);
-                                    }
-                                    else
-                                    {
-                                        this.UpdateTestCount(0, 1);
-                                    }
-
-                                    break;
+                                    this.UpdateTestCount(1, 0);
                                 }
                                 else
                                 {
-                                    //Nothing
+                                    this.UpdateTestCount(0, 1);
                                 }
+
+                                break;
+                            }
+                            else
+                            {
+                                //Nothing
                             }
                         }
+                    }
 
-                        // Enable the power button so that the user can shut off power at the end of the single tests
-                        this.Button_PowerUp.Enabled = true;
-                    }
-                    catch (Exception exc)
-                    {
-                        string errormessage = "Exception caught: " + exc.Message.ToString();
-                        MessageBox.Show(errormessage, "Exception caught", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        this.DisplayMessage(errormessage);
-                    }
+                    // Enable the power button so that the user can shut off power at the end of the single tests
+                    this.Button_PowerUp.Enabled = true;
                 }
+                catch (Exception exc)
+                {
+                    string errormessage = "Exception caught: " + exc.Message.ToString();
+                    MessageBox.Show(errormessage, "Exception caught", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    this.DisplayMessage(errormessage);
+                }            
             }
 
             // reset GUI
@@ -984,10 +999,16 @@ namespace ControlBoardTest
                 WaitForTelnetConnection(18);    // wait for HDCP to assign IP address
                 UpdateDisplayMessage("Trying to connect to " + ip);
                 success = this.FCT.ConnectToTelnet(ip, message, log);
+
+                //Let user know that the unit must be in Clinician mode or it wont connect.
+                if(!success)
+                    MessageBox.Show("Ensure that the unit is in Clinician mode (PW: 1234)", "Telnet Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                
+                //Try connecting again
                 int timeout = 10;
                 while (timeout > 0 && !success)
                 {
-                    UpdateDisplayMessage($"Wait for DHCP assigning IP: {timeout} attempts");
+                    UpdateDisplayMessage($"Attempting to connect to Telnet: {timeout} attempts");
                     timeout--;
                     success = this.FCT.ConnectToTelnet(ip, message, log);
                 }
@@ -998,18 +1019,15 @@ namespace ControlBoardTest
                 this.Telnet = true;
                 this.Button_Telnet.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(128)))), ((int)(((byte)(255)))), ((int)(((byte)(128)))));
                 UpdateButtonText("Connected");
-                UpdateDisplayMessage("Successfully connected!");
-                ExecuteTests();
+                UpdateDisplayMessage("Successfully connected!");                
             }
             else
             {
                 this.Telnet = false;
                 this.Button_Telnet.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(128)))), ((int)(((byte)(128)))));
                 UpdateButtonText("Not Connected");
-
-                //Let user know that the unit must be in Clinician mode or it wont connect.
-                MessageBox.Show("Ensure that the unit is in Clinician mode (PW: 1234)", "Telnet Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+            ExecuteTests();
         }
 
         void WaitForTelnetConnection(int timeout)
@@ -1076,6 +1094,7 @@ namespace ControlBoardTest
             this.ProgressBar.Value = 0;
             this.Check_SingleTest.Checked = !Check_FCT.Checked;
             Dropdown_Test_List.Enabled = false;
+            Dropdown_Test_List.SelectedIndex = -1;
         }
 
         /******************************************************************************************************
@@ -1091,6 +1110,7 @@ namespace ControlBoardTest
             this.ProgressBar.Value = 0;
             this.Check_FCT.Checked = !Check_SingleTest.Checked;
             Dropdown_Test_List.Enabled = true;
+            Dropdown_Test_List.SelectedIndex = 0;
         }
         
 
