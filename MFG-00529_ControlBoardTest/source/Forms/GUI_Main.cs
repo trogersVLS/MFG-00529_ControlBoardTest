@@ -204,6 +204,7 @@ namespace ControlBoardTest
             }
             this.List_PartNumbers.Enabled = false;
 
+            this.ActiveControl = Field_SerialNumber;
         }
 
         /******************************************************************************************************
@@ -273,14 +274,28 @@ namespace ControlBoardTest
             Progress<string> log = new Progress<string>(s => this.LogMessage(s));
             
 
+            // We didn't successfuly connect
+            if(!this.Telnet || !this.Powered)
+            {
+                // Turn off the power after the test is complete
+                Button_PowerUp_Click(null, null);
+
+                // reset GUI
+                this.Button_Run.BackColor = System.Drawing.Color.SkyBlue;
+                this.Button_Run.Text = "Start";
+
+                // Update panel settings
+                this.Panel_Settings.Enabled = true;
+                this.Panel_Actions.Enabled = true;
+                this.Panel_Status.Enabled = true;
+
+                return;
+            }
+
             if (this.Powered && this.Telnet)
             {
-
-
                 Task<int> LoggingTest = this.FCT.LogNewTest(this.USER_NAME, this.Field_SerialNumber.Text);
                 int test_id = await LoggingTest;
-
-
 
                 List<TestData> TestList = null;
                 //Get Test List
@@ -292,7 +307,7 @@ namespace ControlBoardTest
                 {
                     TestList = this.FCT.V_TESTS;
                 }
-
+                
                 if (Check_FCT.Checked)
                 {                
                     int pass = 0;
@@ -323,22 +338,7 @@ namespace ControlBoardTest
                             passedTests.Add(results);
                         }
                         test.SetResult(success);
-
-                        UpdateTestCount(pass, fail);
-                        this.ProgressBar.Value = ((pass + fail) * 100) / total;
-                    }
-
-                    // Turn off the power after the test is complete
-                    Button_PowerUp_Click(null, null);
-
-                    // Show PASS/FAIL message
-                    DisplayResult(fail);    
-
-                    // Reset the serial number if we passed 
-                    if (fail == 0)
-                    {
-                        this.Field_SerialNumber.Text = "";
-                        this.Field_SerialNumber.Focus();
+            
                     }
 
                     LogTestResult(this.RESULT);
@@ -348,16 +348,14 @@ namespace ControlBoardTest
                 {
    
                     try
-                    {
-                        //Get selected test
+                    {   //Get selected test
                         TestData TestToRun;
                         string selectedTest = this.Dropdown_Test_List.SelectedItem.ToString();
                         if(selectedTest != null)
                         {
                             foreach(TestData t in TestList)
                             {
-                                if(t.name == selectedTest)
-                                {
+                                
                                     //TODO: Move logging to FunctionalTest Class
                                     //LogTestInstance();
                                     TestToRun = t;
@@ -383,26 +381,22 @@ namespace ControlBoardTest
                                     }
 
                                     break;
-                                }
-                                else
-                                {
-                                    //Nothing
-                                }
+                        
                             }
+                        
                         }
 
-                        // Enable the power button so that the user can shut off power at the end of the single tests
-                        this.Button_PowerUp.Enabled = true;
+                    // Enable the power button so that the user can shut off power at the end of the single tests
+                    this.Button_PowerUp.Enabled = true;
                     }
                     catch (Exception exc)
                     {
                         string errormessage = "Exception caught: " + exc.Message.ToString();
                         MessageBox.Show(errormessage, "Exception caught", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         this.DisplayMessage(errormessage);
-                    }
+                    }            
                 }
             }
-
             // reset GUI
             this.Button_Run.BackColor = System.Drawing.Color.SkyBlue;
             this.Button_Run.Text = "Start";
@@ -779,10 +773,16 @@ namespace ControlBoardTest
                 WaitForTelnetConnection(18);    // wait for HDCP to assign IP address
                 UpdateDisplayMessage("Trying to connect to " + ip);
                 success = this.FCT.ConnectToTelnet(ip, message, log);
+
+                //Let user know that the unit must be in Clinician mode or it wont connect.
+                if(!success)
+                    MessageBox.Show("Ensure that the unit is in Clinician mode (PW: 1234)", "Telnet Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                
+                //Try connecting again
                 int timeout = 10;
                 while (timeout > 0 && !success)
                 {
-                    UpdateDisplayMessage($"Wait for DHCP assigning IP: {timeout} attempts");
+                    UpdateDisplayMessage($"Attempting to connect to Telnet: {timeout} attempts");
                     timeout--;
                     success = this.FCT.ConnectToTelnet(ip, message, log);
                 }
@@ -793,18 +793,15 @@ namespace ControlBoardTest
                 this.Telnet = true;
                 this.Button_Telnet.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(128)))), ((int)(((byte)(255)))), ((int)(((byte)(128)))));
                 UpdateButtonText("Connected");
-                UpdateDisplayMessage("Successfully connected!");
-                ExecuteTests();
+                UpdateDisplayMessage("Successfully connected!");                
             }
             else
             {
                 this.Telnet = false;
                 this.Button_Telnet.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(128)))), ((int)(((byte)(128)))));
                 UpdateButtonText("Not Connected");
-
-                //Let user know that the unit must be in Clinician mode or it wont connect.
-                MessageBox.Show("Ensure that the unit is in Clinician mode (PW: 1234)", "Telnet Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+            ExecuteTests();
         }
 
         private void WaitForTelnetConnection(int timeout)
@@ -871,6 +868,7 @@ namespace ControlBoardTest
             this.ProgressBar.Value = 0;
             this.Check_SingleTest.Checked = !Check_FCT.Checked;
             Dropdown_Test_List.Enabled = false;
+            Dropdown_Test_List.SelectedIndex = -1;
         }
 
         /******************************************************************************************************
@@ -900,6 +898,7 @@ namespace ControlBoardTest
                     this.Dropdown_Test_List.Items.Add(test.name);
                 }
             }
+            Dropdown_Test_List.SelectedIndex = 0;
         }
         
 

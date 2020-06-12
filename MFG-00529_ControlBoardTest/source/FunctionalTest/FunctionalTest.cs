@@ -189,8 +189,8 @@ namespace ControlBoardTest
             }
             else
             {
-                message.Report("Connection failed!");
-                this.Vent = null;
+                DisconnectTelnet();
+                message.Report("Connection failed!");                
             }
 
             return success;
@@ -205,6 +205,7 @@ namespace ControlBoardTest
                 {
                     this.Vent.Disconnect();
                     this.Vent.Connected = false;
+
                 }
             }
             catch
