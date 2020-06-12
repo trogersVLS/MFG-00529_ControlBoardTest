@@ -48,6 +48,8 @@
             this.Panel_Settings = new System.Windows.Forms.FlowLayoutPanel();
             this.label1 = new System.Windows.Forms.Label();
             this.Field_SerialNumber = new System.Windows.Forms.TextBox();
+            this.PN_Label = new System.Windows.Forms.Label();
+            this.List_PartNumbers = new System.Windows.Forms.ComboBox();
             this.label2 = new System.Windows.Forms.Label();
             this.Check_FCT = new System.Windows.Forms.CheckBox();
             this.Check_SingleTest = new System.Windows.Forms.CheckBox();
@@ -55,11 +57,12 @@
             this.MenuBar = new System.Windows.Forms.MainMenu(this.components);
             this.Menu_Settings = new System.Windows.Forms.MenuItem();
             this.Settings_LoggingLabel = new System.Windows.Forms.MenuItem();
+            this.menuItem1 = new System.Windows.Forms.MenuItem();
             this.Menu_About = new System.Windows.Forms.MenuItem();
             this.About_VersionLabel = new System.Windows.Forms.MenuItem();
             this.StatusBar = new System.Windows.Forms.StatusStrip();
             this.Status_LocLabel = new System.Windows.Forms.ToolStripStatusLabel();
-            this.Status_LocTag = new System.Windows.Forms.ToolStripStatusLabel();
+            this.Status_LocationTag = new System.Windows.Forms.ToolStripStatusLabel();
             this.Status_ToolLabel = new System.Windows.Forms.ToolStripStatusLabel();
             this.Status_ToolTag = new System.Windows.Forms.ToolStripStatusLabel();
             this.Status_UserLabel = new System.Windows.Forms.ToolStripStatusLabel();
@@ -83,7 +86,7 @@
             this.MainPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.MainPanel.Location = new System.Drawing.Point(0, 0);
             this.MainPanel.Name = "MainPanel";
-            this.MainPanel.Size = new System.Drawing.Size(629, 509);
+            this.MainPanel.Size = new System.Drawing.Size(619, 510);
             this.MainPanel.TabIndex = 31;
             // 
             // Panel_Status
@@ -97,19 +100,20 @@
             this.Panel_Status.Controls.Add(this.label6);
             this.Panel_Status.Controls.Add(this.label5);
             this.Panel_Status.Controls.Add(this.label4);
-            this.Panel_Status.Location = new System.Drawing.Point(418, 114);
+            this.Panel_Status.Location = new System.Drawing.Point(395, 91);
             this.Panel_Status.Margin = new System.Windows.Forms.Padding(1);
             this.Panel_Status.Name = "Panel_Status";
-            this.Panel_Status.Size = new System.Drawing.Size(199, 165);
-            this.Panel_Status.TabIndex = 31;
+            this.Panel_Status.Size = new System.Drawing.Size(212, 188);
+            this.Panel_Status.TabIndex = 2;
             // 
             // Button_PowerUp
             // 
+            this.Button_PowerUp.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.Button_PowerUp.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(128)))), ((int)(((byte)(128)))));
             this.Button_PowerUp.Enabled = false;
             this.Button_PowerUp.FlatAppearance.BorderSize = 0;
             this.Button_PowerUp.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.Button_PowerUp.Location = new System.Drawing.Point(84, 6);
+            this.Button_PowerUp.Location = new System.Drawing.Point(97, 6);
             this.Button_PowerUp.Margin = new System.Windows.Forms.Padding(1);
             this.Button_PowerUp.Name = "Button_PowerUp";
             this.Button_PowerUp.Size = new System.Drawing.Size(105, 38);
@@ -120,11 +124,12 @@
             // 
             // Button_Telnet
             // 
+            this.Button_Telnet.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.Button_Telnet.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(128)))), ((int)(((byte)(128)))));
             this.Button_Telnet.Enabled = false;
             this.Button_Telnet.FlatAppearance.BorderSize = 0;
             this.Button_Telnet.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.Button_Telnet.Location = new System.Drawing.Point(84, 46);
+            this.Button_Telnet.Location = new System.Drawing.Point(97, 46);
             this.Button_Telnet.Margin = new System.Windows.Forms.Padding(1);
             this.Button_Telnet.Name = "Button_Telnet";
             this.Button_Telnet.Size = new System.Drawing.Size(105, 37);
@@ -134,10 +139,11 @@
             // 
             // PassCountIndicator
             // 
+            this.PassCountIndicator.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.PassCountIndicator.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(192)))), ((int)(((byte)(0)))));
             this.PassCountIndicator.Enabled = false;
             this.PassCountIndicator.Font = new System.Drawing.Font("Consolas", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.PassCountIndicator.Location = new System.Drawing.Point(84, 86);
+            this.PassCountIndicator.Location = new System.Drawing.Point(97, 86);
             this.PassCountIndicator.Name = "PassCountIndicator";
             this.PassCountIndicator.Size = new System.Drawing.Size(105, 37);
             this.PassCountIndicator.TabIndex = 2;
@@ -148,18 +154,20 @@
             // label3
             // 
             this.label3.AutoSize = true;
+            this.label3.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label3.Location = new System.Drawing.Point(7, 18);
             this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(73, 13);
+            this.label3.Size = new System.Drawing.Size(86, 13);
             this.label3.TabIndex = 33;
             this.label3.Text = "Power Status:";
             this.label3.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             // 
             // FailCountIndicator
             // 
+            this.FailCountIndicator.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.FailCountIndicator.BackColor = System.Drawing.Color.DarkGray;
             this.FailCountIndicator.Font = new System.Drawing.Font("Consolas", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.FailCountIndicator.Location = new System.Drawing.Point(84, 126);
+            this.FailCountIndicator.Location = new System.Drawing.Point(97, 126);
             this.FailCountIndicator.Name = "FailCountIndicator";
             this.FailCountIndicator.Size = new System.Drawing.Size(105, 37);
             this.FailCountIndicator.TabIndex = 3;
@@ -170,9 +178,10 @@
             // label6
             // 
             this.label6.AutoSize = true;
+            this.label6.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label6.Location = new System.Drawing.Point(13, 138);
             this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(67, 13);
+            this.label6.Size = new System.Drawing.Size(80, 13);
             this.label6.TabIndex = 36;
             this.label6.Text = "Failed Tests:";
             this.label6.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
@@ -180,9 +189,10 @@
             // label5
             // 
             this.label5.AutoSize = true;
+            this.label5.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label5.Location = new System.Drawing.Point(6, 98);
             this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(74, 13);
+            this.label5.Size = new System.Drawing.Size(87, 13);
             this.label5.TabIndex = 35;
             this.label5.Text = "Passed Tests:";
             this.label5.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
@@ -190,9 +200,10 @@
             // label4
             // 
             this.label4.AutoSize = true;
+            this.label4.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label4.Location = new System.Drawing.Point(7, 58);
             this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(73, 13);
+            this.label4.Size = new System.Drawing.Size(87, 13);
             this.label4.TabIndex = 34;
             this.label4.Text = "Telnet Status:";
             this.label4.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
@@ -201,10 +212,10 @@
             // 
             this.Panel_Actions.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.Panel_Actions.Controls.Add(this.Button_Run);
-            this.Panel_Actions.Location = new System.Drawing.Point(268, 114);
+            this.Panel_Actions.Location = new System.Drawing.Point(269, 91);
             this.Panel_Actions.Margin = new System.Windows.Forms.Padding(1);
             this.Panel_Actions.Name = "Panel_Actions";
-            this.Panel_Actions.Size = new System.Drawing.Size(148, 165);
+            this.Panel_Actions.Size = new System.Drawing.Size(124, 188);
             this.Panel_Actions.TabIndex = 30;
             // 
             // Button_Run
@@ -214,9 +225,9 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.Button_Run.BackColor = System.Drawing.Color.SkyBlue;
             this.Button_Run.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.Button_Run.Location = new System.Drawing.Point(3, 6);
+            this.Button_Run.Location = new System.Drawing.Point(0, 0);
             this.Button_Run.Name = "Button_Run";
-            this.Button_Run.Size = new System.Drawing.Size(142, 157);
+            this.Button_Run.Size = new System.Drawing.Size(122, 188);
             this.Button_Run.TabIndex = 1;
             this.Button_Run.Text = "Start";
             this.Button_Run.UseVisualStyleBackColor = false;
@@ -230,7 +241,7 @@
             this.Output_Window.Location = new System.Drawing.Point(12, 316);
             this.Output_Window.Name = "Output_Window";
             this.Output_Window.ReadOnly = true;
-            this.Output_Window.Size = new System.Drawing.Size(605, 190);
+            this.Output_Window.Size = new System.Drawing.Size(596, 191);
             this.Output_Window.TabIndex = 9;
             this.Output_Window.Text = "";
             this.Output_Window.TextChanged += new System.EventHandler(this.Output_Window_TextChanged);
@@ -241,7 +252,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.ProgressBar.Location = new System.Drawing.Point(12, 283);
             this.ProgressBar.Name = "ProgressBar";
-            this.ProgressBar.Size = new System.Drawing.Size(605, 27);
+            this.ProgressBar.Size = new System.Drawing.Size(595, 27);
             this.ProgressBar.Style = System.Windows.Forms.ProgressBarStyle.Continuous;
             this.ProgressBar.TabIndex = 12;
             // 
@@ -255,7 +266,7 @@
             this.Logo_VLS.Location = new System.Drawing.Point(12, 9);
             this.Logo_VLS.Margin = new System.Windows.Forms.Padding(0);
             this.Logo_VLS.Name = "Logo_VLS";
-            this.Logo_VLS.Size = new System.Drawing.Size(605, 94);
+            this.Logo_VLS.Size = new System.Drawing.Size(595, 76);
             this.Logo_VLS.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.Logo_VLS.TabIndex = 26;
             this.Logo_VLS.TabStop = false;
@@ -264,24 +275,27 @@
             // 
             this.Panel_Settings.Controls.Add(this.label1);
             this.Panel_Settings.Controls.Add(this.Field_SerialNumber);
+            this.Panel_Settings.Controls.Add(this.PN_Label);
+            this.Panel_Settings.Controls.Add(this.List_PartNumbers);
             this.Panel_Settings.Controls.Add(this.label2);
             this.Panel_Settings.Controls.Add(this.Check_FCT);
             this.Panel_Settings.Controls.Add(this.Check_SingleTest);
             this.Panel_Settings.Controls.Add(this.Dropdown_Test_List);
             this.Panel_Settings.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
-            this.Panel_Settings.Location = new System.Drawing.Point(12, 114);
+            this.Panel_Settings.Location = new System.Drawing.Point(12, 91);
             this.Panel_Settings.Margin = new System.Windows.Forms.Padding(1);
             this.Panel_Settings.Name = "Panel_Settings";
-            this.Panel_Settings.Size = new System.Drawing.Size(253, 165);
-            this.Panel_Settings.TabIndex = 29;
+            this.Panel_Settings.Size = new System.Drawing.Size(253, 188);
+            this.Panel_Settings.TabIndex = 0;
             // 
             // label1
             // 
             this.label1.AutoSize = true;
+            this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label1.Location = new System.Drawing.Point(3, 5);
             this.label1.Margin = new System.Windows.Forms.Padding(3, 5, 3, 3);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(76, 13);
+            this.label1.Size = new System.Drawing.Size(90, 13);
             this.label1.TabIndex = 33;
             this.label1.Text = "Serial Number:";
             // 
@@ -296,24 +310,49 @@
             this.Field_SerialNumber.TextChanged += new System.EventHandler(this.Field_SerialNumber_TextChanged);
             this.Field_SerialNumber.KeyUp += new System.Windows.Forms.KeyEventHandler(this.Field_SerialNumber_KeyUp);
             // 
+            // PN_Label
+            // 
+            this.PN_Label.AutoSize = true;
+            this.PN_Label.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.PN_Label.Location = new System.Drawing.Point(1, 47);
+            this.PN_Label.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
+            this.PN_Label.Name = "PN_Label";
+            this.PN_Label.Size = new System.Drawing.Size(77, 13);
+            this.PN_Label.TabIndex = 34;
+            this.PN_Label.Text = "Part Number";
+            // 
+            // List_PartNumbers
+            // 
+            this.List_PartNumbers.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.List_PartNumbers.FormattingEnabled = true;
+            this.List_PartNumbers.Location = new System.Drawing.Point(3, 63);
+            this.List_PartNumbers.Name = "List_PartNumbers";
+            this.List_PartNumbers.Size = new System.Drawing.Size(246, 21);
+            this.List_PartNumbers.TabIndex = 1;
+            this.List_PartNumbers.SelectedValueChanged += new System.EventHandler(this.List_PartNumbers_SelectedIndexChanged);
+            // 
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(3, 52);
+            this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label2.Location = new System.Drawing.Point(3, 92);
             this.label2.Margin = new System.Windows.Forms.Padding(3, 5, 3, 3);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(113, 13);
+            this.label2.Size = new System.Drawing.Size(134, 13);
             this.label2.TabIndex = 33;
             this.label2.Text = "Functional Test Mode:";
             // 
             // Check_FCT
             // 
             this.Check_FCT.AutoSize = true;
-            this.Check_FCT.Location = new System.Drawing.Point(15, 71);
+            this.Check_FCT.Checked = true;
+            this.Check_FCT.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.Check_FCT.Enabled = false;
+            this.Check_FCT.Location = new System.Drawing.Point(15, 111);
             this.Check_FCT.Margin = new System.Windows.Forms.Padding(15, 3, 3, 3);
             this.Check_FCT.Name = "Check_FCT";
             this.Check_FCT.Size = new System.Drawing.Size(66, 17);
-            this.Check_FCT.TabIndex = 7;
+            this.Check_FCT.TabIndex = 2;
             this.Check_FCT.Text = "Full Test";
             this.Check_FCT.UseVisualStyleBackColor = true;
             this.Check_FCT.CheckedChanged += new System.EventHandler(this.Check_Functional_CheckedChanged);
@@ -321,11 +360,12 @@
             // Check_SingleTest
             // 
             this.Check_SingleTest.AutoSize = true;
-            this.Check_SingleTest.Location = new System.Drawing.Point(15, 94);
+            this.Check_SingleTest.Enabled = false;
+            this.Check_SingleTest.Location = new System.Drawing.Point(15, 134);
             this.Check_SingleTest.Margin = new System.Windows.Forms.Padding(15, 3, 3, 3);
             this.Check_SingleTest.Name = "Check_SingleTest";
             this.Check_SingleTest.Size = new System.Drawing.Size(79, 17);
-            this.Check_SingleTest.TabIndex = 13;
+            this.Check_SingleTest.TabIndex = 3;
             this.Check_SingleTest.Text = "Single Test";
             this.Check_SingleTest.UseVisualStyleBackColor = true;
             this.Check_SingleTest.CheckedChanged += new System.EventHandler(this.Check_SingleTest_CheckedChanged);
@@ -334,14 +374,15 @@
             // 
             this.Dropdown_Test_List.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.Dropdown_Test_List.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.Dropdown_Test_List.Enabled = false;
             this.Dropdown_Test_List.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Dropdown_Test_List.FormattingEnabled = true;
-            this.Dropdown_Test_List.Location = new System.Drawing.Point(15, 117);
+            this.Dropdown_Test_List.Location = new System.Drawing.Point(15, 157);
             this.Dropdown_Test_List.Margin = new System.Windows.Forms.Padding(15, 3, 3, 3);
             this.Dropdown_Test_List.Name = "Dropdown_Test_List";
             this.Dropdown_Test_List.Size = new System.Drawing.Size(234, 22);
-            this.Dropdown_Test_List.TabIndex = 15;
+            this.Dropdown_Test_List.TabIndex = 4;
             this.Dropdown_Test_List.SelectedIndexChanged += new System.EventHandler(this.Dropdown_Test_List_SelectedIndexChanged);
             // 
             // MenuBar
@@ -354,7 +395,8 @@
             // 
             this.Menu_Settings.Index = 0;
             this.Menu_Settings.MenuItems.AddRange(new System.Windows.Forms.MenuItem[] {
-            this.Settings_LoggingLabel});
+            this.Settings_LoggingLabel,
+            this.menuItem1});
             this.Menu_Settings.Text = "Settings";
             // 
             // Settings_LoggingLabel
@@ -364,6 +406,11 @@
             this.Settings_LoggingLabel.RadioCheck = true;
             this.Settings_LoggingLabel.Text = "Log to database";
             this.Settings_LoggingLabel.Click += new System.EventHandler(this.Logging_Click);
+            // 
+            // menuItem1
+            // 
+            this.menuItem1.Index = 1;
+            this.menuItem1.Text = "Configuration";
             // 
             // Menu_About
             // 
@@ -383,15 +430,15 @@
             this.StatusBar.ImageScalingSize = new System.Drawing.Size(40, 40);
             this.StatusBar.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.Status_LocLabel,
-            this.Status_LocTag,
+            this.Status_LocationTag,
             this.Status_ToolLabel,
             this.Status_ToolTag,
             this.Status_UserLabel,
             this.Status_UserTag});
-            this.StatusBar.Location = new System.Drawing.Point(0, 509);
+            this.StatusBar.Location = new System.Drawing.Point(0, 510);
             this.StatusBar.Name = "StatusBar";
             this.StatusBar.Padding = new System.Windows.Forms.Padding(0, 0, 5, 0);
-            this.StatusBar.Size = new System.Drawing.Size(629, 22);
+            this.StatusBar.Size = new System.Drawing.Size(619, 22);
             this.StatusBar.TabIndex = 27;
             this.StatusBar.Text = "StatusStrip";
             // 
@@ -402,11 +449,11 @@
             this.Status_LocLabel.Size = new System.Drawing.Size(57, 17);
             this.Status_LocLabel.Text = "Location:";
             // 
-            // Status_LocTag
+            // Status_LocationTag
             // 
-            this.Status_LocTag.Name = "Status_LocTag";
-            this.Status_LocTag.Size = new System.Drawing.Size(66, 17);
-            this.Status_LocTag.Text = "<location>";
+            this.Status_LocationTag.Name = "Status_LocationTag";
+            this.Status_LocationTag.Size = new System.Drawing.Size(66, 17);
+            this.Status_LocationTag.Text = "<location>";
             // 
             // Status_ToolLabel
             // 
@@ -441,12 +488,12 @@
             this.AutoSize = true;
             this.BackColor = System.Drawing.Color.Gainsboro;
             this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
-            this.ClientSize = new System.Drawing.Size(629, 531);
+            this.ClientSize = new System.Drawing.Size(619, 532);
             this.Controls.Add(this.MainPanel);
             this.Controls.Add(this.StatusBar);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Menu = this.MenuBar;
-            this.MinimumSize = new System.Drawing.Size(645, 570);
+            this.MinimumSize = new System.Drawing.Size(575, 336);
             this.Name = "MainForm";
             this.RightToLeft = System.Windows.Forms.RightToLeft.No;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
@@ -486,7 +533,7 @@
         private System.Windows.Forms.FlowLayoutPanel Panel_Settings;
 
         private System.Windows.Forms.ToolStripStatusLabel Status_LocLabel;
-        private System.Windows.Forms.ToolStripStatusLabel Status_LocTag;
+        private System.Windows.Forms.ToolStripStatusLabel Status_LocationTag;
         private System.Windows.Forms.ToolStripStatusLabel Status_UserLabel;
         private System.Windows.Forms.ToolStripStatusLabel Status_UserTag;
         private System.Windows.Forms.ToolStripStatusLabel Status_ToolLabel;
@@ -504,6 +551,9 @@
         private System.Windows.Forms.Button Button_PowerUp;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Panel Panel_Actions;
+        private System.Windows.Forms.ComboBox List_PartNumbers;
+        private System.Windows.Forms.Label PN_Label;
+        private System.Windows.Forms.MenuItem menuItem1;
     }
 }
 

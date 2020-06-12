@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace mfg_527.Forms {
+namespace mfg_527.source.Forms {
     using System;
     
     
@@ -19,7 +19,7 @@ namespace mfg_527.Forms {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "16.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class final_result {
@@ -39,7 +39,7 @@ namespace mfg_527.Forms {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("mfg_527.Forms.final_result", typeof(final_result).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("mfg_527.source.Forms.final_result", typeof(final_result).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;

@@ -20,6 +20,7 @@ using VLS;
 using System.IO;
 using MccDaq;
 using System.Diagnostics;
+using System.Configuration;
 
 namespace ControlBoardTest
 {
@@ -28,8 +29,11 @@ namespace ControlBoardTest
         [STAThread]
         static void Main()
         {
+            //On startup, check to make sure everything is where it is supposed to be.
+            //Settings file location
+
+            //File.Delete(@"C:\Users\trogers\AppData\Local\VLS\MFG-00529\config.json");
             //int ms = 500;
-            GUIConsoleWriter log_console = new GUIConsoleWriter();
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
@@ -41,15 +45,13 @@ namespace ControlBoardTest
             //TestUSBSwitch(ms, 3);
             //TestTelemetry(log_console);
             //TestGPIO();
-
-
             //TestPPS();
-
             //TestFCT();
 
+            FileManager.ProgramInit();
+            List<string> part_numbers = new List<string>(new string[] { "VOCSN_PRO", "V_PRO" }); //This shouldn't be here, but I don't have time to do anything different.
 
-
-            Application.Run(new MainForm(log_console));
+            Application.Run(new MainForm(part_numbers));
 
 
         }
@@ -68,7 +70,7 @@ namespace ControlBoardTest
 
 
             gpio.SetBit(GPIO_Defs.VFAN_MEAS_EN.port, GPIO_Defs.VFAN_MEAS_EN.pin);
-           var ok =  MessageBox.Show("Press OK", "ello");
+            var ok =  MessageBox.Show("Press OK", "Hello");
             gpio.ClearBit(GPIO_Defs.VFAN_MEAS_EN.port, GPIO_Defs.VFAN_MEAS_EN.pin);
             Application.Exit();
 
@@ -95,7 +97,7 @@ namespace ControlBoardTest
         }
         private static void TestPPS()
         {
-            Test_Equip pps = new Test_Equip("HEWLETT", "RS232", 1200, 2, "COM7");
+            Test_Equip pps = new Test_Equip("HEWLETT", 1200, 2, "COM7");
             pps.Connect();
 
             pps.PPS_Init();

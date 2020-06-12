@@ -7,7 +7,7 @@
  * Date: 10/23/2019
  * 
  */
-using GPIO;
+
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -19,13 +19,14 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml;
 using VLS;
-using System.Data.SQLite;
+//using System.Data.SQLite;
 using System.Linq;
 using System.Diagnostics;
-
-
-
-
+using GPIO;
+using System.Configuration;
+using System.Text.Json;
+using System.Security;
+//using System.Data.Entity;
 
 namespace ControlBoardTest
 {
@@ -39,16 +40,13 @@ namespace ControlBoardTest
                                   Assembly.GetExecutingAssembly().GetName().Version.Minor.ToString();
                                     //+ "." + Assembly.GetExecutingAssembly().GetName().Version.Build.ToString();
 
-        //Non designer GUI components
-        GUIConsoleWriter ConsoleLog;
-
         //Database variables
-        SQLiteConnection DB_CON;
+        //SQLiteConnection DB_CON;
         string DB_FILEPATH;
 
         //Test Instance Variables
         long TEST_ID;
-        string TEST_LOCATION;
+        string LOCATION;
         string EQID;
         string MFG_CODE;
         string SERIAL_NUM;
@@ -58,15 +56,11 @@ namespace ControlBoardTest
         private bool Powered = false;
         private bool Telnet = false;
         SynchronizationContext synchronizationContext;
-        //DHCP Vars
-        //bool DHCP_ENABLED = false;
-        //string DHCP_START=null;
-        //string DHCP_END;
+                                                                     
 
+        
         List<TestData> Tests= new List<TestData>();
-        List<TestData> Programming_Steps = new List<TestData>();
         List<TestData> Startup_Steps = new List<TestData>();
-        List<TestData> PowerDown_Steps = new List<TestData>();
 
       
         //Test Equipment
@@ -84,26 +78,20 @@ namespace ControlBoardTest
 
         Stopwatch stopwatch = new Stopwatch();
 
-        public MainForm(GUIConsoleWriter logConsole = null)
+        public MainForm(List<string> part_numbers)
         {
-            this.ConsoleLog = logConsole;
+           
             //Initialize the GUI components
             InitializeComponent();
             this.Text += " v" + this.VERSION;
             synchronizationContext = SynchronizationContext.Current;
             //Initialize program settings from configuration file
             this.InitSettings();
-
             //Initialize GUI settings
-            this.InitGUI();
+            this.InitGUI(part_numbers);
 
             
         }
-
- 
-
-
-
         /* *********************************************************************
          * Message Functions
          * 
@@ -137,160 +125,29 @@ namespace ControlBoardTest
         private void InitSettings()
         {
             //Don't need config file for GPIO module
-            this.GPIO = new MccDaq_GPIO();
+            //this.GPIO = new MccDaq_GPIO();
 
-            //All installation specific settings stored in settings.xml
-            XmlDocument configuration = new XmlDocument();
-            configuration.Load(@".\Configuration\settings.xml");
+            // Open the config files
+            string json_config = File.ReadAllText(Environment.ExpandEnvironmentVariables(ConfigurationManager.AppSettings["CONFIG"]));
 
-            foreach(XmlNode xml in configuration.DocumentElement.ChildNodes)
-            {
-                if(xml.Name == "Installation")
-                {
-                    try
-                    {
-                        this.EQID = xml.Attributes["EQID"].Value;
-                        this.TEST_LOCATION = xml.Attributes["Location"].Value;
-                        this.MFG_CODE = xml.Attributes["MFG_CODE"].Value;
-                        this.DB_FILEPATH = xml.Attributes["DatabasePath"].Value;
-                        this.DB_CON = new SQLiteConnection("Data Source=" + this.DB_FILEPATH + ";Version=3");
-                        //this.DHCP_ENABLED = bool.Parse(xml.Attributes["DHCP_Enable"].Value);
-                        //this.DHCP_START = xml.Attributes["DHCP_Start"].Value; 
-                        //this.DHCP_END = xml.Attributes["DHCP_End"].Value;
-                    }
-                    catch (Exception e)
-                    {
-                        MessageBox.Show("Program has encountered an error in the configuration file\n\rERROR: " + e.Message, "Configuration");
-                        throw e;
-                    }
-                }
+            Data config = JsonSerializer.Deserialize<Data>(json_config);
 
-                else if (xml.Name == "EquipAddr")
-                {   
-                    foreach(XmlNode x in xml)
-                    {
-                        if(x.Name == "DMM")
-                        {
-                            try
-                            {
-                                string protocol = x.Attributes["protocol"].Value;
-                                string name = x.Attributes["name"].Value;
-                                string AddrDMM = x.Attributes["address"].Value;
-                                int BaudRate = int.Parse(x.Attributes["baudrate"].Value);
-                                int StopBits = int.Parse(x.Attributes["stopbits"].Value);
+            //User
+            this.USER_NAME = System.Security.Principal.WindowsIdentity.GetCurrent().Name;
+            this.Status_UserTag.Text = this.USER_NAME;
+            //Location
+            this.LOCATION = config.settings.app_settings.location;
+            this.Status_LocationTag.Text = this.LOCATION;
 
-                                this.DMM = new Test_Equip(name, protocol, BaudRate, StopBits, AddrDMM);
-                            }
-                            catch (Exception e)
-                            {
-                                MessageBox.Show("Program has encountered an error in the configuration file\n\rERROR: " + e.Message, "Configuration");
-                                throw e;
-                            }
-                        }
-                        else if (x.Name == "PPS")
-                        {
-                            try
-                            {
-                                string protocol = x.Attributes["protocol"].Value;
-                                string name = x.Attributes["name"].Value;
-                                string AddrPPS = x.Attributes["address"].Value;
-                                int BaudRate = int.Parse(x.Attributes["baudrate"].Value);
-                                int StopBits = int.Parse(x.Attributes["stopbits"].Value);
+            //Tool ID
+            this.EQID = config.settings.app_settings.eqid;
+            this.Status_ToolTag.Text = this.EQID;
 
-                                this.PPS = new Test_Equip(name, protocol, BaudRate, StopBits, AddrPPS);
-                            }
-                            catch (Exception e)
-                            {
-                                MessageBox.Show("Program has encountered an error in the configuration file\n\rERROR: " + e.Message, "Configuration");
-                                throw e;
-                            }
-                        }
-                        else if (x.Name == "SOM")
-                        {
-                            try
-                            {
-                                string protocol = x.Attributes["protocol"].Value;
-                                string name = x.Attributes["name"].Value;
-                                string AddrSOM = x.Attributes["address"].Value;
-                                //int BaudRate = int.Parse(x.Attributes["baudrate"].Value);
-                                //int StopBits = int.Parse(x.Attributes["stopbits"].Value);
-
-                                this.SOM = new VOCSN_Serial(AddrSOM);
-                            }
-                            catch (Exception e)
-                            {
-                                MessageBox.Show("Program has encountered an error in the configuration file\n\rERROR: " + e.Message, "Configuration");
-                                throw e;
-                            }
-                        }
-                    }
-                }
-                
-                else if(xml.Name == "programming")
-                {
-                    try
-                    {
-                        XmlNode ProgramTestNames = xml;
-                        this.Programming_Steps = this.Match_MethodsToTests(ProgramTestNames);
-                    }
-                    catch (Exception e)
-                    {
-                        MessageBox.Show("Program has encountered an error in the configuration file\n\rERROR: " + e.Message, "Configuration");
-                        throw e;
-                    }
-
-                }
-                else if(xml.Name == "startup")
-                {
-                    try
-                    {
-                        XmlNode StartupTestNames = xml;
-                        this.Startup_Steps = this.Match_MethodsToTests(StartupTestNames);
-                    }
-                    catch (Exception e)
-                    {
-                        MessageBox.Show("Program has encountered an error in the configuration file\n\rERROR: " + e.Message, "Configuration");
-                        throw e;
-                    }
-                }
-                else if (xml.Name == "powerdown")
-                {
-                    try
-                    {
-                        XmlNode PowerDownTestNames = xml;
-                        this.PowerDown_Steps = this.Match_MethodsToTests(PowerDownTestNames);
-                    }
-                    catch (Exception e)
-                    {
-                        MessageBox.Show("Program has encountered an error in the configuration file\n\rERROR: " + e.Message, "Configuration");
-                        throw e;
-                    }
-                }
-                else if (xml.Name == "tests")
-                {
-                    try
-                    {
-                        XmlNode TestNames = xml;
-                        this.Tests = this.Match_MethodsToTests(TestNames);
-                        foreach (TestData test in this.Tests)
-                        {
-                            this.Dropdown_Test_List.Items.Add(test.name);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        MessageBox.Show("Program has encountered an error in the configuration file\n\rERROR: " + e.Message, "Configuration");
-                        throw e;
-                    }
-
-                }
-
-            }
-
-            this.DatabaseExist();
+            //MFG Code
+            this.MFG_CODE = config.settings.app_settings.mfg_code;
 
             //Initialize the functional test class object
-            this.FCT = new FunctionalTest(this.GPIO, this.DMM, this.PPS, this.SOM, this.VENT);
+            this.FCT = new FunctionalTest();
 
             return;
         }
@@ -307,44 +164,7 @@ namespace ControlBoardTest
          * Returns: None - Update the class variable Tests
          *
          *********************************************************************************************************************************************/
-        private List<TestData> Match_MethodsToTests(XmlNode TestNodes)
-        {
-            //Get list of methods in this class
-            FunctionalTest test = new FunctionalTest();
-            MethodInfo[] methods = test.GetType().GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-
-            int step_num = 0;
-            //Iterate through each xml node to find the matching function and create a list.
-
-            List<TestData> Tests = new List<TestData>();
-            foreach (XmlNode x in TestNodes.ChildNodes)
-            {   if (x.NodeType != XmlNodeType.Comment)
-                {
-                    foreach (MethodInfo method in methods)
-                    {
-                        if (method.Name == x.Attributes["method_name"].Value)
-                        {
-                            int step = step_num;
-                            string name = x.Attributes["name"].Value;
-                            string method_name = x.Attributes["method_name"].Value;
-                            Dictionary<string, string> parameters = new Dictionary<string, string>();
-                            for (int i = 0; i < x.Attributes.Count; i++)
-                            {
-                                parameters.Add(x.Attributes[i].Name, x.Attributes[i].Value);
-                            }
-
-                            TestData test_step = new TestData(step, name, method_name, method, parameters);
-
-                            Tests.Add(test_step);
-                            step_num++;
-                            break;
-                        }
-                    }
-                }
-
-            }
-            return Tests;
-        }
+        
 
 
         /*****************************************************************************************************************************************
@@ -353,10 +173,10 @@ namespace ControlBoardTest
          * Function: Initialize all GUI components to their initial settings
          *
          *********************************************************************************************************************************************/
-         private void InitGUI()
+         private void InitGUI(List<string> part_numbers)
         {
             // Update status bar values
-            this.Status_LocTag.Text = this.TEST_LOCATION;
+            this.Status_LocationTag.Text = this.LOCATION;
             this.Status_ToolTag.Text = this.EQID;
                         
             this.Status_UserTag.Text = USER_NAME;
@@ -375,6 +195,15 @@ namespace ControlBoardTest
 
             this.DisplayMessage("Please enter the serial number");
             this.Field_SerialNumber.Focus();
+
+            //Fill in the Part number box.
+
+            foreach(string part in part_numbers)
+            {
+                this.List_PartNumbers.Items.Add(part);
+            }
+            this.List_PartNumbers.Enabled = false;
+
         }
 
         /******************************************************************************************************
@@ -391,58 +220,7 @@ namespace ControlBoardTest
          * This function will wait until the task finishes before exiting. // Not sure if that is a good thing or not yet
          * 
          * ****************************************************************************************************/
-        private bool RunTest(long TEST_ID, string SERIAL, TestData test, IProgress<string> message, IProgress<string> log)
-        {
-            bool success = false;
-            
-            var param = new object[] { message, log, test};
-           
-
-            try
-            {
-                
-                message.Report("\nStarting test: " + test.name);
-                //log.Report("Starting test: " + test.method_name);
-
-                //Invoke the test function --> Each test will fill the parameters table to measured
-                success = (bool)test.testinfo.Invoke(this.FCT, param);
-
-                
-            }
-            catch(Exception e)
-            {
-                var error = e.InnerException.Message;
-                
-                test.parameters["measured"] = "ERROR";
-                string errormessage = "Exception caught: " + error + "\n\rThe following test failed: " + test.name;
-
-                log.Report(error);
-
-
-                MessageBox.Show(errormessage, "Exception caught", MessageBoxButtons.OK, MessageBoxIcon.Error);
-
-            }
-            this.GPIO.ClearAllButPower();
-            message.Report("Clear GPIO ...");
-            test.SetResult(success);
-
-            if (success)
-            {
-                //message.Report(test.name + ": PASS");
-
-            }
-            else
-            {
-                //message.Report(test.name + ": FAIL");
-                success = false;
-            }
-
-            LogResults(test, SERIAL, TEST_ID);
-            
-
-
-            return success;
-        }
+        
         /******************************************************************************************************
          * Button_Run_Click(): event handler for run test button click. 
          * 
@@ -494,29 +272,55 @@ namespace ControlBoardTest
             Progress<string> message = new Progress<string>(s => this.DisplayMessage(s));
             Progress<string> log = new Progress<string>(s => this.LogMessage(s));
             
-            if (Check_FCT.Checked)
+
+            if (this.Powered && this.Telnet)
             {
-                if(this.Powered && this.Telnet)
-                {                   
-                    LogTestInstance();
+
+
+                Task<int> LoggingTest = this.FCT.LogNewTest(this.USER_NAME, this.Field_SerialNumber.Text);
+                int test_id = await LoggingTest;
+
+
+
+                List<TestData> TestList = null;
+                //Get Test List
+                if (this.List_PartNumbers.SelectedItem.ToString() == "VOCSN_PRO")
+                {
+                    TestList = this.FCT.VOCSN_TESTS;
+                }
+                else if (this.List_PartNumbers.SelectedItem.ToString() == "V_PRO")
+                {
+                    TestList = this.FCT.V_TESTS;
+                }
+
+                if (Check_FCT.Checked)
+                {                
                     int pass = 0;
                     int fail = 0;
                     int total = this.Tests.Count;
                     bool success = true;
                                         
-                    foreach (TestData test in this.Tests)
+                    foreach (TestData test in TestList)
                     {
-                        await Task.Factory.StartNew(() => (success = this.RunTest(this.TEST_ID, this.SERIAL_NUM, test, message, log)));
+                        string part_number = this.List_PartNumbers.SelectedItem.ToString();
+                        TestData results;
+
+
+                        Task<TestData> TestsRunning = this.FCT.RunTest(test_id, this.SERIAL_NUM, test, message, log);
+                        results = await TestsRunning;
+
+                        if (results.Result == "PASS") success = true;
+                        else success = false;
 
                         if (!success)
                         {
                             fail++;
-                            failedTests.Add(test);
+                            failedTests.Add(results);
                         }
                         else
                         {
                             pass++;
-                            passedTests.Add(test);
+                            passedTests.Add(results);
                         }
                         test.SetResult(success);
 
@@ -537,13 +341,12 @@ namespace ControlBoardTest
                         this.Field_SerialNumber.Focus();
                     }
 
-                    LogTestResult();
+                    LogTestResult(this.RESULT);
                 }
-            }
-            else if (Check_SingleTest.Checked)
-            {
-                if(this.Powered && this.Telnet)
+            
+                else if (Check_SingleTest.Checked)
                 {
+   
                     try
                     {
                         //Get selected test
@@ -551,18 +354,24 @@ namespace ControlBoardTest
                         string selectedTest = this.Dropdown_Test_List.SelectedItem.ToString();
                         if(selectedTest != null)
                         {
-                            foreach(TestData t in this.Tests)
+                            foreach(TestData t in TestList)
                             {
                                 if(t.name == selectedTest)
                                 {
-                                    LogTestInstance();
+                                    //TODO: Move logging to FunctionalTest Class
+                                    //LogTestInstance();
                                     TestToRun = t;
                                     this.ProgressBar.Value = 30;
                                     bool success = true;
 
-                                    await Task.Factory.StartNew(() => (success = this.RunTest(this.TEST_ID, this.SERIAL_NUM, TestToRun, message, log)));
+                                    //await Task.Factory.StartNew(() => (success = this.RunTest(this.TEST_ID, this.SERIAL_NUM, TestToRun, message, log)));
+                                    Task<TestData> TestsRunning = this.FCT.RunTest(test_id, this.SERIAL_NUM, TestToRun, message, log);
+                                    TestData results = await TestsRunning;
+                                    if (results.Result == "PASS") success = true;
+                                    else success = false;
+
                                     this.ProgressBar.Value = 100;
-                                    LogTestResult();
+                                    //LogTestResult(this.RESULT);
 
                                     if (success)
                                     {
@@ -641,128 +450,119 @@ namespace ControlBoardTest
             this.PassCountIndicator.Text = pass.ToString();
             this.FailCountIndicator.Text = fail.ToString();
         }
-        private bool DatabaseExist()
-        {
+        //private bool DatabaseExist()
+        //{
 
-            SQLiteCommand cmd;
+        //    SQLiteCommand cmd;
             
-            bool success = false;
+        //    bool success = false;
 
 
-            try
-            {
-                if (!File.Exists(this.DB_FILEPATH))
-                {
-                    SQLiteConnection.CreateFile(this.DB_FILEPATH);
+        //    try
+        //    {
+        //        if (!File.Exists(this.DB_FILEPATH))
+        //        {
+        //            SQLiteConnection.CreateFile(this.DB_FILEPATH);
 
-                    string test_instance_table = @"CREATE TABLE Test_Instance(
-                                      TEST_ID INTEGER PRIMARY KEY AUTOINCREMENT ,
-                                      EQID INTEGER ,
-                                      USER TEXT ,
-                                      LOCATION TEXT ,
-                                      TIMESTAMP TEXT,
-                                      SERIAL_NUMBER TEXT ,
-                                      RESULT TEXT
-                                      );";
+        //            string test_instance_table = @"CREATE TABLE Test_Instance(
+        //                              TEST_ID INTEGER PRIMARY KEY AUTOINCREMENT ,
+        //                              EQID INTEGER ,
+        //                              USER TEXT ,
+        //                              LOCATION TEXT ,
+        //                              TIMESTAMP TEXT,
+        //                              SERIAL_NUMBER TEXT ,
+        //                              RESULT TEXT
+        //                              );";
 
-                    string tests_table = @"CREATE TABLE Tests(
-                               TEST_ID INTEGER,
-                               SERIAL_NUMBER TEXT ,
-                               TEST_NAME TEXT,
-                               UPPER_BOUND TEXT,
-                               LOWER_BOUND TEX,
-                               MEASURED TEXT,
-                               RESULT TEXT
-                               );";
+        //            string tests_table = @"CREATE TABLE Tests(
+        //                       TEST_ID INTEGER,
+        //                       SERIAL_NUMBER TEXT ,
+        //                       TEST_NAME TEXT,
+        //                       UPPER_BOUND TEXT,
+        //                       LOWER_BOUND TEX,
+        //                       MEASURED TEXT,
+        //                       RESULT TEXT
+        //                       );";
 
-                    this.DB_CON = new SQLiteConnection("Data Source=" + this.DB_FILEPATH + ";Version=3");
-                    this.DB_CON.Open();
+        //            this.DB_CON = new SQLiteConnection("Data Source=" + this.DB_FILEPATH + ";Version=3");
+        //            this.DB_CON.Open();
 
-                    cmd = new SQLiteCommand(test_instance_table, this.DB_CON);
-                    //cmd.CommandText = test_instance_table;
-                    int d = cmd.ExecuteNonQuery();
+        //            cmd = new SQLiteCommand(test_instance_table, this.DB_CON);
+        //            //cmd.CommandText = test_instance_table;
+        //            int d = cmd.ExecuteNonQuery();
 
-                    cmd.CommandText = tests_table;
-                    d = cmd.ExecuteNonQuery();
+        //            cmd.CommandText = tests_table;
+        //            d = cmd.ExecuteNonQuery();
 
-                    this.DB_CON.Close();
-                    if (File.Exists(this.DB_FILEPATH))
-                    {
-                        //TODO: Check if tables exist in file
-                        success = true;
-                    }
+        //            this.DB_CON.Close();
+        //            if (File.Exists(this.DB_FILEPATH))
+        //            {
+        //                //TODO: Check if tables exist in file
+        //                success = true;
+        //            }
 
-                }
-                else
-                {
-                    this.DB_CON = new SQLiteConnection("Data Source=" + this.DB_FILEPATH + ";Version=3");
-                }
+        //        }
+        //        else
+        //        {
+        //            this.DB_CON = new SQLiteConnection("Data Source=" + this.DB_FILEPATH + ";Version=3");
+        //        }
 
-            }
-            catch
-            {
-                success = false;
-            }
-            return success;
-        }
-        private bool LogTestInstance()
+        //    }
+        //    catch
+        //    {
+        //        success = false;
+        //    }
+        //    return success;
+        //}
+        private async void LogTestInstance()
         {
-            bool success = false;
+            
             var timestamp = DateTime.UtcNow.ToString();
             this.RESULT = "In Progress";
 
             try
             {
+                Dictionary<string, string> data = new Dictionary<string, string>
+                {
+                    { "eqid", this.EQID },
+                    { "user-id", this.USER_NAME },
+                    { "location", this.LOCATION },
+                    { "timestamp", timestamp },
+                    { "serial", this.SERIAL_NUM },
+                    { "result", this.RESULT }
+                };
 
-                SQLiteCommand cmd = new SQLiteCommand(this.DB_CON);
-                cmd.CommandText = @"insert into Test_Instance(EQID,USER,LOCATION,TIMESTAMP,SERIAL_NUMBER,RESULT) VALUES('" + this.EQID + "','"
-                                + this.USER_NAME + "','" + this.TEST_LOCATION + "','" + timestamp + "','" + this.SERIAL_NUM + "','" 
-                                + this.RESULT + "')";
-                this.DB_CON.Open();
-                cmd.ExecuteNonQuery();
-                cmd.CommandText = @"select last_insert_rowid()";
-                this.TEST_ID = (long)cmd.ExecuteScalar();
-                this.DB_CON.Close();
-                success = true;
-
-                
-
+                await SQLServer.InsertOneRow(ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["Environment"]].ConnectionString,
+                                             ConfigurationManager.AppSettings["INSTANCE_TABLENAME"],
+                                             data);
             }
-            catch
+            catch (Exception e)
             {
-                success = false;
+                MessageBox.Show(e.Message);
             }
-            return success;
+
+            return;
         }
-        private bool LogTestResult()
+        private async void LogTestResult(string result)
         {
-            bool success = false;
-            
-            if(this.RESULT == "In Progress")
-            {
-                this.RESULT = "PASS";
-            }
 
+            Dictionary<string, string> data = new Dictionary<string, string>
+            {
+                { "result", result.ToString() }
+            };
             try
-            {
-
-                SQLiteCommand cmd = new SQLiteCommand(this.DB_CON);
-                cmd.CommandText = "UPDATE Test_Instance " + 
-                                   "SET RESULT = \'" + this.RESULT +
-                                   "\' WHERE TEST_ID = \'" + this.TEST_ID.ToString() + "\';";
-                this.DB_CON.Open();
-                cmd.ExecuteNonQuery();
-                this.DB_CON.Close();
-                success = true;
-
-                
-
+            {   
+                //Update the test result in the database.
+                await SQLServer.UpdateResult(ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["Environment"]].ConnectionString,
+                                             ConfigurationManager.AppSettings["INSTANCE_TABLENAME"],
+                                             this.TEST_ID.ToString(), data);
             }
-            catch
+            catch(Exception e)
             {
-                success = false;
+                MessageBox.Show(e.Message);
             }
-            return success;
+
+            return;
         }
         /************************************************************************************************************
         * LogTestData() - Logs the results of a test to the Tests table in the database
@@ -772,57 +572,51 @@ namespace ControlBoardTest
         *                            - Returns false if the database log was unsuccessful
         *             
         * **********************************************************************************************************/
-        private bool LogResults(TestData test, string serial, long testid)
+        private async void LogResults(TestData test, string serial, long testid)
         {
-            bool success = true;
 
-            
-            string testID = testid.ToString();
-            string serialNumber = serial;
-            string testName = test.name;
-            string result = test.parameters["result"];
-            string upperBound;
-            string lowerBound;
-            string measured;
 
+            // Put together the data that needs to be uploaded to the database
+            Dictionary<string, string> data = new Dictionary<string, string>
+            {
+                { "test-id", testid.ToString() },
+                { "serial", serial },
+                { "test-name", test.name }
+            };
 
             if (test.parameters["qual"] != "true")
             {
-                upperBound = test.parameters["upper"];
-                lowerBound = test.parameters["lower"];
-                measured = test.parameters["measured"];
+                data.Add("upper-bound", test.parameters["upper"]);
+                data.Add("lower-bound", test.parameters["lower"]);
+                data.Add("measured", test.parameters["measured"]);
             }
             else
             {
-                upperBound = "--";
-                lowerBound = "--";
+                data.Add("upper-bound", "--");
+                data.Add("lower-bound", "--");
+                
             }
 
-            if(!test.parameters.TryGetValue("measured", out measured))
+            if(!test.parameters.ContainsKey("measured"))
             {
-                measured = "--";
+                data.Add("measured", "--");
             }
             
 
 
             try
             {
-                SQLiteCommand cmd = new SQLiteCommand(this.DB_CON);
-                cmd.CommandText = @"insert into Tests(TEST_ID, SERIAL_NUMBER, TEST_NAME, UPPER_BOUND, LOWER_BOUND, MEASURED, RESULT) 
-                                    VALUES('" + testID + "','" + serial + "','" + testName + "','" + upperBound + "','" + lowerBound + "','" +
-                                    measured + "','" + result + "')";
-                this.DB_CON.Open();
-                cmd.ExecuteNonQuery();
-                this.DB_CON.Close();
+                await SQLServer.InsertOneRow(ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["Environment"]].ConnectionString,
+                                       ConfigurationManager.AppSettings["TESTS_TABLENAME"],
+                                       data);
             }
-            catch
+            catch (Exception e)
             {
                 //Throw exception to RUN TEST function so say which item failed.
-                this.DB_CON.Close();
-
+                throw e;
             }
 
-            return success;
+            return;
         }
 
         
@@ -885,22 +679,23 @@ namespace ControlBoardTest
         private void Field_SerialNumber_KeyUp(object sender, KeyEventArgs e)
         {   
             //Only update the serial number if the user hits enter.            
-            if (e.KeyData == Keys.Enter && !String.IsNullOrWhiteSpace(this.Field_SerialNumber.Text))
-            {   
-                //TODO: Check if the serial is valid and/or has changed.
+            if (e.KeyData == Keys.Enter && !String.IsNullOrWhiteSpace(this.Field_SerialNumber.Text) && this.Field_SerialNumber.Text.StartsWith(this.MFG_CODE))
+            {  
+
                 this.DisplayMessage("Serial Number =  " + this.Field_SerialNumber.Text);
                 this.SERIAL_NUM = this.Field_SerialNumber.Text;
 
-                // Enable option to click test mode
-                this.Check_FCT.Enabled = true;
-                this.Check_SingleTest.Enabled = true;
+                // Enable option to select part number
+                this.List_PartNumbers.Enabled = true;
+                
 
                 // Default select the full test
                 this.Check_FCT.Checked = true;
 
                 // Allow the user to click the start button or click the status buttons
                 this.Panel_Actions.Enabled = true;
-                this.Panel_Status.Enabled = true;                
+                this.Panel_Status.Enabled = true;
+                
             }
            
 
@@ -940,7 +735,7 @@ namespace ControlBoardTest
         }
        
 
-        async void ButtonClickHandlerAsync()
+        private async void ButtonClickHandlerAsync()
         {
             Progress<string> message = new Progress<string>(s => this.DisplayMessage(s));
             Progress<string> log = new Progress<string>(s => this.LogMessage(s));
@@ -950,7 +745,7 @@ namespace ControlBoardTest
             {
                 await Task.Run(() =>
                 {
-                    success = this.FCT.test_power_on(message, log, this.Startup_Steps[0]);
+                    success = this.FCT.test_power_on(message, log);
                 });
 
                 if (success)
@@ -973,7 +768,7 @@ namespace ControlBoardTest
             }
         }
 
-        async void ConnectTelnet()
+        private async void ConnectTelnet()
         {
             Progress<string> message = new Progress<string>(s => this.DisplayMessage(s));
             Progress<string> log = new Progress<string>(s => this.LogMessage(s));
@@ -1012,7 +807,7 @@ namespace ControlBoardTest
             }
         }
 
-        void WaitForTelnetConnection(int timeout)
+        private void WaitForTelnetConnection(int timeout)
         {
             // wait for connection
             while (timeout > 0)
@@ -1024,7 +819,7 @@ namespace ControlBoardTest
         }
 
         // call to the SynchronizationContext to update the UI DisplayMessage
-        void UpdateDisplayMessage(string msg)
+        private void UpdateDisplayMessage(string msg)
         {
             synchronizationContext.Post(new SendOrPostCallback(o =>
             {
@@ -1032,7 +827,7 @@ namespace ControlBoardTest
             }), msg);
         }
 
-        void UpdateButtonText(string msg)
+        private void UpdateButtonText(string msg)
         {
             synchronizationContext.Post(new SendOrPostCallback(o =>
             {
@@ -1091,6 +886,20 @@ namespace ControlBoardTest
             this.ProgressBar.Value = 0;
             this.Check_FCT.Checked = !Check_SingleTest.Checked;
             Dropdown_Test_List.Enabled = true;
+            Dropdown_Test_List.Items.Clear();
+            if (this.List_PartNumbers.SelectedItem.ToString() == "VOCSN_PRO") { //TODO: Eventually do this right so that part number names do not get out of sync with each other.
+                foreach (TestData test in this.FCT.VOCSN_TESTS)
+                {
+                    this.Dropdown_Test_List.Items.Add(test.name);
+                }
+            }
+            if (this.List_PartNumbers.SelectedItem.ToString() == "V_PRO")
+            { //TODO: Eventually do this right so that part number names do not get out of sync with each other.
+                foreach (TestData test in this.FCT.V_TESTS)
+                {
+                    this.Dropdown_Test_List.Items.Add(test.name);
+                }
+            }
         }
         
 
@@ -1184,6 +993,23 @@ namespace ControlBoardTest
             this.GPIO.ClearBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
             //this.GPIO.ClearAll();
             this.GPIO = null;
+        }
+
+        private void List_PartNumbers_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            //Is the selected value a valid part number of a blank value?
+            if(this.List_PartNumbers.SelectedItem.ToString() != null)
+            {
+                this.Check_FCT.Enabled = true;
+                this.Check_FCT.Checked = true;
+                this.Check_SingleTest.Enabled = true;
+            }
+            else
+            {
+                this.Check_FCT.Enabled = false;
+                this.Check_SingleTest.Enabled = false;
+            }
+
         }
     }  
 }

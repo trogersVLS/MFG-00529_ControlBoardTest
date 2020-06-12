@@ -1,0 +1,89 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+
+<Settings>
+ 
+  <!-- The following XML nodes are the tests that will be performed by software. The order is important, tests are performed in the order listed. -->
+  <tests>
+
+
+    <!-- Burdened tests 8 -->
+    <test name="Signal: LCD Test" method_name="test_lcd" qual="true"/>
+    <test name="Motor: High Speed Fan" method_name="test_high_fan" qual="false" upper="12.5" lower="10.5" frequency="175" tolerance="15"/>
+    <test name="Alarms: Piezo" method_name="test_piezo" qual="true"/>
+    <test name="Sensor: Microphone" method_name="test_microphone" qual="true"/>
+    <test name="Alarms: Nurse Call" method_name="test_nurse_call" qual="true" upper="5" lower="0"/>
+    <test name="LED: Alarm Silence"  method_name="test_as_led" qual="true" timeout="60" fs="100" time="10"/>
+
+    <test name="Comms: VCM" method_name="test_vcm_rev" qual="true" rev="4.06.05R"/>
+    <test name="Comms: CPLD" method_name="test_cpld_rev" qual="true" rev="V14"/>
+    <test name="Comms: SD Card" method_name="test_sd_card" qual="true" filename="fct_test.txt"/>
+    <test name="Comms: USB" method_name="test_usb" qual="true" filename="fct_test.txt"/>
+    <test name="Comms: Exhl I2C"  method_name="test_exhl_i2c" qual="true"/>
+    <test name="Comms: XFlow I2C"  method_name="test_xflow_i2c" qual="true" i2c_addr="0x50"/>
+    <test name="Comms: XFlow SPI"  method_name="test_xflow_spi" qual="true" samples="100"/>
+    <test name="Comms: Flow I2C"  method_name="test_flow_i2c" qual="true" i2c_addr="0x55"/>
+    <test name="Comms: Flow SPI"  method_name="test_flow_spi" qual="true" samples="100"/>
+    
+    <test name="Comms: OA2 I2C"  method_name="test_oa2_i2c" qual="true"/>
+    <test name="Comms: Metering Valve I2C"  method_name="test_mv_i2c" qual="true"/>    
+    <test TPID ="2XB" name="Voltage: 3V3_HOT" method_name="test_3V3_HOT" qual="false" upper="3.382" lower="3.217"/>
+    <test TPID ="2XD" name="Voltage: 5V0_HOT" method_name="test_5V0_HOT" qual="false" upper="5.125" lower="4.875"/>
+    <test TPID ="2A"  name="Voltage: 5V3 SMPS" method_name="test_5V3_SMPS" qual="false" upper="5.432" lower="5.167"/>
+    <test TPID ="2D"  name="Voltage: 12V0 SMPS" method_name="test_12V0_SMPS" qual="false" upper="12.5" lower="11.7"/>
+    <test TPID ="2B"  name="Voltage: 3V3 SMPS" method_name="test_3V3_SMPS" qual="false" upper="3.382" lower="3.217"/>
+    <test TPID ="2C"  name="Voltage: 1V2 SMPS" method_name="test_1V2_SMPS" qual="false" upper="1.4" lower="1.0"/>
+    <test TPID ="2G"  name="Voltage: 2V048 LDO" method_name="test_VREF" qual="false" upper="2.064" lower="2.030"/>
+    <test TPID ="2XB" name="Voltage: 3V3 LDO" method_name="test_3V3_LDO" qual="false" upper="3.382" lower="3.217"/>
+    <test TPID ="2XB" name="Voltage: 30V SMPS" method_name="test_30V_SMPS" qual="false" upper="33.0" lower="27.0"/>
+    <test name="LED: Power Button" method_name="test_pb_led" qual="true"/>
+    <test name="LED: Charge"  method_name="test_charge_led" qual="true" timeout="60"/>
+    <test name="LED: XDC"  method_name="test_ext_led" qual="true" timeout="30"/>
+    <test name="LED: INOP"  method_name="test_inop_led" qual="true" timeout="300" />
+    <test name="Voltage: Low Speed Fan" method_name="test_low_fan_volt" qual="false" upper="7.5" lower="7.1"/>
+    <test name="Frequency: Low Speed Fan" method_name="test_low_fan_freq" qual="false" upper="125" lower="100"/>
+    <test name="Sensor: Barometer" method_name="test_barometer" qual="false" samples ="100" upper="110" lower="90"/>
+    <test name="Sensor: Thermometer" method_name="test_ambient_temperature" qual="false" samples="100" upper="45" lower="15"/>
+    <test name="Sensor: Buttons" method_name="test_buttons" qual="true" port="FirstPortCH" pin="5"/>   
+    <test name="Solenoid: SV9 Off" method_name="test_sv9_off" qual="false" upper="12.5" lower="10.5"/>
+    <test name="Solenoid: SV10 Off" method_name="test_sv10_off" qual="false" upper="12.5" lower="10.5"/>
+    <test name="Solenoid: SV9 ON" method_name="test_sv9_on" qual="false" upper="10" lower="-0.3"/>
+    <test name="Solenoid: SV10 ON" method_name="test_sv9_on" qual="false" upper="10" lower="-0.3"/>
+    <test name="Signal: Exhl SV 6" method_name="test_exhl_sv6" qual="true" toggle="10" upper="10" lower="10"/>
+    <test name="Signal: Exhl SV 7" method_name="test_exhl_sv7" qual="true" toggle="10" upper="10" lower="10"/>
+    <test name="Signal: Exhl SV 8" method_name="test_exhl_sv8" qual="true" toggle="10" upper="10" lower="10" />
+    <test name="Signal: XFlow SV 1&amp;2" method_name="test_xflow_sv1" qual="false" toggle="10" upper="10" lower="10"/>
+    <test name="Signal: XFlow SV 3&amp;4" method_name="test_xflow_sv3" qual="false" toggle="10" upper="10" lower="10"/>
+    <test name="Signal: Flow SV 5" method_name="test_flow_sv5" qual="false" toggle="10" upper="10" lower="10"/>
+    
+    <test name="Signal: OA2 Off"  method_name="test_oa2_off" qual="true"/>
+    <test name="Motor: Blower" method_name="test_blower" qual="false" speed="20000" upper="22000" lower="18000" tolerance="10"/>
+    <test name="Motor: Metering Valve"  method_name="test_metering_valve" qual="true"/>
+    <test name="Charger: Charge Monitor Test" method_name="test_chg_monitor" qual="true" samples="100" upper="18" lower="12"/>
+    <test name="Power: Ext GT14 OK" method_name="test_ext_gt14_ok" qual="true"/>
+    <Test name="Power: VPPO OK" method_name="test_vppo_ok" qual="true" samples="100"/>
+    <test name="Power: VPPO Monitor" method_name="test_vppo_monitor" qual="true" samples="100"/>
+    <test name="Power: XDC Diode" method_name="test_extdc_diode" qual="true" tolerance="50" upper="26" lower="22" samples="100"/>
+    <test name="Power: CPLD Supply" method_name="test_cpld_diode" qual="true"/>
+    
+    <test name="Battery: Temp Test" method_name="test_batt_temp" qual="true" index="6" upper="3500" lower="2832"/>
+    <test name="Battery: Comms Test" method_name="test_batt_comms" qual="true" index="3"/>
+    <test name="Battery: IB Diode" method_name="test_batt0_diode" qual="true" tolerance="50" upper="18" lower="15" samples="100"/>
+    <test name="Battery: IB Source" method_name="test_batt0_source" qual="true"/>
+    <test name="Battery: IB Charge" method_name="test_batt0_charge" qual="false" delay="1000" timeout="30" upper="1.8" lower="1.2"/>
+    <test name="Battery: XB1 Diode" method_name="test_batt1_diode" qual="true" tolerance="50" upper="18" lower="15" samples="100"/>
+    <test name="Battery: XB1 Source" method_name="test_batt1_source" qual="true"/>
+    <test name="Battery: XB1 Charge" method_name="test_batt1_charge" qual="false" delay="1000" timeout="30" upper="1.8" lower="1.2"/>
+    <test name="Battery: XB2 Diode" method_name="test_batt2_diode" qual="true" tolerance="50" upper="18" lower="15" samples="100"/>
+    <test name="Battery: XB2 Source" method_name="test_batt2_source" qual="true"/>
+    <test name="Battery: XB2 Charge" method_name="test_batt2_charge" qual="false" delay="1000" timeout="30" upper="1.8" lower="1.2"/> 
+    <test name="Alarm: System Fault 9" method_name="test_sysfault9" qual="true" timeout="15000"/>
+    <test name="Power: Supercap" method_name="test_supercap" qual="false" upper="5.3" lower="4.5"/>
+
+
+    
+    
+    
+  </tests>
+
+</Settings>
+

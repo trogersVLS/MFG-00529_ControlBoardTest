@@ -12,7 +12,7 @@ namespace ControlBoardTest
     {
         private readonly int QUERY_DELAY = 3010; //millisecond delay for SCPI queries
         //string name;
-        string comm;
+        
         SerialPort Device;
         string address;
         string ID;
@@ -29,12 +29,12 @@ namespace ControlBoardTest
         {
 
         }
-        public Test_Equip(string ID, string comm,  int baud, int stopbits, string address = null)
+        public Test_Equip(string ID, int baud, int stopbits, string address = null)
         {
 
             this.ID = ID;
             this.address = address;
-            this.comm = comm;
+            
             if(stopbits == 1)
             {
                 this.stopbits = StopBits.One;
@@ -47,14 +47,11 @@ namespace ControlBoardTest
             {
                 this.stopbits = StopBits.None;
             }
-
-            if (comm == "RS232")
-            {
-                this.Device = new SerialPort(address, baud, Parity.None, 8, this.stopbits);
-                this.Device.RtsEnable = true;
-                this.Device.DtrEnable = true;
-                this.Device.ReadTimeout = 1500;
-            }
+            this.Device = new SerialPort(address, baud, Parity.None, 8, this.stopbits);
+            this.Device.RtsEnable = true;
+            this.Device.DtrEnable = true;
+            this.Device.ReadTimeout = 1500;
+        
             this.Connected = false;
             
         }
@@ -72,40 +69,23 @@ namespace ControlBoardTest
         
         public bool Connect()
         {
-            if (this.comm == "RS232")
-            { 
-                var portExists = SerialPort.GetPortNames().Any(x => x == this.address);
-                if (portExists) { 
-                    try
-                    {
+        
+            var portExists = SerialPort.GetPortNames().Any(x => x == this.address);
+            if (portExists) { 
+                try
+                {
 
-                        this.Device.Open();
-                        string identity = this.Query("*IDN?");
-                        if (identity.Contains(this.ID)) this.Connected = true;
-                        else this.Connected = false;
-                        if (this.Connected) this.Device.Write("SYST:REM\n\r");
-                    }
-                    catch
-                    {
-                        this.Connected = false;
-                        this.Device.Close();
-                    }
+                    this.Device.Open();
+                    string identity = this.Query("*IDN?");
+                    if (identity.Contains(this.ID)) this.Connected = true;
+                    else this.Connected = false;
+                    if (this.Connected) this.Device.Write("SYST:REM\n\r");
                 }
-                
-
-                
-            }
-            else if (this.comm == "GPIB")
-            {
-                //TODO: GPIB constructor
-            }
-            else if (this.comm == "USB")
-            {
-                //TODO: USB constructor
-            }
-            else if (this.comm == "LAN")
-            {
-                //TODO: LAN constructor
+                catch
+                {
+                    this.Connected = false;
+                    this.Device.Close();
+                }
             }
 
             return this.Connected;
@@ -205,30 +185,29 @@ namespace ControlBoardTest
         {
             string response = "";
             byte[] byte_response = new byte[256]; // TROGERS,  upped response buffer to accomodate errors.
-            if(this.comm == "RS232")
-            {   if(query_delay == 0)
-                {
-                    query_delay = this.QUERY_DELAY;
-                }
-                try
-                {
-                    this.Device.ReadTimeout = 5000;
+            if(query_delay == 0)
+            {
+                query_delay = this.QUERY_DELAY;
+            }
+            try
+            {
+                this.Device.ReadTimeout = 5000;
 
-                    //this.Device.Write("SYST:REM\n\r");
-                    //this.Device.Write("*RST\n\r");
-                    Thread.Sleep(200); // TROGERS - Brought down to 200 from 1000
-                    this.Device.Write(cmd +"\n");
-                    Thread.Sleep(this.QUERY_DELAY);
-                    int num = this.Device.Read(byte_response, 0, byte_response.Length);
-                    response = Encoding.ASCII.GetString(byte_response, 0, byte_response.Length);
-                }
-                catch(Exception e)
-                {
-                    throw e;
-                }
+                //this.Device.Write("SYST:REM\n\r");
+                //this.Device.Write("*RST\n\r");
+                Thread.Sleep(200); // TROGERS - Brought down to 200 from 1000
+                this.Device.Write(cmd +"\n");
+                Thread.Sleep(this.QUERY_DELAY);
+                int num = this.Device.Read(byte_response, 0, byte_response.Length);
+                response = Encoding.ASCII.GetString(byte_response, 0, byte_response.Length);
+            }
+            catch(Exception e)
+            {
+                throw e;
+            }
                 
 
-            }
+            
             
 
             return response;

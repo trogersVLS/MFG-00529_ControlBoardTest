@@ -6,15 +6,18 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Linq;
-using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using GPIO;
 using VLS;
-using System.Data.SQLite;
+using System.Xml;
+using System.Configuration;
+//using System.Data.SQLite;
 using System.Windows.Forms;
-
-
+using System.Management;
+using System.Runtime.CompilerServices;
+using System.Linq.Expressions;
 
 namespace ControlBoardTest
 {
@@ -28,7 +31,13 @@ namespace ControlBoardTest
         public string name;                             // Human readable test name
         public string method_name;                      // Method name in the Tests.cs file
         public MethodInfo testinfo;                     // Pointer to the method used to run the test
-        public Dictionary<string,string> parameters;                    // Dictionary of parameters used in the test
+        public Dictionary<string, string> parameters;                    // Dictionary of parameters used in the test
+
+        public string Result 
+        {
+            get { return parameters["result"]; }
+            set { parameters["result"] = value; }
+        }
 
         public TestData(int step, string name, string method_name, MethodInfo function, Dictionary<string,string> parameters)
         {
@@ -62,13 +71,10 @@ namespace ControlBoardTest
     {
         //Test specific data --> To be stored in results file and in database
         private string serial="27B-6";             //Test serial number
-        private string location="earth";
-        private int eqid=42;
-        private string user_id="everett";
-        private string timestamp=null;
         public string result;
         public bool test;
-       // private Hashtable Parameters;
+
+        Data config;
 
 
         private MccDaq_GPIO GPIO;
@@ -76,9 +82,10 @@ namespace ControlBoardTest
         private Test_Equip PPS;
         private VOCSN_Serial SOM;
         private VLS_Tlm Vent;
-        
 
-        public List<TestData> Tests = new List<TestData>();
+
+        public List<TestData> VOCSN_TESTS { get; set; }
+        public List<TestData> V_TESTS { get; set; }
 
         bool DEBUG;
         
@@ -86,7 +93,7 @@ namespace ControlBoardTest
         
 
         //SQLite Variables
-        SQLiteConnection db_con;
+        //SQLiteConnection db_con;
         private long test_id;
 
 
@@ -102,168 +109,69 @@ namespace ControlBoardTest
          *             - String serial--> The serial number of the board in which this test has been initialized
          * 
          * **********************************************************************************************************/
-        public FunctionalTest()
+        public FunctionalTest(bool getFunctions = false)
         {
-            //This constructor is used for collecting methods from this data type
-        }
-         
-        public FunctionalTest(MccDaq_GPIO GPIO, Test_Equip DMM, Test_Equip PPS, VOCSN_Serial SOM, VLS_Tlm VENT, bool debug = false)
-        {
-            //This constructor is used for production
-
-            this.DEBUG = debug;
-/********************************************************************/
-
-            try
+            if (!getFunctions)
             {
-                this.GPIO = GPIO;
-            }
-
-            catch
-            {
-                //Something didn't work. Update user
-                System.Windows.Forms.MessageBox.Show("Error! Invalid GPIO object", "Error");
-
-            }
-
- /********************************************************************/
+                // Get settings for Test Equipments
+                string json_config = File.ReadAllText(Environment.ExpandEnvironmentVariables(System.Configuration.ConfigurationManager.AppSettings["CONFIG"]));
+                this.config = System.Text.Json.JsonSerializer.Deserialize<Data>(json_config);
 
 
-            try
-            {
-                this.GPIO.ConnectDevice();
-               
-            }
-            catch
-            {
+                //Generate Test Lists -----> There might need to be a better way to determine how many configurations that there are, but for now they are hardcoded as VOCSN_PRO and V_PRO
+                this.VOCSN_TESTS = GetTestList(Environment.ExpandEnvironmentVariables(ConfigurationManager.AppSettings["VOCSN_Tests"]));
+                this.V_TESTS = GetTestList(Environment.ExpandEnvironmentVariables(ConfigurationManager.AppSettings["V_Tests"]));
 
-                System.Windows.Forms.MessageBox.Show("Error! GPIO connect Universal Library ", "Error");
+                //Generate Test Equipment Objects and test them
+                this.GPIO = new MccDaq_GPIO();
+                this.DMM = new Test_Equip(config.settings.dmm_settings.name,
+                                          config.settings.dmm_settings.baudrate,
+                                          config.settings.dmm_settings.stopbits,
+                                          config.settings.dmm_settings.address);
+
+                this.PPS = new Test_Equip(config.settings.pps_settings.name,
+                                          config.settings.pps_settings.baudrate,
+                                          config.settings.pps_settings.stopbits,
+                                          config.settings.pps_settings.address);
+                this.SOM = new VOCSN_Serial(config.settings.som_settings.address);
+                this.ConnectDevices();
 
             }
-
-/********************************************************************/
-
-            try
-            {
-               this.DMM = DMM;
-                
-            }
-            catch
-            {
-
-                System.Windows.Forms.MessageBox.Show("Error! Test instrument DMM object ", "Error");
-           }
-
-            /********************************************************************/
-
-            try
-            {
-                             
-                this.DMM.Connect();
-               
-            }
-            catch
-            {
-
-                System.Windows.Forms.MessageBox.Show("Error! RS232 DMM control init", "Error");
-
-            }
-
-            /********************************************************************/
-
-            try
-            {
-               
-                this.PPS = PPS;
-              
-            }
-            catch
-            {
-
-                System.Windows.Forms.MessageBox.Show("Error! Test Instrument PPS object", "Error");
-
-            }
-
-
-            /********************************************************************/
-
-            try
-            {
-                this.PPS.Connect();
-                
-            }
-            catch
-            {
-
-                System.Windows.Forms.MessageBox.Show("Error! RS232 PPS control init", "Error");
-
-            }
-
-            /********************************************************************/
-
-            try
-            {
-                this.SOM = SOM;
-
-            }
-            catch
-            {
-
-                System.Windows.Forms.MessageBox.Show("Error! UUT SOM debug output object", "Error");
-
-            }
-
-            /********************************************************************/
-
-            try
-            {
-               this.SOM.Connect();
-
-            }
-            catch
-            {
-                System.Windows.Forms.MessageBox.Show("Error! UUT SOM debug output RS232 connect", "Error");
-
-            }
-
-            /********************************************************************/
-
 
         }
 
+        public void GetSettings()
+        {
+            // Get settings for Test Equipments
+            string json_config = File.ReadAllText(Environment.ExpandEnvironmentVariables(System.Configuration.ConfigurationManager.AppSettings["CONFIG"]));
+            this.config = System.Text.Json.JsonSerializer.Deserialize<Data>(json_config);
 
 
-
+            //Generate Test Lists -----> There might need to be a better way to determine how many configurations that there are, but for now they are hardcoded as VOCSN_PRO and V_PRO
+            this.VOCSN_TESTS = GetTestList(Environment.ExpandEnvironmentVariables(ConfigurationManager.AppSettings["VOCSN_Tests"]));
+            this.V_TESTS = GetTestList(Environment.ExpandEnvironmentVariables(ConfigurationManager.AppSettings["V_Tests"]));
+        }
         /************************************************************************************************************************************************/
-        public bool ConnectToTelnet(string _ip_address)
+        public void ConnectDevices()
         {
-            if (_ip_address != null)
-            {
-                this.Vent = new VLS_Tlm(_ip_address);
-            }
+            // Connect to GPIO and catch any errors
+            try { this.GPIO.ConnectDevice(); }
+            catch { System.Windows.Forms.MessageBox.Show("Error! GPIO connect Universal Library ", "Error"); }
+            
+            //Connect to DMM and catch any errors
+            try { this.DMM.Connect(); }
+            catch { System.Windows.Forms.MessageBox.Show("Error! RS232 DMM control init", "Error"); }
+            
+            // Connect to PPS and catch any errors
+            try { this.PPS.Connect(); }
+            catch { System.Windows.Forms.MessageBox.Show("Error! RS232 PPS control init", "Error"); }
+            
+            // Connect to SOM and catch any errors.
+            try { this.SOM.Connect(); }
+            catch { System.Windows.Forms.MessageBox.Show("Error! UUT SOM debug output RS232 connect", "Error"); }
 
-            //There's a long delay between the device booting to the VCM app and the device acquiring an IP address.
-            var success = this.Vent.Connect(_ip_address, "mfgmode", true);
-            int count = 15;
-            while (!this.Vent.Connected)
-            {
-                count--;
-                Thread.Sleep(1000);
-            }
-            if (success)
-            {
-                //Once connected, set to MFG mode so that we can begin testing the various functions
-            }
-            else
-            {
-                this.Vent = null;
-            }
-
-            return success;
         }
-
-
-
+        /************************************************************************************************************************************************/
         public bool ConnectToTelnet(string _ip_address, IProgress<string> message, IProgress<string> logs)
         {   
             if (_ip_address != null)
@@ -287,8 +195,6 @@ namespace ControlBoardTest
 
             return success;
         }
-
-
         /************************************************************************************************************************************************/
 
         public bool DisconnectTelnet()
@@ -306,6 +212,73 @@ namespace ControlBoardTest
 
             }
             return !this.Vent.Connected;
+        }
+        private List<TestData> GetTestList(string test_filepath)
+        {
+            List<TestData> tests = new List<TestData>();
+            XmlDocument configuration = new XmlDocument();
+            configuration.Load(test_filepath);
+
+            foreach (XmlNode xml in configuration.DocumentElement.ChildNodes)
+            {
+                
+                if (xml.Name == "tests")
+                {
+                    try
+                    {
+                        XmlNode TestNames = xml;
+                        tests = Match_MethodsToTests(TestNames);
+
+                    }
+                    catch (Exception e)
+                    {
+                        MessageBox.Show("Program has encountered an error in the configuration file\n\rERROR: " + e.Message, "Configuration");
+                        throw e;
+                    }
+
+                }
+
+            }
+            return tests;
+        }
+        private List<TestData> Match_MethodsToTests(XmlNode TestNodes)
+        {
+            //Get list of methods in this class
+            FunctionalTest test = new FunctionalTest(true);
+            MethodInfo[] methods = test.GetType().GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+
+            int step_num = 0;
+            //Iterate through each xml node to find the matching function and create a list.
+
+            List<TestData> Tests = new List<TestData>();
+            foreach (XmlNode x in TestNodes.ChildNodes)
+            {
+                if (x.NodeType != XmlNodeType.Comment)
+                {
+                    foreach (MethodInfo method in methods)
+                    {
+                        if (method.Name == x.Attributes["method_name"].Value)
+                        {
+                            int step = step_num;
+                            string name = x.Attributes["name"].Value;
+                            string method_name = x.Attributes["method_name"].Value;
+                            Dictionary<string, string> parameters = new Dictionary<string, string>();
+                            for (int i = 0; i < x.Attributes.Count; i++)
+                            {
+                                parameters.Add(x.Attributes[i].Name, x.Attributes[i].Value);
+                            }
+
+                            TestData test_step = new TestData(step, name, method_name, method, parameters);
+
+                            Tests.Add(test_step);
+                            step_num++;
+                            break;
+                        }
+                    }
+                }
+
+            }
+            return Tests;
         }
 
         /******************************************************************************************************************************************
@@ -349,72 +322,69 @@ namespace ControlBoardTest
 
         /******************************************************************************************************************************************
         *                                               TEST RUNNING FUNCTIONS
+        *                                               
+        *
+        * Task<TestData> RunTest 
+        *
+        *
         ******************************************************************************************************************************************/
-
-        /************************************************************************************************************
-         * RunTest() - Runs the list of tests determined by the functional test
-         * 
-         * Parameters: - progress --> Progress interface variable. Indicates the percentage of the test that is complete
-         *             - message  --> Progress interface variable. Used to update the text in the output box.  
-         *             - TestList --> List of TestStep. Used to tell RunTest which tests need to be run.
-         * **********************************************************************************************************/
-        public void RunTest(IProgress<int> progress, IProgress<string> message, IProgress<string> logs, List<TestData> TestList)
+        public async Task<TestData> RunTest(long test_id, string serial, TestData test, IProgress<string> message, IProgress<string> log)
         {
-            int i = 0;
-            bool success = true;
+            bool success = false;
+
+            var param = new object[] { message, log, test };
+
 
             try
             {
-              
 
-                foreach (TestData test in TestList)
-                {
-                    var param = new object[] { message, test };
-                    message.Report("Starting " + test.name);   //Indicate which test is being run
-                    progress.Report((i * 100) / (TestList.Count)); // Indicate the progress made
+                message.Report("\nStarting test: " + test.name);
+                //log.Report("Starting test: " + test.method_name);
+
+                //Invoke the test function --> Each test will fill the parameters table to measured
+                success = (bool)test.testinfo.Invoke(this, param);
 
 
-                    //All tests should return a bool
-                    var result = (bool)test.testinfo.Invoke(this, param);
-                    if (result)
-                    {
-                        message.Report("\nTest: " + test.name + " - PASS\n");
-
-                    }
-                    else
-                    {
-                        message.Report("\nTest: " + test.name + " - FAIL\n");
-                        if (success) success = false;
-                    }
-
-                    ////Build hashtable for logging data.
-                    //if (this.Log_Data)
-                    //{
-                    //    Hashtable data = this.CreateData(test, (bool)result);
-                    //    this.LogTestData(data);
-                    //}
-
-                    i++;
-                }
-                
-                
             }
             catch (Exception e)
             {
+                var error = e.InnerException.Message;
 
-                message.Report( "Something went wrong");
-                message.Report(e.Message.ToString() + "\n\n" + e.StackTrace.ToString());
-               
-                Thread.CurrentThread.Abort();
+                test.parameters["measured"] = "ERROR";
+                string errormessage = "Exception caught: " + error + "\n\rThe following test failed: " + test.name;
+
+                log.Report(error);
+
+
+                MessageBox.Show(errormessage, "Exception caught", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+            }
+            finally
+            {
+                this.GPIO.ClearAllButPower();
+            }
+            
+            message.Report("Clear GPIO ...");
+            test.SetResult(success);
+
+            if (success)
+            {
+                //message.Report(test.name + ": PASS");
+
+            }
+            else
+            {
+                //message.Report(test.name + ": FAIL");
+                success = false;
             }
 
-            if (success) this.result = "PASS";
-            else this.result = "FAIL";
+            Task<int> LoggingTest = LogTestData(test, serial, test_id);
+            await LoggingTest;
 
-            
-            Thread.Sleep(2000);
-            return;
+
+            return test;
         }
+
         public void EndTest()
         {
 
@@ -461,81 +431,7 @@ namespace ControlBoardTest
          *      |    ...    |    ...   |    ...   |    ...     |    ...     |    ...   |    ...  |
          *         
          */
-        /************************************************************************************************************
-        * DatabaseExist() - Looks for the expected Database file. If the database does not exist, this function will
-        * create it.
-        * 
-        * Parameters: - None
-        * Returns:    - bool success - Returns true if the database exists or if creation was successful
-        *                              Returns false if the database creation was unsuccessful
-        *             
-        * **********************************************************************************************************/
-        private bool DatabaseExist()
-        {
-            
-            SQLiteCommand cmd;
-            //SQLiteDataReader dr;
-            bool success = false;
-            
 
-            try
-            {
-
-
-                if (!File.Exists(".\\Database\\MFG_527.db"))
-                {
-                    SQLiteConnection.CreateFile(".\\Database\\MFG_527.db");
-
-                    string test_instance_table = @"CREATE TABLE Test_Instance(
-                                      TEST_ID INTEGER PRIMARY KEY AUTOINCREMENT ,
-                                      EQID INTEGER ,
-                                      USER TEXT ,
-                                      LOCATION TEXT ,
-                                      TIMESTAMP TEXT,
-                                      SERIAL_NUMBER TEXT ,
-                                      RESULT TEXT
-                                      );";
-
-                    string tests_table = @"CREATE TABLE Tests(
-                               TEST_ID INTEGER,
-                               SERIAL_NUMBER TEXT ,
-                               TEST_NAME TEXT,
-                               UPPER_BOUND TEXT,
-                               LOWER_BOUND TEX,
-                               MEASURED TEXT,
-                               RESULT TEXT
-                               );";
-
-                    this.db_con = new SQLiteConnection("Data Source=.\\Database\\MFG_527.db;Version=3");
-                    this.db_con.Open();
-
-                    cmd = new SQLiteCommand(test_instance_table, this.db_con);
-                    //cmd.CommandText = test_instance_table;
-                    int d = cmd.ExecuteNonQuery();
-
-                    cmd.CommandText = tests_table;
-                    d = cmd.ExecuteNonQuery();
-
-                    this.db_con.Close();
-                    if (File.Exists(".\\Database\\MFG_527.db"))
-                    {
-                        //TODO: Check if tables exist in file
-                        success = true;
-                    }
-
-                }
-                else
-                {
-                    this.db_con = new SQLiteConnection("Data Source=.\\Database\\MFG_527.db;Version=3");
-                }
-
-            }
-            catch
-            {
-                success = false;
-            }
-            return success;
-        }
         /************************************************************************************************************
         * LogTestInstance() - Logs a test instance to the Test_Instance table in the local database. This 
         * 
@@ -544,28 +440,48 @@ namespace ControlBoardTest
         *                            - Returns false if the database log was unsuccessful
         *             
         * **********************************************************************************************************/
-        private bool LogTestInstance()
-        {   
-            bool success = false;
-            
+        public async Task<int> LogNewTest(string username, string serial)
+        {
+            int test_id;
             try
             {
+                Dictionary<string, string> row = new Dictionary<string, string>();
+                row.Add("eqid", this.config.settings.app_settings.eqid);
+                row.Add("user-id", username);
+                row.Add("location", this.config.settings.app_settings.location);
+                row.Add("timestamp", DateTime.UtcNow.ToString());
+                row.Add("serial", serial);
+                row.Add("result", "In progress");
 
-                SQLiteCommand cmd = new SQLiteCommand(this.db_con);
-                cmd.CommandText = @"insert into Test_Instance(EQID,USER,LOCATION,TIMESTAMP,SERIAL_NUMBER,RESULT) VALUES('" + this.eqid + "','" + this.user_id + "','" + this.location + "','" + this.timestamp.ToString() + "','" + this.serial + "','" + this.result + "')";
-                this.db_con.Open();
-                cmd.ExecuteNonQuery();
-                cmd.CommandText = @"select last_insert_rowid()";
-                this.test_id = (long)cmd.ExecuteScalar();
-                this.db_con.Close();
-                success = true;
-
+                Task<int> LoggingNewTest = SQLServer.InsertOneRow(ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["Environment"]].ToString(), 
+                                                                  ConfigurationManager.AppSettings["INSTANCE_TABLENAME"], 
+                                                                  row);
+                test_id = await LoggingNewTest;
+                return test_id;
             }
             catch
             {
-                success = false;
+                return -1;
+            } 
+        }
+        public async Task<int> LogTestResult(string result, long test_id)
+        {
+            try
+            {
+                Dictionary<string, string> updatedData = new Dictionary<string, string>();
+                updatedData.Add("result", result);
+
+                Task<int> updating = SQLServer.UpdateResult(ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["Environment"]].ToString(),
+                                                            ConfigurationManager.AppSettings["INSTANCE_TABLENAME"],
+                                                            test_id.ToString(),
+                                                            updatedData);
+                int rowsAffected = await updating;
+                return rowsAffected;
             }
-            return success;
+            catch
+            {
+                return -1;
+            }
         }
         /************************************************************************************************************
         * LogTestData() - Logs the results of a test to the Tests table in the database
@@ -575,27 +491,51 @@ namespace ControlBoardTest
         *                            - Returns false if the database log was unsuccessful
         *             
         * **********************************************************************************************************/
-        private bool LogTestData(Hashtable table)
+        public async Task<int> LogTestData(TestData test, string serial, long test_id)
         {
             bool success = true;
-            
-               
+            //throw new NotImplementedException();
+
+            int rowsUpdated = -1;
             try
             {
-                SQLiteCommand cmd = new SQLiteCommand(this.db_con);
-                cmd.CommandText = @"insert into Tests(TEST_ID, SERIAL_NUMBER, TEST_NAME, UPPER_BOUND, LOWER_BOUND, MEASURED, RESULT) VALUES('" + table["test_id"] + "','" + table["serial_number"] + "','" + table["test_name"] + "','" + table["upper_bound"] + "','" + table["lower_bound"] + "','" + table["measured"] + "','" + table["result"] + "')";
-                this.db_con.Open();
-                cmd.ExecuteNonQuery();
-                this.db_con.Close();
+
+                Dictionary<string, string> row = new Dictionary<string, string>();
+                row.Add("test-id", test_id.ToString());
+                row.Add("serial", serial);
+                row.Add("test-name", test.name);
+
+                test.parameters.TryGetValue("upper-bound", out var upper);
+                if(upper == null) { upper = "N/A"; }
+                row.Add("upper-bound", upper);
+
+                test.parameters.TryGetValue("lower-bound", out var lower);
+                if(lower == null) { lower = "N/A"; }
+                row.Add("lower-bound", lower);
+
+                test.parameters.TryGetValue("measured", out var measured);
+                if (measured == null) { lower = "ERROR"; }
+                row.Add("measured", measured);
+
+                test.parameters.TryGetValue("result", out var result);
+                if (result == null) { result = "ERROR"; }
+                row.Add("result", measured);
+
+
+
+                Task<int> LoggingTestResults = SQLServer.InsertOneRow(ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["Environment"]].ToString(),
+                                                                      ConfigurationManager.AppSettings["TESTS_TABLENAME"],
+                                                                      row);
+                rowsUpdated = await LoggingTestResults;
             }
             catch
             {
                 //Throw exception to RUN TEST function so say which item failed.
-                this.db_con.Close();
+                //this.db_con.Close();
 
             }
 
-            return success;
+            return rowsUpdated;
         }
 
         private Hashtable CreateData(TestData test, bool result)

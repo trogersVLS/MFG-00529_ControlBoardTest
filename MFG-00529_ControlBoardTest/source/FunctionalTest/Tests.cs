@@ -666,19 +666,15 @@ namespace ControlBoardTest
          *                          returns false if the device does not power up correctly or connect to Telnet.
          * 
          ******************************************************************************************************************************/
-        public bool test_power_on(IProgress<string> message, IProgress<string> log, TestData test)
+        public bool test_power_on(IProgress<string> message, IProgress<string> log)
         {
             bool success = false;
 
             //Determine if the devices are properly connected
             if (this.GPIO.Connected && this.SOM.Connected)
             {
-                int timeout;
+
                 string output;
-
-                test.parameters.TryGetValue("timeout", out output);
-                timeout = int.Parse(output, System.Globalization.NumberStyles.Integer);
-
                 success = Power_On(message);
                 if (success)
                 {

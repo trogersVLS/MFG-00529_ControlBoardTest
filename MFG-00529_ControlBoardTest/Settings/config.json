@@ -1,0 +1,38 @@
+﻿{
+  "settings": 
+    {
+      "app_settings": {
+        "location": "VLS",
+        "eqid": "1234",
+        "mfg_code": "V",
+        "dhcp_enable": false,
+        "dhcp_start": "null",
+        "dhcp_end": "null"
+      }
+      ,
+    
+      "dmm_settings": {
+         "address": "COM9" ,
+         "baudrate": 115200,
+         "stopbits": 1,
+         "name": "FLUKE"
+      }
+    ,
+    
+      "pps_settings": {
+         "address": "COM9" ,
+         "baudrate": 115200,
+         "stopbits": 1,
+         "name": "FLUKE" 
+      }
+    ,
+    
+      "som_settings": {
+          "address": "COM9" ,
+          "baudrate": 115200 
+      }
+      
+    }
+
+
+}
