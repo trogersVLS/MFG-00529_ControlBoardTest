@@ -89,6 +89,9 @@
     <StartupObject>
     </StartupObject>
   </PropertyGroup>
+  <PropertyGroup>
+    <RunPostBuildEvent>Always</RunPostBuildEvent>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="MccDaq, Version=2.9.0.0, Culture=neutral, PublicKeyToken=a37eefcf5c6ca10a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -107,6 +110,9 @@
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Data.SQLite, Version=1.0.113.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Data.SQLite.Core.1.0.113.1\lib\net46\System.Data.SQLite.dll</HintPath>
+    </Reference>
     <Reference Include="System.Diagnostics.Tracing" />
     <Reference Include="System.Management" />
     <Reference Include="System.Memory, Version=4.0.1.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
@@ -201,20 +207,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <None Include="Settings\vocsn_tests.json" />
-    <None Include="source\App.ATS.config">
+    <None Include="App.config" />
+    <None Include="App.Debug.config">
       <DependentUpon>App.config</DependentUpon>
     </None>
-    <None Include="source\App.Debug.config">
-      <DependentUpon>App.config</DependentUpon>
-    </None>
-    <None Include="source\App.FXCN.config">
-      <DependentUpon>App.config</DependentUpon>
-    </None>
-    <None Include="source\App.Release.config">
-      <DependentUpon>App.config</DependentUpon>
-    </None>
-    <None Include="source\App.VLS.config">
+    <None Include="App.Release.config">
       <DependentUpon>App.config</DependentUpon>
     </None>
     <None Include="packages.config" />
@@ -228,9 +225,6 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
     <None Include="Settings\config.json" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="source\App.config" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.7.2">
@@ -253,11 +247,6 @@
       <SubType>Designer</SubType>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Settings\config.xml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Settings\TextFile1.txt" />
     <Content Include="vlslogo.ico" />
   </ItemGroup>
   <ItemGroup />
@@ -283,8 +272,17 @@
     <Copy Condition="Exists('$(DeployedConfig)')" SourceFiles="$(IntermediateOutputPath)$(TargetFileName).config" DestinationFiles="$(DeployedConfig)" />
   </Target>
   <PropertyGroup>
-    <PostBuildEvent>copy $(ProjectDir)\Settings\v_tests.xml $(TargetDir)
-copy $(ProjectDir)\Settings\vocsn_tests.xml $(TargetDir)
-copy $(ProjectDir)\Settings\config.json $(TargetDir)</PostBuildEvent>
+    <PostBuildEvent>copy $(ProjectDir)\Settings\v_tests.xml $(TargetDir)\Settings\
+copy $(ProjectDir)\Settings\vocsn_tests.xml $(TargetDir)\Settings\
+copy $(ProjectDir)..\Images\pass.png $(TargetDir)\Images\
+copy $(ProjectDir)..\Images\fail.png $(TargetDir)\Images\
+copy $(ProjectDir)\Settings\ControlBoardLocalDb.db $(TargetDir)\Settings</PostBuildEvent>
   </PropertyGroup>
+  <Import Project="..\packages\System.Data.SQLite.Core.1.0.113.1\build\net46\System.Data.SQLite.Core.targets" Condition="Exists('..\packages\System.Data.SQLite.Core.1.0.113.1\build\net46\System.Data.SQLite.Core.targets')" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\System.Data.SQLite.Core.1.0.113.1\build\net46\System.Data.SQLite.Core.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\System.Data.SQLite.Core.1.0.113.1\build\net46\System.Data.SQLite.Core.targets'))" />
+  </Target>
 </Project>

@@ -152,8 +152,8 @@ namespace GPIO
             //
             //
         //SecondPortCL -> 4 bits wide --> Unused
-            TEMP_BATT2 = new GPIO_PIN(DigitalPortType.SecondPortCL, 1);
-            TEMP_BATT1 = new GPIO_PIN(DigitalPortType.SecondPortCL, 2);
+            TEMP_BATT1 = new GPIO_PIN(DigitalPortType.SecondPortCL, 1);
+            TEMP_BATT2 = new GPIO_PIN(DigitalPortType.SecondPortCL, 2);
             TEMP_BATT0 = new GPIO_PIN(DigitalPortType.SecondPortCL, 3);
             //
         //SecondPortCH -> 4 bits wide --> OUTPUTS

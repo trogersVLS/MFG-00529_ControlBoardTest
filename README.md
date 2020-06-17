@@ -10,6 +10,10 @@ This document outlines the functional and design specifications that compose MFG
 2. Change the Active build configuration to Debug/Release. The Debug configuration should build only the application. The Release configuration should build the Application and the Installer Project.
 
 ## Install
+
+To Install:
+1. Run the MFG-00529_\<rev\>.msi file. Follow all default installation instructions
+2. 
 1. Open the MFG-00529_Setup.msi file after a release build.
 2. Select all default options in the installer.
 3. Install Instacal, located in <em>C:\Program Files (x86)\Ventec Life Systems\Control Board Test\Dependencies\ </em>

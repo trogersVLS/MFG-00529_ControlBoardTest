@@ -31,10 +31,8 @@ namespace ControlBoardTest
 
         const int RELAY_DELAY = 10;    //this is for when you release the relay.  
 
-        private bool dummy_test(IProgress<string> message = null, IProgress<string> log = null, object test = null)
+        public bool test_dummy_test(IProgress<string> message, IProgress<string> log, TestData test)
         {
-            
-
             return true;
         }
         /*******************************************************************************************************************************  
@@ -1566,21 +1564,27 @@ namespace ControlBoardTest
                 //Connect the desired voltage node to the DMM
                 this.GPIO.SetBit(GPIO_Defs.MEAS_FREQ_PUMP.port, GPIO_Defs.MEAS_FREQ_PUMP.pin);
                 
-                //Measure the voltage
+                //Measure the frequency
                 Thread.Sleep(2000); //Wait for the motor to get up to speed
                 measured = this.DMM.Get_Freq(); //Convert to RPM
+                measured = measured * 6;
+
+                if ((measured > upper) || (measured < lower))//something may have gone wrong.  Give it another try and toss out the old measurement 
+                {
+                    Thread.Sleep(1000); //Wait for the motor to get up to speed
+                    measured = this.DMM.Get_Freq(); //Convert to RPM
+                    measured = measured * 6;//scale the measurement to what we want  
+                }
 
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_FREQ_PUMP.port, GPIO_Defs.MEAS_FREQ_PUMP.pin);
-
-                measured = measured * 6;
                 this.Vent.CMD_Write("set vcm testmgr o2stop");
 
                 if ((measured <= upper) && (measured >= lower))
                 {
                     success = true;
                 }
-
                 message.Report("Measured: " + measured.ToString());
+                
                 //Fill in measurement parameter
                 if (success)
                 {
@@ -3565,6 +3569,23 @@ namespace ControlBoardTest
                     }
 
                 }
+                if (!success)//then try again  
+                {
+                    if (measured == 0)
+                    {
+                        //Starting off good, the home flag is not set. Now move 
+
+
+                        response = this.Vent.CMD_Write("set vcm rotaryv 2 4");
+                        Thread.Sleep(DELAY);
+                        response = this.Vent.CMD_Write("set vcm rotaryv 2 0");
+                        Thread.Sleep(DELAY);
+                        measured = this.GPIO.GetBit(GPIO_Defs.MEAS_RV2_HOME.port, GPIO_Defs.MEAS_RV2_HOME.pin);
+                        if (measured == 1) success = true;
+
+
+                    }
+                }
 
 
                 if (success)
@@ -3943,7 +3964,7 @@ namespace ControlBoardTest
 
                     powerOutput = this.Vent.CMD_Write("get vcm power").Replace("\r\n", "\r");
                     retry++;
-                } while ((powerOutput == "") || (retry > 3));
+                } while ((powerOutput == "") || (retry > 3)); //TODO: I think that this is a bug. Should be --> ((powerOutput == "") && (retry <3))
 
 
 
@@ -4356,7 +4377,7 @@ namespace ControlBoardTest
         private bool test_batt0_charge(IProgress<string> message, IProgress<string> log, TestData test)
         {
             bool success = false;
-            
+
 
             if (this.powered && this.GPIO.Connected && this.PPS.Connected && this.Vent.Connected)
             {
@@ -4366,19 +4387,32 @@ namespace ControlBoardTest
                 float lower = float.Parse(test.parameters["lower"]);
 
                 //Initialize a charging scenario
-                this.GPIO.SetBit(GPIO_Defs.AMM_EN.port, GPIO_Defs.AMM_EN.pin);
-                this.GPIO.SetBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);
-                this.GPIO.SetBit(GPIO_Defs.TEMP_BATT0.port, GPIO_Defs.TEMP_BATT0.pin);
-                this.GPIO.SetBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
+                this.GPIO.SetBit(GPIO_Defs.AMM_EN.port, GPIO_Defs.AMM_EN.pin);  //this connects BATT+ from PPS to DVM_LO in preparation for measuring current 
+                Thread.Sleep(10); //dlr for relay settling time 
+                this.GPIO.SetBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);//this connectes the real main battery positive terminal to AMM_HI input on DVM
+                Thread.Sleep(10); //dlr for relay settling time 
+                this.GPIO.SetBit(GPIO_Defs.TEMP_BATT0.port, GPIO_Defs.TEMP_BATT0.pin);//enable the temeperature sense circuit and route it to the correct battery interface.  Charger will not operate if temperature is out of range. 
+                Thread.Sleep(10); //dlr for relay settling time 
+                this.GPIO.SetBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);//this routes BATT+ from the PPS  and DVM_LO out to the battery connector on the UUT. 
 
                 float meas;
                 int time = 0;
 
-                //Thread.Sleep(delay);
+
+                //DLR if we measure current at this stage that is > upper range, then shut down immediately, something went very wrong and we don't want to damage a board. 
 
                 do
                 {
-                    meas = this.DMM.Get_Amps() * -1;
+                    meas = this.DMM.Get_Amps() * -1;//grab the current and swap the polarity.
+
+                    if (Math.Abs(meas) > upper)//something bad could be happening here.   DLR 
+                    {
+                        message.Report("Critical Error, charger current.  Halting internal battery test at CN302");
+                        success = false;
+                        break;
+
+                    }
+
                     if ((meas <= upper) && (meas >= lower))
                     {
                         success = true;
@@ -4389,18 +4423,22 @@ namespace ControlBoardTest
                 } while (time < timeout);
 
                 //Turn off PPS and battery
-
+                this.GPIO.ClearBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);//this will disconnect the battery connector on the UUT.   This should happen first.  The 
+                //order of removal of the remaining charger connections is non-critical. 
+                Thread.Sleep(10); //dlr for relay settling time 
                 this.GPIO.ClearBit(GPIO_Defs.AMM_EN.port, GPIO_Defs.AMM_EN.pin);
+                Thread.Sleep(10); //dlr for relay settling time 
                 this.GPIO.ClearBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);
+                Thread.Sleep(10); //dlr for relay settling time 
                 this.GPIO.ClearBit(GPIO_Defs.TEMP_BATT0.port, GPIO_Defs.TEMP_BATT0.pin);
-                this.GPIO.ClearBit(GPIO_Defs.BAT0_EN.port, GPIO_Defs.BAT0_EN.pin);
+
 
                 //Fill in measurement parameter
                 test.parameters["measured"] = meas.ToString();
                 message.Report("Measured: " + meas.ToString() + "A");
                 if (success)
                 {
-                    message.Report(test.name + ": PASS");   
+                    message.Report(test.name + ": PASS");
                 }
                 else
                 {
@@ -4448,18 +4486,30 @@ namespace ControlBoardTest
 
                 //Initialize a charging scenario
                 this.GPIO.SetBit(GPIO_Defs.AMM_EN.port, GPIO_Defs.AMM_EN.pin);
+                Thread.Sleep(10); //dlr for relay settling time 
                 this.GPIO.SetBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);
-                this.GPIO.SetBit(GPIO_Defs.TEMP_BATT2.port, GPIO_Defs.TEMP_BATT2.pin);
+                Thread.Sleep(10); //dlr for relay settling time 
+                this.GPIO.SetBit(GPIO_Defs.TEMP_BATT1.port, GPIO_Defs.TEMP_BATT1.pin);
+                Thread.Sleep(10); //dlr for relay settling time 
                 this.GPIO.SetBit(GPIO_Defs.BAT1_EN.port, GPIO_Defs.BAT1_EN.pin);
 
                 float meas;
                 int time = 0;
 
-                //Thread.Sleep(delay);
+
 
                 do
                 {
                     meas = this.DMM.Get_Amps() * -1;
+
+                    if (Math.Abs(meas) > upper)//something bad could be happening here.   DLR 
+                    {
+                        message.Report("Critical Error, charger current.  Halting External battery test at CN301m");
+                        success = false;
+                        break;
+
+                    }
+
                     if ((meas <= upper) && (meas >= lower))
                     {
                         success = true;
@@ -4470,11 +4520,14 @@ namespace ControlBoardTest
                 } while (time < timeout);
 
                 //Turn off PPS and battery
-
-                this.GPIO.ClearBit(GPIO_Defs.AMM_EN.port, GPIO_Defs.AMM_EN.pin);
-                this.GPIO.ClearBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);
-                this.GPIO.ClearBit(GPIO_Defs.TEMP_BATT2.port, GPIO_Defs.TEMP_BATT2.pin);
                 this.GPIO.ClearBit(GPIO_Defs.BAT1_EN.port, GPIO_Defs.BAT1_EN.pin);
+                Thread.Sleep(10); //dlr for relay settling time 
+                this.GPIO.ClearBit(GPIO_Defs.AMM_EN.port, GPIO_Defs.AMM_EN.pin);
+                Thread.Sleep(10); //dlr for relay settling time 
+                this.GPIO.ClearBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);
+                Thread.Sleep(10); //dlr for relay settling time 
+                this.GPIO.ClearBit(GPIO_Defs.TEMP_BATT1.port, GPIO_Defs.TEMP_BATT1.pin);
+
 
                 //Fill in measurement parameter
                 test.parameters["measured"] = meas.ToString();
@@ -4506,8 +4559,7 @@ namespace ControlBoardTest
          *                         - chg_delay - Delay in milliseconds to wait between connecting load and measuring current through the load
          *             
          *
-         *  Returns: bool success - returns true if alarm silence led lights up
-         * returns false if alarm silence led does not light up
+         *  
          * Exceptions: - The calling function is expected to catch any exceptions thrown in this function.
          *
          *                  - Parameters does not contain Key
@@ -4529,21 +4581,29 @@ namespace ControlBoardTest
 
                 //Initialize a charging scenario
                 this.GPIO.SetBit(GPIO_Defs.AMM_EN.port, GPIO_Defs.AMM_EN.pin);
+                Thread.Sleep(10); //dlr for relay settling time 
                 this.GPIO.SetBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);
-                this.GPIO.SetBit(GPIO_Defs.TEMP_BATT1.port, GPIO_Defs.TEMP_BATT1.pin);
+                Thread.Sleep(10); //dlr for relay settling time 
+                this.GPIO.SetBit(GPIO_Defs.TEMP_BATT2.port, GPIO_Defs.TEMP_BATT2.pin);
+                Thread.Sleep(10); //dlr for relay settling time 
                 this.GPIO.SetBit(GPIO_Defs.BAT2_EN.port, GPIO_Defs.BAT2_EN.pin);
 
                 float meas;
                 int time = 0;
 
-                //Thread.Sleep(delay);
 
-                
                 do
                 {
                     meas = this.DMM.Get_Amps() * -1;
-                   
-                    
+
+                    if (Math.Abs(meas) > upper)//something bad could be happening here.   DLR 
+                    {
+                        message.Report("Critical Error, charger current.  Halting External battery test at CN300m");
+                        success = false;
+                        break;
+
+                    }
+
                     if ((meas <= upper) && (meas >= lower))
                     {
                         success = true;
@@ -4555,10 +4615,14 @@ namespace ControlBoardTest
 
                 //Turn off PPS and battery
 
-                this.GPIO.ClearBit(GPIO_Defs.AMM_EN.port, GPIO_Defs.AMM_EN.pin);
-                this.GPIO.ClearBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);
-                this.GPIO.ClearBit(GPIO_Defs.TEMP_BATT1.port, GPIO_Defs.TEMP_BATT1.pin);
                 this.GPIO.ClearBit(GPIO_Defs.BAT2_EN.port, GPIO_Defs.BAT2_EN.pin);
+                Thread.Sleep(10); //dlr for relay settling time 
+                this.GPIO.ClearBit(GPIO_Defs.AMM_EN.port, GPIO_Defs.AMM_EN.pin);
+                Thread.Sleep(10); //dlr for relay settling time 
+                this.GPIO.ClearBit(GPIO_Defs.CHG_LOAD_EN.port, GPIO_Defs.CHG_LOAD_EN.pin);
+                Thread.Sleep(10); //dlr for relay settling time 
+                this.GPIO.ClearBit(GPIO_Defs.TEMP_BATT2.port, GPIO_Defs.TEMP_BATT2.pin);
+
 
                 //Fill in measurement parameter
                 test.parameters["measured"] = meas.ToString();
@@ -5290,7 +5354,7 @@ namespace ControlBoardTest
                 response = this.Vent.CMD_Write("get vcm power");
                 Thread.Sleep(100);
 
-                // Sometimes we get garbage data from the first read
+                // Sometimes we get garbage data from the first read --> TODO: Seriously got to fix this nonsense.
                 response = this.Vent.CMD_Write("get vcm power");
 
                 //Match the Source OK bits and confirm that the xdc bit is the only ok bit.

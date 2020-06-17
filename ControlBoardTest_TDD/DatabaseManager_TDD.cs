@@ -23,10 +23,10 @@ namespace ControlBoardTest_TDD
             data.Add("serial", "VA20H045");
             data.Add("result", "TEST");
 
-            string connStr = "Provider=MSOLEDBSQL;Server=vls-test-database.database.windows.net;Initial Catalog=vls-production-test;Authentication=SqlPassword;User ID=sw_svc;Password=Ventec123;Use Encryption for Data=true;";
+            string connStr = ConfigurationManager.ConnectionStrings["Local"].ToString();
 
-            Task<int> task =  SQLServer.InsertOneRow(connStr,
-                                                     "[dbo].[test-instance]",
+            Task<int> task =  SQLServer.Local_InsertOneRow(connStr,
+                                                     "[test-results]",
                                                      data);
             
             while (!task.IsCompleted) 
@@ -42,11 +42,11 @@ namespace ControlBoardTest_TDD
         {
             Dictionary<string, string> data = new Dictionary<string, string>();
             data.Add("result", "FAIL-TEST");
-            string connStr = "Provider=MSOLEDBSQL;Server=vls-test-database.database.windows.net;Initial Catalog=vls-production-test;Authentication=SqlPassword;User ID=sw_svc;Password=Ventec123;Use Encryption for Data=true;";
+            string connStr = ConfigurationManager.ConnectionStrings["Local"].ToString();
 
-            Task<int> task = SQLServer.UpdateResult(connStr,
-                                                    "[dbo].[test-instance]",
-                                                    "8",
+            Task<int> task = SQLServer.Local_UpdateResult(connStr,
+                                                    "[test-results]",
+                                                    "1",
                                                     data);
 
             while (!task.IsCompleted)
@@ -69,11 +69,11 @@ namespace ControlBoardTest_TDD
             data.Add("measured", "measured");
             data.Add("result", "result");
 
-            string connStr = "Provider=MSOLEDBSQL;Server=vls-test-database.database.windows.net;Initial Catalog=vls-production-test;Authentication=SqlPassword;User ID=sw_svc;Password=Ventec123;Use Encryption for Data=true;";
+            string connStr = ConfigurationManager.ConnectionStrings["Local"].ToString();
             try
             {
-                Task<int> task = SQLServer.InsertOneRow(connStr,
-                                                         "[dbo].[tests]",
+                Task<int> task = SQLServer.Local_InsertOneRow(connStr,
+                                                         "[test-data]",
                                                          data);
                 while (!task.IsCompleted)
                 {

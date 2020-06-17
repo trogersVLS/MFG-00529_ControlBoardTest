@@ -49,12 +49,12 @@ namespace ControlBoardTest
         string LOCATION;
         string EQID;
         string MFG_CODE;
-        string SERIAL_NUM;
+        public string SERIAL_NUM;
         string RESULT;
         string USER_NAME = System.Security.Principal.WindowsIdentity.GetCurrent().Name;
 
-        private bool Powered = false;
-        private bool Telnet = false;
+        public bool Powered = false;
+        public bool Telnet = false;
         SynchronizationContext synchronizationContext;
                                                                      
 
@@ -71,7 +71,7 @@ namespace ControlBoardTest
         private VLS_Tlm VENT=null;
 
         //Functional Test Data
-        private FunctionalTest FCT;
+        public FunctionalTest FCT;
         private readonly ConcurrentQueue<string> message_queue = new ConcurrentQueue<string>();
         private List<TestData> failedTests = new List<TestData>();
         private List<TestData> passedTests = new List<TestData>();
@@ -267,11 +267,12 @@ namespace ControlBoardTest
             ButtonClickHandlerAsync();
         }
 
-        private async void ExecuteTests()
+        public async void ExecuteTests()
         {
             Progress<int> progress = new Progress<int>(i => this.ProgressBar.Value = i);
             Progress<string> message = new Progress<string>(s => this.DisplayMessage(s));
             Progress<string> log = new Progress<string>(s => this.LogMessage(s));
+            
             
 
             // We didn't successfuly connect
@@ -292,37 +293,57 @@ namespace ControlBoardTest
                 return;
             }
 
+
+
             if (this.Powered && this.Telnet)
             {
-                Task<int> LoggingTest = this.FCT.LogNewTest(this.USER_NAME, this.Field_SerialNumber.Text);
-                int test_id = await LoggingTest;
+                bool remoteLogging = SQLServer.PingServer(ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["Environment"]].ToString());
+
+                Task<(int, int)> LoggingTest = this.FCT.LogNewTest(this.USER_NAME, this.SERIAL_NUM, remoteLogging);
+                (int remote_test_id, int local_test_id) = await LoggingTest;
 
                 List<TestData> TestList = null;
-                //Get Test List
-                if (this.List_PartNumbers.SelectedItem.ToString() == "VOCSN_PRO")
+                //Get Test List and all other Object dependent variables
+                try
                 {
-                    TestList = this.FCT.VOCSN_TESTS;
+                    if (this.List_PartNumbers.SelectedItem.ToString() == "VOCSN_PRO")
+                    {
+                        TestList = this.FCT.VOCSN_TESTS;
+                    }
+                    else if (this.List_PartNumbers.SelectedItem.ToString() == "V_PRO")
+                    {
+                        TestList = this.FCT.V_TESTS;
+                    }
+
+
                 }
-                else if (this.List_PartNumbers.SelectedItem.ToString() == "V_PRO")
+                catch(Exception e)
                 {
-                    TestList = this.FCT.V_TESTS;
+                    TestList = this.FCT.DUMMY_TEST;
                 }
+                    
                 
                 if (Check_FCT.Checked)
                 {                
                     int pass = 0;
                     int fail = 0;
-                    int total = this.Tests.Count;
+                    int total = TestList.Count;
                     bool success = true;
                                         
                     foreach (TestData test in TestList)
                     {
-                        string part_number = this.List_PartNumbers.SelectedItem.ToString();
+                        
                         TestData results;
 
 
-                        Task<TestData> TestsRunning = this.FCT.RunTest(test_id, this.SERIAL_NUM, test, message, log);
+                        Task<TestData> TestsRunning = this.FCT.RunTest(test, message, log);
+                        
                         results = await TestsRunning;
+                        //Record test data
+                        Task<int> LoggingTestData = this.FCT.LogTestData(test, this.SERIAL_NUM, remoteLogging, remote_test_id, local_test_id);
+                        Application.DoEvents();
+                        await LoggingTestData;
+
 
                         if (results.Result == "PASS") success = true;
                         else success = false;
@@ -337,11 +358,29 @@ namespace ControlBoardTest
                             pass++;
                             passedTests.Add(results);
                         }
+                        UpdateTestCount(pass, fail);
+                        this.ProgressBar.Value = ((pass + fail) * 100) / total;
                         test.SetResult(success);
-            
+                        Application.DoEvents();
+                    }
+                    if (fail == 0) this.RESULT = "PASS";
+                    else this.RESULT = "FAIL";
+                    await this.FCT.LogTestResult(this.RESULT, remoteLogging, remote_test_id, local_test_id);
+                    //LogTestResult(this.RESULT);
+                    // Turn off the power after the test is complete
+                    Button_PowerUp_Click(null, null);
+
+                    // Show PASS/FAIL message
+                    DisplayResult(fail);
+
+                    // Reset the serial number if we passed 
+                    if (fail == 0)
+                    {
+                        this.Field_SerialNumber.Text = "";
+                        this.Field_SerialNumber.Focus();
                     }
 
-                    LogTestResult(this.RESULT);
+                    
                 }
             
                 else if (Check_SingleTest.Checked)
@@ -355,7 +394,8 @@ namespace ControlBoardTest
                         {
                             foreach(TestData t in TestList)
                             {
-                                
+                                if (t.name == selectedTest)
+                                {
                                     //TODO: Move logging to FunctionalTest Class
                                     //LogTestInstance();
                                     TestToRun = t;
@@ -363,13 +403,20 @@ namespace ControlBoardTest
                                     bool success = true;
 
                                     //await Task.Factory.StartNew(() => (success = this.RunTest(this.TEST_ID, this.SERIAL_NUM, TestToRun, message, log)));
-                                    Task<TestData> TestsRunning = this.FCT.RunTest(test_id, this.SERIAL_NUM, TestToRun, message, log);
+                                    Task<TestData> TestsRunning = this.FCT.RunTest(TestToRun, message, log);
                                     TestData results = await TestsRunning;
+
+                                    Task<int> LoggingTestData = this.FCT.LogTestData(TestToRun, this.SERIAL_NUM, remoteLogging, remote_test_id, local_test_id);
+                                    Application.DoEvents();
+                                    await LoggingTestData;
+
+
                                     if (results.Result == "PASS") success = true;
                                     else success = false;
 
                                     this.ProgressBar.Value = 100;
                                     //LogTestResult(this.RESULT);
+                                    await this.FCT.LogTestResult(results.Result, remoteLogging, remote_test_id, local_test_id);
 
                                     if (success)
                                     {
@@ -379,8 +426,10 @@ namespace ControlBoardTest
                                     {
                                         this.UpdateTestCount(0, 1);
                                     }
+                                    Application.DoEvents();
 
                                     break;
+                                }
                         
                             }
                         
@@ -416,13 +465,13 @@ namespace ControlBoardTest
             if (fail == 0)
             {
                 this.RESULT = "PASS";
-                holder.set_path("pass.png");
+                holder.set_path(ConfigurationManager.AppSettings["PASS_IMAGE"]);
                 holder.set_userText("Mark unit as passed and move DUT to the next station");
             }
             else
             {
                 this.RESULT = "FAIL";
-                holder.set_path("fail.png");                
+                holder.set_path(ConfigurationManager.AppSettings["FAIL_IMAGE"]);                
                 holder.set_userText("Remove unit from fixture and note failures in Factory Logix");
             }
 
@@ -755,11 +804,9 @@ namespace ControlBoardTest
                 ConnectTelnet();
             }
 
-            // already powered and connected
-            if (this.Powered && this.Telnet)
-            {
-                ExecuteTests();
-            }
+            
+                ExecuteTests(); //Need to enter the ExecuteTests method in order to reset the form
+            
         }
 
         private async void ConnectTelnet()
@@ -989,9 +1036,9 @@ namespace ControlBoardTest
         /******************************************************************************************************/
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            this.GPIO.ClearBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+            this.FCT.GPIO.ClearBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
             //this.GPIO.ClearAll();
-            this.GPIO = null;
+            this.FCT.GPIO = null;
         }
 
         private void List_PartNumbers_SelectedIndexChanged(object sender, EventArgs e)

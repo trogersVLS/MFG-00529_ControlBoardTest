@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ControlBoardTest", "MFG-005
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ControlBoardTest_TDD", "ControlBoardTest_TDD\ControlBoardTest_TDD.csproj", "{A4C708A8-3E89-4675-B1ED-F6FA24B83A9C}"
 EndProject
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Installer", "Installer\Installer.vdproj", "{4DB91C5A-E4A2-4C0D-B19C-E3644BD9FFA6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -20,7 +22,9 @@ Global
 		{A4C708A8-3E89-4675-B1ED-F6FA24B83A9C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A4C708A8-3E89-4675-B1ED-F6FA24B83A9C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A4C708A8-3E89-4675-B1ED-F6FA24B83A9C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A4C708A8-3E89-4675-B1ED-F6FA24B83A9C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4DB91C5A-E4A2-4C0D-B19C-E3644BD9FFA6}.Debug|Any CPU.ActiveCfg = Debug
+		{4DB91C5A-E4A2-4C0D-B19C-E3644BD9FFA6}.Release|Any CPU.ActiveCfg = Release
+		{4DB91C5A-E4A2-4C0D-B19C-E3644BD9FFA6}.Release|Any CPU.Build.0 = Release
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

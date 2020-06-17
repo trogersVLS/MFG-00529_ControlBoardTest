@@ -343,7 +343,7 @@ namespace GPIO
             clsErrorDefs.HandleError = MccDaq.ErrorHandling.DontStop;
             this.gpio_board = new MccDaq.MccBoard();
             this.err = MccDaq.MccService.ErrHandling
-                (ErrorReporting.PrintAll, ErrorHandling.DontStop);
+                (ErrorReporting.DontPrint, ErrorHandling.DontStop);
 
             this.err = this.gpio_board.BoardConfig.GetDiNumDevs(out this.numChannels);
 

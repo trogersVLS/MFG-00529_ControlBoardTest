@@ -77,15 +77,17 @@ namespace ControlBoardTest
         Data config;
 
 
-        private MccDaq_GPIO GPIO;
-        private Test_Equip DMM;
-        private Test_Equip PPS;
-        private VOCSN_Serial SOM;
-        private VLS_Tlm Vent;
+        public MccDaq_GPIO GPIO;
+        public Test_Equip DMM;
+        public Test_Equip PPS;
+        public VOCSN_Serial SOM;
+        public VLS_Tlm Vent;
 
 
         public List<TestData> VOCSN_TESTS { get; set; }
         public List<TestData> V_TESTS { get; set; }
+
+        public List<TestData> DUMMY_TEST;
 
         bool DEBUG;
         
@@ -329,7 +331,7 @@ namespace ControlBoardTest
         *
         *
         ******************************************************************************************************************************************/
-        public async Task<TestData> RunTest(long test_id, string serial, TestData test, IProgress<string> message, IProgress<string> log)
+        public async Task<TestData> RunTest(TestData test, IProgress<string> message, IProgress<string> log)
         {
             bool success = false;
 
@@ -341,9 +343,13 @@ namespace ControlBoardTest
 
                 message.Report("\nStarting test: " + test.name);
                 //log.Report("Starting test: " + test.method_name);
-
+                //await Task.Factory.StartNew(() => (success = this.RunTest(this.TEST_ID, this.SERIAL_NUM, TestToRun, message, log)));
+                
                 //Invoke the test function --> Each test will fill the parameters table to measured
-                success = (bool)test.testinfo.Invoke(this, param);
+                Task<bool> testRunning = Task.Factory.StartNew(() => (success = (bool)test.testinfo.Invoke(this, param)), TaskCreationOptions.LongRunning);
+                await testRunning;
+               
+               
 
 
             }
@@ -365,7 +371,7 @@ namespace ControlBoardTest
                 this.GPIO.ClearAllButPower();
             }
             
-            message.Report("Clear GPIO ...");
+            //message.Report("Clear GPIO ...");
             test.SetResult(success);
 
             if (success)
@@ -378,11 +384,6 @@ namespace ControlBoardTest
                 //message.Report(test.name + ": FAIL");
                 success = false;
             }
-
-            Task<int> LoggingTest = LogTestData(test, serial, test_id);
-            await LoggingTest;
-
-
             return test;
         }
 
@@ -441,9 +442,10 @@ namespace ControlBoardTest
         *                            - Returns false if the database log was unsuccessful
         *             
         * **********************************************************************************************************/
-        public async Task<int> LogNewTest(string username, string serial)
+        public async Task<(int, int)> LogNewTest(string username, string serial, bool remote)
         {
-            int test_id;
+            int remote_test_id = -1;
+            int local_test_id = -1;
             try
             {
                 Dictionary<string, string> row = new Dictionary<string, string>();
@@ -453,34 +455,71 @@ namespace ControlBoardTest
                 row.Add("timestamp", DateTime.UtcNow.ToString());
                 row.Add("serial", serial);
                 row.Add("result", "In progress");
-
-                Task<int> LoggingNewTest = SQLServer.InsertOneRow(ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["Environment"]].ToString(), 
-                                                                  ConfigurationManager.AppSettings["INSTANCE_TABLENAME"], 
+                
+                
+                Task<int> LoggingNewTest;
+                if (remote)
+                {
+                    LoggingNewTest = SQLServer.InsertOneRow(ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["Environment"]].ToString(),
+                                                                  ConfigurationManager.AppSettings["INSTANCE_TABLENAME"],
                                                                   row);
-                test_id = await LoggingNewTest;
-                return test_id;
+                    Task<int> LoggingLocalNewTest = SQLServer.Local_InsertOneRow(ConfigurationManager.ConnectionStrings["Local"].ToString(),
+                                                                 ConfigurationManager.AppSettings["INSTANCE_TABLENAME"].Replace("[dbo].", ""),
+                                                                 row);
+                    local_test_id = await LoggingLocalNewTest;
+                    remote_test_id = await LoggingNewTest;
+                }
+                else
+                {
+                    LoggingNewTest = SQLServer.Local_InsertOneRow(ConfigurationManager.ConnectionStrings["Local"].ToString(),
+                                                                  ConfigurationManager.AppSettings["INSTANCE_TABLENAME"].Replace("[dbo].", ""),
+                                                                  row);
+                    local_test_id = await LoggingNewTest;
+                }
+                
+                
+                
             }
-            catch
+            catch (Exception e)
             {
-                return -1;
-            } 
+                System.Windows.Forms.MessageBox.Show("Error logging new test" + e.Message);
+                
+            }
+            return (remote_test_id, local_test_id);
         }
-        public async Task<int> LogTestResult(string result, long test_id)
+        public async Task<int> LogTestResult(string result, bool remote, long remote_test_id, long local_test_id)
         {
             try
             {
                 Dictionary<string, string> updatedData = new Dictionary<string, string>();
                 updatedData.Add("result", result);
 
-                Task<int> updating = SQLServer.UpdateResult(ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["Environment"]].ToString(),
-                                                            ConfigurationManager.AppSettings["INSTANCE_TABLENAME"],
-                                                            test_id.ToString(),
-                                                            updatedData);
+                Task<int> updating;
+                if (remote)
+                {   
+                    updating = SQLServer.UpdateResult(ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["Environment"]].ToString(),
+                                                                ConfigurationManager.AppSettings["INSTANCE_TABLENAME"],
+                                                                remote_test_id.ToString(),
+                                                                updatedData);
+                    Task<int> LocalUpdating = SQLServer.Local_UpdateResult(ConfigurationManager.ConnectionStrings["Local"].ToString(),
+                                                                ConfigurationManager.AppSettings["INSTANCE_TABLENAME"].Replace("[dbo].", ""),
+                                                                local_test_id.ToString(),
+                                                                updatedData);
+                    await LocalUpdating;
+                }
+                else
+                {
+                    updating = SQLServer.Local_UpdateResult(ConfigurationManager.ConnectionStrings["Local"].ToString(),
+                                                                ConfigurationManager.AppSettings["INSTANCE_TABLENAME"].Replace("[dbo].",""),
+                                                                local_test_id.ToString(),
+                                                                updatedData);
+                }
                 int rowsAffected = await updating;
                 return rowsAffected;
             }
-            catch
+            catch(Exception e)
             {
+                System.Windows.Forms.MessageBox.Show("Error logging the test result" + e.Message);
                 return -1;
             }
         }
@@ -492,17 +531,14 @@ namespace ControlBoardTest
         *                            - Returns false if the database log was unsuccessful
         *             
         * **********************************************************************************************************/
-        public async Task<int> LogTestData(TestData test, string serial, long test_id)
+        public async Task<int> LogTestData(TestData test, string serial, bool remote, long remote_test_id, long local_test_id)
         {
-            bool success = true;
-            //throw new NotImplementedException();
-
             int rowsUpdated = -1;
             try
             {
 
                 Dictionary<string, string> row = new Dictionary<string, string>();
-                row.Add("test-id", test_id.ToString());
+                row.Add("test-id", "");
                 row.Add("serial", serial);
                 row.Add("test-name", test.name);
 
@@ -520,20 +556,35 @@ namespace ControlBoardTest
 
                 test.parameters.TryGetValue("result", out var result);
                 if (result == null) { result = "ERROR"; }
-                row.Add("result", measured);
+                row.Add("result", result);
 
-
-
-                Task<int> LoggingTestResults = SQLServer.InsertOneRow(ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["Environment"]].ToString(),
-                                                                      ConfigurationManager.AppSettings["TESTS_TABLENAME"],
-                                                                      row);
+                Task<int> LoggingTestResults;
+                if (remote) // Log to remote server
+                {
+                    row["test-id"] = remote_test_id.ToString();
+                    LoggingTestResults = SQLServer.InsertOneRow(ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["Environment"]].ToString(),
+                                                                          ConfigurationManager.AppSettings["TESTS_TABLENAME"],
+                                                                          row);
+                    row["test-id"] = local_test_id.ToString();
+                    Task<int> LoggingLocalTestResults = SQLServer.Local_InsertOneRow(ConfigurationManager.ConnectionStrings["Local"].ToString(),
+                                                                          ConfigurationManager.AppSettings["TESTS_TABLENAME"].Replace("[dbo].", ""),
+                                                                          row);
+                    await LoggingLocalTestResults;
+                }
+                else // Couldn't connect to remote server, log to local database
+                {
+                    row["test-id"] = remote_test_id.ToString();
+                    LoggingTestResults = SQLServer.Local_InsertOneRow(ConfigurationManager.ConnectionStrings["Local"].ToString(),
+                                                                          ConfigurationManager.AppSettings["TESTS_TABLENAME"].Replace("[dbo].",""),
+                                                                          row);
+                    
+                }
                 rowsUpdated = await LoggingTestResults;
             }
-            catch
+            catch (Exception e)
             {
-                //Throw exception to RUN TEST function so say which item failed.
-                //this.db_con.Close();
-
+                System.Windows.Forms.MessageBox.Show("Error Logging test data" + e.Message);
+                return -1;
             }
 
             return rowsUpdated;

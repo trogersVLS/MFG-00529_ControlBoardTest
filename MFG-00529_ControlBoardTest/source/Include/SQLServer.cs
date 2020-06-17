@@ -1,12 +1,10 @@
 ﻿using System.Collections.Generic;
-using System.Data.SqlClient;
-using System.Windows.Forms;
 using System.Text;
 using System.Data.OleDb;
-using System.Configuration;
 using System.Data;
 using System;
 using System.Threading.Tasks;
+using System.Data.SQLite;
 
 namespace ControlBoardTest
 {
@@ -16,14 +14,17 @@ namespace ControlBoardTest
         {
             int value = 1;
             OleDbConnection conn = new OleDbConnection(ConnectionString);
+            
             OleDbCommand command = new OleDbCommand(String.Format("SELECT {0};",value), conn);
 
             try
             {
                 conn.Open();
                 int ping = (int)command.ExecuteScalar();
+
+                //System.Windows.Forms.MessageBox.Show(ping.ToString());
                 if (ping == value)
-                {
+                {   
                     return true;
                 }
                 else
@@ -31,8 +32,10 @@ namespace ControlBoardTest
                     return false;
                 }
             }
-            catch
+            catch(Exception e)
             {
+
+                System.Windows.Forms.MessageBox.Show("Exception caught trying to access the remote SQL Server. Please capture this message window and send to a VLS Employee.\n\rThe test will continue to run and will save to the local database\n\n\rException Message: " + e.Message);
                 return false;
             }
             finally
@@ -79,8 +82,9 @@ namespace ControlBoardTest
                 Task<object> insertingRow =  cmd.ExecuteScalarAsync();
 
                 object tmp = (await insertingRow);
+
                 rowId = int.Parse(tmp.ToString());
-                
+
             }
             catch (Exception e)
             {
@@ -122,12 +126,133 @@ namespace ControlBoardTest
             }
             KeyValues.Length--;
 
-            KeyValues.Append(" WHERE [test-id] = \'" + TestId + "\';");
+            KeyValues.Append(" WHERE [test-id] = " + TestId + ";");
 
             commandStr.Append(KeyValues.ToString());
 
             OleDbConnection conn = new OleDbConnection(ConnectionString);
             OleDbCommand cmd = new OleDbCommand(commandStr.ToString(), conn);
+            int rowsAffected = 0;
+            try
+            {
+                conn.Open();
+                //rowsAffected = cmd.ExecuteNonQuery();
+
+                Task<int> updating = cmd.ExecuteNonQueryAsync();
+
+                rowsAffected = await updating;
+
+                if (rowsAffected != 1)
+                {
+                    throw new InvalidOperationException("The number of rows affected in SQL insert do not match");
+                }
+            }
+            catch (Exception e)
+            {
+                if (!e.Message.Contains("Violation of PRIMARY KEY constraint"))
+                { //Data exists in database already, ignore and don't update
+                    throw e;
+                }
+            }
+            finally
+            {
+                conn.Close();
+            }
+
+            return rowsAffected;
+        }
+
+
+        //Local Database
+        public static async Task<int> Local_InsertOneRow(string ConnectionString, string TableName, Dictionary<string, string> data)
+        {
+            //Create the necessary INSERT string
+            StringBuilder commandStr = new StringBuilder();
+            commandStr.Append("INSERT INTO " + TableName + " ");
+
+            StringBuilder Columns = new StringBuilder("(");
+            StringBuilder Values = new StringBuilder("VALUES (");
+            foreach (KeyValuePair<string, string> kv in data)
+            {
+                Columns.Append("[" + kv.Key + "],");
+                Values.Append("\'" + kv.Value + "\',");
+            }
+            Columns.Length--;
+            Values.Length--;
+
+            Columns.Append(") ");
+            Values.Append(");");
+
+            //Values.Append(");");
+
+            commandStr.Append(Columns.ToString());
+            //commandStr.Append(" OUTPUT INSERTED.[test-id] ");
+            commandStr.Append(Values.ToString());
+
+
+            SQLiteConnection conn = new SQLiteConnection();
+            SQLiteCommand cmd = new SQLiteCommand(commandStr.ToString(), conn);
+            int rowId = 0;
+            try
+            {
+                conn.ConnectionString = ConnectionString;
+                conn.Open();
+                Task<object> insertingRow = cmd.ExecuteScalarAsync();
+
+                object tmp = (await insertingRow);
+
+                cmd.CommandText = "SELECT last_insert_rowid();";
+                Task<object> gettingId = cmd.ExecuteScalarAsync();
+                tmp = await gettingId;
+                rowId = int.Parse(tmp.ToString());
+
+            }
+            catch (Exception e)
+            {
+                if (e.Message.Contains("Violation of PRIMARY KEY constraint"))
+                { //Data exists in database already, ignore and don't update. Else, throw exception
+
+                }
+                else if (e.Message.Contains("Client with IP address"))
+                {
+                    //Ip address is not allowed access to the server. Need to warn user to contact a database administrator to grant the IP address access.
+
+                    Exception ex = new Exception("Unable to access database. Please contact the database administrator so that they can add your faciliy's IP address to the list of acceptable IP addresses for this tool.");
+                    throw ex;
+                }
+                else
+                {
+                    throw e;
+                }
+
+            }
+            finally
+            {
+                conn.Close();
+            }
+
+            return rowId;
+        }
+        public static async Task<int> Local_UpdateResult(string ConnectionString, string TableName, string TestId, Dictionary<string, string> DataToChange)
+        {
+            //Create the necessary INSERT string
+            StringBuilder commandStr = new StringBuilder();
+            commandStr.Append("UPDATE " + TableName + " ");
+
+            StringBuilder KeyValues = new StringBuilder("SET ");
+
+            foreach (KeyValuePair<string, string> kv in DataToChange)
+            {
+                KeyValues.Append(kv.Key + " = \'" + kv.Value + "\',");
+            }
+            KeyValues.Length--;
+
+            KeyValues.Append(" WHERE [test-id] = " + TestId + ";");
+
+            commandStr.Append(KeyValues.ToString());
+
+            SQLiteConnection conn = new SQLiteConnection(ConnectionString);
+            SQLiteCommand cmd = new SQLiteCommand(commandStr.ToString(), conn);
             int rowsAffected = 0;
             try
             {
@@ -180,8 +305,23 @@ namespace ControlBoardTest
             return dtRecord;
         }
 
+        public static void Local_Generate(string filepath, string command)
+        {
+            SQLiteConnection conn = new SQLiteConnection(string.Format("Data Source={0};Version=3;", filepath));
+            SQLiteCommand cmd = new SQLiteCommand(command, conn);
+
+            conn.Open();
+            cmd.ExecuteNonQuery();
+
+            conn.Close();
+
+            return;
+        }
+
         public static async Task<int> TransferData(string FromConnectionString, string FromTable, string ToConnectionString, string ToTable)
         {
+
+            throw new NotImplementedException();
             string getQuery = "SELECT * FROM " + FromTable;
             Task<DataTable> gettingRows = GetRows(FromConnectionString, getQuery);
 
