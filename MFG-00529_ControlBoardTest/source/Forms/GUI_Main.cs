@@ -396,13 +396,11 @@ namespace ControlBoardTest
                             {
                                 if (t.name == selectedTest)
                                 {
-                                    //TODO: Move logging to FunctionalTest Class
-                                    //LogTestInstance();
+                                    
                                     TestToRun = t;
                                     this.ProgressBar.Value = 30;
                                     bool success = true;
 
-                                    //await Task.Factory.StartNew(() => (success = this.RunTest(this.TEST_ID, this.SERIAL_NUM, TestToRun, message, log)));
                                     Task<TestData> TestsRunning = this.FCT.RunTest(TestToRun, message, log);
                                     TestData results = await TestsRunning;
 
@@ -493,70 +491,7 @@ namespace ControlBoardTest
             this.PassCountIndicator.Text = pass.ToString();
             this.FailCountIndicator.Text = fail.ToString();
         }
-        //private bool DatabaseExist()
-        //{
-
-        //    SQLiteCommand cmd;
-            
-        //    bool success = false;
-
-
-        //    try
-        //    {
-        //        if (!File.Exists(this.DB_FILEPATH))
-        //        {
-        //            SQLiteConnection.CreateFile(this.DB_FILEPATH);
-
-        //            string test_instance_table = @"CREATE TABLE Test_Instance(
-        //                              TEST_ID INTEGER PRIMARY KEY AUTOINCREMENT ,
-        //                              EQID INTEGER ,
-        //                              USER TEXT ,
-        //                              LOCATION TEXT ,
-        //                              TIMESTAMP TEXT,
-        //                              SERIAL_NUMBER TEXT ,
-        //                              RESULT TEXT
-        //                              );";
-
-        //            string tests_table = @"CREATE TABLE Tests(
-        //                       TEST_ID INTEGER,
-        //                       SERIAL_NUMBER TEXT ,
-        //                       TEST_NAME TEXT,
-        //                       UPPER_BOUND TEXT,
-        //                       LOWER_BOUND TEX,
-        //                       MEASURED TEXT,
-        //                       RESULT TEXT
-        //                       );";
-
-        //            this.DB_CON = new SQLiteConnection("Data Source=" + this.DB_FILEPATH + ";Version=3");
-        //            this.DB_CON.Open();
-
-        //            cmd = new SQLiteCommand(test_instance_table, this.DB_CON);
-        //            //cmd.CommandText = test_instance_table;
-        //            int d = cmd.ExecuteNonQuery();
-
-        //            cmd.CommandText = tests_table;
-        //            d = cmd.ExecuteNonQuery();
-
-        //            this.DB_CON.Close();
-        //            if (File.Exists(this.DB_FILEPATH))
-        //            {
-        //                //TODO: Check if tables exist in file
-        //                success = true;
-        //            }
-
-        //        }
-        //        else
-        //        {
-        //            this.DB_CON = new SQLiteConnection("Data Source=" + this.DB_FILEPATH + ";Version=3");
-        //        }
-
-        //    }
-        //    catch
-        //    {
-        //        success = false;
-        //    }
-        //    return success;
-        //}
+        
         private async void LogTestInstance()
         {
             
@@ -709,7 +644,7 @@ namespace ControlBoardTest
          * - Method checks to see if the user has finished inputting a serial number by pressing <Enter>.
          *   This allows the user to use a scanner to enter the serial number of the boards.
          *   
-         *   TODO: Create file for saved configuration settings. This will allow for each installation of this 
+         *   
          *   program to be configured specifically for the manufacturer
          *   
          *   Serial number format: @ A # # $ # # #
