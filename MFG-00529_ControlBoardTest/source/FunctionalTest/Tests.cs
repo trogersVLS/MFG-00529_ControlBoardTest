@@ -18,6 +18,7 @@ using MccDaq;
 using GPIO;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using System.Configuration;
 
 namespace ControlBoardTest
 {
@@ -1604,22 +1605,26 @@ namespace ControlBoardTest
 
                 //this.NotifyUser("Please clear all alarms");
                 this.Vent.CMD_Write("restart");
-                this.Vent.CMD_Write("set uim screen 5039");  //Nebulizer start screenID = 5039
+                
+                this.SetDutSettings(ConfigurationManager.AppSettings["EXT_O2_SETTINGSPATH"]);
+                Thread.Sleep(3000); //Wait 1 second for changes to take effect
+                //this.Vent.CMD_Write("set uim screen 5045");  //Nebulizer start screenID = 5039 --> Change to Oxygen screen and start extO2
 
-                this.NotifyUser("Please start the nebulizer");
+                //this.NotifyUser("Please press START");
 
                 //Determine if the nebulizer needs to be running.
-                string returnVal = this.Vent.CMD_Write("get vcm monitors");
-                if (returnVal.Contains("nebulizerActive: 0"))
-                {                    
-                    do
-                    {
-                        Thread.Sleep(500);
-                        i++;
-                        returnVal = this.Vent.CMD_Write("get vcm monitors");
-                    }
-                    while (returnVal.Contains("nebulizerActive: 0") && (i < 30));
-                }
+                //string returnVal = this.Vent.CMD_Write("get vcm monitors");
+                //if (returnVal.Contains("nebulizerActive: 0"))
+                //{                    
+                //    do
+                //    {
+                //        Thread.Sleep(500);
+                //        i++;
+                //        returnVal = this.Vent.CMD_Write("get vcm monitors");
+                //    }
+                //    while (returnVal.Contains("nebulizerActive: 0") && (i < 30));
+                //}
+
                 //Connect the desired voltage node to the DMM
                 this.GPIO.SetBit(GPIO_Defs.VFAN_MEAS_EN.port, GPIO_Defs.VFAN_MEAS_EN.pin);
 
@@ -1645,21 +1650,26 @@ namespace ControlBoardTest
 
                 //Done with high speed fan mode - time to shut it down.                 
                 //We will introduce a fan fault to force the nebulizer to stop and measure the fan voltage to see that it worked
-                this.GPIO.SetBit(GPIO_Defs.FAN_FAULT_EN.port, GPIO_Defs.FAN_FAULT_EN.pin);
+                //this.GPIO.SetBit(GPIO_Defs.FAN_FAULT_EN.port, GPIO_Defs.FAN_FAULT_EN.pin);
 
-                i = 0;
-                do
-                {
-                    i++;
-                    v_measured = this.DMM.Get_Volts();
-                }
-                while (v_measured > lower && (i < 20));
+                //i = 0;
+                //do
+                //{
+                //    i++;
+                //    v_measured = this.DMM.Get_Volts();
+                //}
+                //while (v_measured > lower && (i < 20));
 
-                this.GPIO.ClearBit(GPIO_Defs.FAN_FAULT_EN.port, GPIO_Defs.FAN_FAULT_EN.pin);
+                //this.GPIO.ClearBit(GPIO_Defs.FAN_FAULT_EN.port, GPIO_Defs.FAN_FAULT_EN.pin);
                 this.GPIO.ClearBit(GPIO_Defs.VFAN_MEAS_EN.port, GPIO_Defs.VFAN_MEAS_EN.pin);
-                this.Vent.CMD_Write("mfgmode");
-            }
 
+                //TAR Added a restart to stop high speed fan
+                this.SetDutSettings(ConfigurationManager.AppSettings["LOW_VOL_SETTINGSPATH"]);
+                this.Vent.CMD_Write("mfgmode");
+                //this.Vent.CMD_Write("resart");
+                //this.Vent.CMD_Write("mfgmode");
+            }
+                
             return success;
         }
 
@@ -1798,7 +1808,7 @@ namespace ControlBoardTest
             if (currState == 0)
             {
                 this.GPIO.SetBit(GPIO_Defs.AS_BTN_ON.port, GPIO_Defs.AS_BTN_ON.pin);
-
+                Thread.Sleep(RELAY_DELAY);
                 output = this.Vent.CMD_Write("get vcm buttons");
                 this.GPIO.ClearBit(GPIO_Defs.AS_BTN_ON.port, GPIO_Defs.AS_BTN_ON.pin);
                 Thread.Sleep(RELAY_DELAY);
@@ -1820,7 +1830,7 @@ namespace ControlBoardTest
                     measured = 0;
                 }
                 this.GPIO.SetBit(GPIO_Defs.PB_BTN_ON.port, GPIO_Defs.PB_BTN_ON.pin);
-
+                Thread.Sleep(RELAY_DELAY);
                 output = this.Vent.CMD_Write("get vcm buttons");
                 this.GPIO.ClearBit(GPIO_Defs.PB_BTN_ON.port, GPIO_Defs.PB_BTN_ON.pin);
                 Thread.Sleep(RELAY_DELAY);
@@ -2970,7 +2980,7 @@ namespace ControlBoardTest
             return success;
         }
         /******************************************************************************************************************************
-        *  test_mrotary_valve_2
+        *  test_rotary_valve_2
         *  
         *  Function: Commands UUT to move the RV2 to position 4, measure the home flag, then move the RV2 to home position
         *  measure the home flag again

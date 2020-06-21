@@ -246,6 +246,7 @@ namespace ControlBoardTest
             // Update Start button text and color
             this.Button_Run.BackColor = System.Drawing.Color.DarkGray;
             this.Button_Run.Text = "Running";
+            //this.Button_Run.Enabled = false;
 
             // Disable power button during testing
             this.Button_PowerUp.Enabled = false;
@@ -264,17 +265,49 @@ namespace ControlBoardTest
             stopwatch.Reset();
             stopwatch.Start();
 
+            //MessageBox.Show("Entering the ButtonCLickHandlerAsync function ...");
             ButtonClickHandlerAsync();
         }
+        private async void ButtonClickHandlerAsync()
+        {
+            Progress<string> message = new Progress<string>(s => this.DisplayMessage(s));
+            Progress<string> log = new Progress<string>(s => this.LogMessage(s));
+            bool success = false;
 
-        public async void ExecuteTests()
+            if (!this.Powered)
+            {
+                await Task.Run(() =>
+                {
+                    success = this.FCT.test_power_on(message, log);
+                });
+
+                if (success)
+                {
+                    this.Powered = true;
+                    this.Button_PowerUp.Text = "Powered";
+                    this.Button_PowerUp.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(128)))), ((int)(((byte)(255)))), ((int)(((byte)(128)))));
+                }
+            }
+            // connecting Telnet
+            if (this.Powered && !this.Telnet)
+            {
+                await ConnectTelnet();
+                this.FCT.SetDutSettings(ConfigurationManager.AppSettings["LOW_VOL_SETTINGSPATH"]);
+            }
+
+
+            await ExecuteTests(); //Need to enter the ExecuteTests method in order to reset the form
+
+        }
+
+        public async Task<bool> ExecuteTests()
         {
             Progress<int> progress = new Progress<int>(i => this.ProgressBar.Value = i);
             Progress<string> message = new Progress<string>(s => this.DisplayMessage(s));
             Progress<string> log = new Progress<string>(s => this.LogMessage(s));
-            
-            
 
+
+            //MessageBox.Show(this.Telnet.ToString() + " " + this.Powered.ToString());
             // We didn't successfuly connect
             if(!this.Telnet || !this.Powered)
             {
@@ -290,7 +323,7 @@ namespace ControlBoardTest
                 this.Panel_Actions.Enabled = true;
                 this.Panel_Status.Enabled = true;
 
-                return;
+                return false;
             }
 
 
@@ -447,13 +480,14 @@ namespace ControlBoardTest
             // reset GUI
             this.Button_Run.BackColor = System.Drawing.Color.SkyBlue;
             this.Button_Run.Text = "Start";
+            //this.Button_Run.Enabled = false;
 
             // Update panel settings
             this.Panel_Settings.Enabled = true;
             this.Panel_Actions.Enabled = true;
             this.Panel_Status.Enabled = true;
 
-            return;
+            return true;
         }
 
         void DisplayResult(int fail)
@@ -713,38 +747,9 @@ namespace ControlBoardTest
         }
        
 
-        private async void ButtonClickHandlerAsync()
-        {
-            Progress<string> message = new Progress<string>(s => this.DisplayMessage(s));
-            Progress<string> log = new Progress<string>(s => this.LogMessage(s));
-            bool success = false;
-            
-            if (!this.Powered)
-            {
-                await Task.Run(() =>
-                {
-                    success = this.FCT.test_power_on(message, log);
-                });
+       
 
-                if (success)
-                {
-                    this.Powered = true;
-                    this.Button_PowerUp.Text = "Powered";
-                    this.Button_PowerUp.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(128)))), ((int)(((byte)(255)))), ((int)(((byte)(128)))));
-                }
-            }
-            // connecting Telnet
-            if (this.Powered && !this.Telnet)
-            {
-                ConnectTelnet();
-            }
-
-            
-                ExecuteTests(); //Need to enter the ExecuteTests method in order to reset the form
-            
-        }
-
-        private async void ConnectTelnet()
+        private async Task<bool> ConnectTelnet()
         {
             Progress<string> message = new Progress<string>(s => this.DisplayMessage(s));
             Progress<string> log = new Progress<string>(s => this.LogMessage(s));
@@ -783,7 +788,7 @@ namespace ControlBoardTest
                 this.Button_Telnet.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(128)))), ((int)(((byte)(128)))));
                 UpdateButtonText("Not Connected");
             }
-            ExecuteTests();
+            return this.Telnet;
         }
 
         private void WaitForTelnetConnection(int timeout)

@@ -142,6 +142,18 @@ namespace ControlBoardTest
 
         }
 
+        public void SetDutSettings(string filepath)
+        {
+
+            if (this.Vent != null)
+            {
+                if (this.Vent.Connected)
+                {
+                    this.Vent.CMD_Write(string.Format("set uim params {0}", filepath));
+                }
+            }
+            return;
+        }
         public void GetSettings()
         {
             // Get settings for Test Equipments
