@@ -8,13 +8,15 @@
 
     <!-- Burdened tests 8 -->
     <test name="Signal: LCD Test" method_name="test_lcd" qual="true"/>
+    <test name="Voltage: Low Speed Fan" method_name="test_low_fan_volt" qual="false" upper="7.5" lower="7.1"/>
+    <test name="Frequency: Low Speed Fan" method_name="test_low_fan_freq" qual="false" upper="125" lower="100"/>
     <test name="Motor: High Speed Fan" method_name="test_high_fan" qual="false" upper="12.5" lower="10.5" frequency="175" tolerance="15"/>
     <test name="Alarms: Piezo" method_name="test_piezo" qual="true"/>
     <test name="Sensor: Microphone" method_name="test_microphone" qual="true"/>
     <test name="Alarms: Nurse Call" method_name="test_nurse_call" qual="true" upper="5" lower="0"/>
     <test name="LED: Alarm Silence"  method_name="test_as_led" qual="true" timeout="60" fs="100" time="10"/>
 
-    <test name="Comms: VCM" method_name="test_vcm_rev" qual="true" rev="4.06.05R"/>
+    <test name="Comms: VCM" method_name="test_vcm_rev" qual="true" rev="4.11.00R"/>
     <test name="Comms: CPLD" method_name="test_cpld_rev" qual="true" rev="V14"/>
     <test name="Comms: SD Card" method_name="test_sd_card" qual="true" filename="fct_test.txt"/>
     <test name="Comms: USB" method_name="test_usb" qual="true" filename="fct_test.txt"/>
@@ -39,8 +41,6 @@
     <test name="LED: Charge"  method_name="test_charge_led" qual="true" timeout="60"/>
     <test name="LED: XDC"  method_name="test_ext_led" qual="true" timeout="30"/>
     <test name="LED: INOP"  method_name="test_inop_led" qual="true" timeout="300" />
-    <test name="Voltage: Low Speed Fan" method_name="test_low_fan_volt" qual="false" upper="7.5" lower="7.1"/>
-    <test name="Frequency: Low Speed Fan" method_name="test_low_fan_freq" qual="false" upper="125" lower="100"/>
     <test name="Sensor: Barometer" method_name="test_barometer" qual="false" samples ="100" upper="110" lower="90"/>
     <test name="Sensor: Thermometer" method_name="test_ambient_temperature" qual="false" samples="100" upper="45" lower="15"/>
     <test name="Sensor: Buttons" method_name="test_buttons" qual="true" port="FirstPortCH" pin="5"/>   

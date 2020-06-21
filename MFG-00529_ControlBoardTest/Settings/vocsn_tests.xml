@@ -1,33 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 
 <Settings>
-  <Installation Location="VLS" EQID="1010" MFG_CODE="V" DatabasePath =".\\Database\\MFG_527.db" DHCP_Enable="false" DHCP_Start="10.10.1.1" DHCP_End="10.10.1.100"/>
-
-  <EquipAddr>
-    <DMM protocol="RS232" address="COM3" name="FLUKE" baudrate="115200" stopbits="1"/>
-    <PPS protocol="RS232" address="COM2" name="HEWLETT" baudrate="1200" stopbits="2"/>
-    <SOM protocol="RS232" address="COM1" name="SOM" baudrate="115200"/>
-    
-  </EquipAddr>
-
-  
-  <programming>
-    <!-- The following XML nodes are the steps needed to program the board. The order is important, tests are performed in the order listed. -->
-    <!--<program name="CPLD Program" method_name="Program_CPLD" flashpro="C://Microsemi//Program_Debug_v11.9//bin//Flashpro.exe" project_file="C://Users//trogers//Workspaces//MFG-00527//FunctionalTest//ProgramLoad//CPLDLoad//PowerBoard_V12.pro" tcl_script="C://Users//trogers//Workspaces//MFG-00527/FunctionalTest//ProgramLoad//CPLDLoad//cpld_program.tcl"/>
-    <program name="Hercules Program" method_name="Program_Hercules" batch_file="C://Users//trogers//Workspaces//MFG-00527//FunctionalTest//ProgramLoad//HerculesLoad//dslite.bat" />
-    <program name="SOM Program" method_name="Program_SOM"/>-->
-    
-  </programming>
-  <!-- The following XML nodes are the steps needed to start the test. The order is important, tests are performed in the order listed. -->
-  <startup>
-    
-    <startup name="Power On" method_name="test_power_on" qual="true" timeout="15000"/>
-    <startup name="Telemetry Connect" method_name="ConnectToTelnet" qual="true" timeout="15000"/>
-  </startup>
-
-  <powerdown>
-    <startup name="Power Down" method_name="test_power_down" qual="true"/>
-  </powerdown>
   
   <!-- The following XML nodes are the tests that will be performed by software. The order is important, tests are performed in the order listed. -->
   <tests>
@@ -35,6 +8,8 @@
 
     <!-- Burdened tests 8 -->
     <test name="Signal: LCD Test" method_name="test_lcd" qual="true"/>
+    <test name="Voltage: Low Speed Fan" method_name="test_low_fan_volt" qual="false" upper="7.5" lower="7.1"/>
+    <test name="Frequency: Low Speed Fan" method_name="test_low_fan_freq" qual="false" upper="125" lower="100"/>
     <test name="Motor: High Speed Fan" method_name="test_high_fan" qual="false" upper="12.5" lower="10.5" frequency="175" tolerance="15"/>
     <test name="Motor: Cough Valve"  method_name="test_cough_valve" qual="true" toggle="2"/>
     <test name="Alarms: Piezo" method_name="test_piezo" qual="true"/>
@@ -42,7 +17,7 @@
     <test name="Alarms: Nurse Call" method_name="test_nurse_call" qual="true" upper="5" lower="0"/>
     <test name="LED: Alarm Silence"  method_name="test_as_led" qual="true" timeout="60" fs="100" time="10"/>
 
-    <test name="Comms: VCM" method_name="test_vcm_rev" qual="true" rev="4.06.05R"/>
+    <test name="Comms: VCM" method_name="test_vcm_rev" qual="true" rev="4.11.00R"/>
     <test name="Comms: CPLD" method_name="test_cpld_rev" qual="true" rev="V14"/>
     <test name="Comms: SD Card" method_name="test_sd_card" qual="true" filename="fct_test.txt"/>
     <test name="Comms: USB" method_name="test_usb" qual="true" filename="fct_test.txt"/>
@@ -68,8 +43,6 @@
     <test name="LED: Charge"  method_name="test_charge_led" qual="true" timeout="60"/>
     <test name="LED: XDC"  method_name="test_ext_led" qual="true" timeout="30"/>
     <test name="LED: INOP"  method_name="test_inop_led" qual="true" timeout="300" />
-    <test name="Voltage: Low Speed Fan" method_name="test_low_fan_volt" qual="false" upper="7.5" lower="7.1"/>
-    <test name="Frequency: Low Speed Fan" method_name="test_low_fan_freq" qual="false" upper="125" lower="100"/>
     <test name="Sensor: Barometer" method_name="test_barometer" qual="false" samples ="100" upper="110" lower="90"/>
     <test name="Sensor: Thermometer" method_name="test_ambient_temperature" qual="false" samples="100" upper="45" lower="15"/>
     <test name="Sensor: Buttons" method_name="test_buttons" qual="true" port="FirstPortCH" pin="5"/>   
