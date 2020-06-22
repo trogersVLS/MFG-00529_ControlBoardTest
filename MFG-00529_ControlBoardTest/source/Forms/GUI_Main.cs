@@ -1004,5 +1004,16 @@ namespace ControlBoardTest
             }
 
         }
+
+        private void Configuration_Click(object sender, EventArgs e)
+        {
+            ConfigurationForm config_form = new ConfigurationForm();
+
+            config_form.ShowDialog();
+
+            //Restart application
+            Application.Restart();
+            Environment.Exit(0);
+        }
     }  
 }

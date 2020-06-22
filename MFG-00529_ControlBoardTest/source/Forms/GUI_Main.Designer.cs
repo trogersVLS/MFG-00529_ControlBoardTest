@@ -85,9 +85,9 @@
             this.MainPanel.Controls.Add(this.Panel_Settings);
             this.MainPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.MainPanel.Location = new System.Drawing.Point(0, 0);
-            this.MainPanel.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.MainPanel.Margin = new System.Windows.Forms.Padding(6, 7, 6, 7);
             this.MainPanel.Name = "MainPanel";
-            this.MainPanel.Size = new System.Drawing.Size(932, 835);
+            this.MainPanel.Size = new System.Drawing.Size(1450, 1225);
             this.MainPanel.TabIndex = 31;
             // 
             // Panel_Status
@@ -101,10 +101,10 @@
             this.Panel_Status.Controls.Add(this.label6);
             this.Panel_Status.Controls.Add(this.label5);
             this.Panel_Status.Controls.Add(this.label4);
-            this.Panel_Status.Location = new System.Drawing.Point(597, 140);
-            this.Panel_Status.Margin = new System.Windows.Forms.Padding(1);
+            this.Panel_Status.Location = new System.Drawing.Point(929, 203);
+            this.Panel_Status.Margin = new System.Windows.Forms.Padding(2, 1, 2, 1);
             this.Panel_Status.Name = "Panel_Status";
-            this.Panel_Status.Size = new System.Drawing.Size(318, 289);
+            this.Panel_Status.Size = new System.Drawing.Size(495, 419);
             this.Panel_Status.TabIndex = 2;
             // 
             // Button_PowerUp
@@ -114,10 +114,10 @@
             this.Button_PowerUp.Enabled = false;
             this.Button_PowerUp.FlatAppearance.BorderSize = 0;
             this.Button_PowerUp.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.Button_PowerUp.Location = new System.Drawing.Point(145, 9);
-            this.Button_PowerUp.Margin = new System.Windows.Forms.Padding(1);
+            this.Button_PowerUp.Location = new System.Drawing.Point(226, 13);
+            this.Button_PowerUp.Margin = new System.Windows.Forms.Padding(2, 1, 2, 1);
             this.Button_PowerUp.Name = "Button_PowerUp";
-            this.Button_PowerUp.Size = new System.Drawing.Size(157, 59);
+            this.Button_PowerUp.Size = new System.Drawing.Size(244, 86);
             this.Button_PowerUp.TabIndex = 31;
             this.Button_PowerUp.Text = "Not Powered";
             this.Button_PowerUp.UseVisualStyleBackColor = false;
@@ -130,10 +130,10 @@
             this.Button_Telnet.Enabled = false;
             this.Button_Telnet.FlatAppearance.BorderSize = 0;
             this.Button_Telnet.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.Button_Telnet.Location = new System.Drawing.Point(145, 71);
-            this.Button_Telnet.Margin = new System.Windows.Forms.Padding(1);
+            this.Button_Telnet.Location = new System.Drawing.Point(226, 103);
+            this.Button_Telnet.Margin = new System.Windows.Forms.Padding(2, 1, 2, 1);
             this.Button_Telnet.Name = "Button_Telnet";
-            this.Button_Telnet.Size = new System.Drawing.Size(157, 57);
+            this.Button_Telnet.Size = new System.Drawing.Size(244, 83);
             this.Button_Telnet.TabIndex = 32;
             this.Button_Telnet.Text = "Not Connected";
             this.Button_Telnet.UseVisualStyleBackColor = false;
@@ -144,10 +144,10 @@
             this.PassCountIndicator.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(192)))), ((int)(((byte)(0)))));
             this.PassCountIndicator.Enabled = false;
             this.PassCountIndicator.Font = new System.Drawing.Font("Consolas", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.PassCountIndicator.Location = new System.Drawing.Point(145, 132);
-            this.PassCountIndicator.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.PassCountIndicator.Location = new System.Drawing.Point(226, 191);
+            this.PassCountIndicator.Margin = new System.Windows.Forms.Padding(6, 7, 6, 7);
             this.PassCountIndicator.Name = "PassCountIndicator";
-            this.PassCountIndicator.Size = new System.Drawing.Size(157, 57);
+            this.PassCountIndicator.Size = new System.Drawing.Size(244, 83);
             this.PassCountIndicator.TabIndex = 2;
             this.PassCountIndicator.Text = "0";
             this.PassCountIndicator.UseVisualStyleBackColor = false;
@@ -157,8 +157,8 @@
             // 
             this.label3.AutoSize = true;
             this.label3.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label3.Location = new System.Drawing.Point(10, 28);
-            this.label3.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label3.Location = new System.Drawing.Point(16, 41);
+            this.label3.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(127, 20);
             this.label3.TabIndex = 33;
@@ -170,10 +170,10 @@
             this.FailCountIndicator.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.FailCountIndicator.BackColor = System.Drawing.Color.DarkGray;
             this.FailCountIndicator.Font = new System.Drawing.Font("Consolas", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.FailCountIndicator.Location = new System.Drawing.Point(145, 194);
-            this.FailCountIndicator.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.FailCountIndicator.Location = new System.Drawing.Point(226, 281);
+            this.FailCountIndicator.Margin = new System.Windows.Forms.Padding(6, 7, 6, 7);
             this.FailCountIndicator.Name = "FailCountIndicator";
-            this.FailCountIndicator.Size = new System.Drawing.Size(157, 57);
+            this.FailCountIndicator.Size = new System.Drawing.Size(244, 83);
             this.FailCountIndicator.TabIndex = 3;
             this.FailCountIndicator.Text = "0";
             this.FailCountIndicator.UseVisualStyleBackColor = false;
@@ -183,8 +183,8 @@
             // 
             this.label6.AutoSize = true;
             this.label6.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label6.Location = new System.Drawing.Point(19, 212);
-            this.label6.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label6.Location = new System.Drawing.Point(30, 307);
+            this.label6.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(119, 20);
             this.label6.TabIndex = 36;
@@ -195,8 +195,8 @@
             // 
             this.label5.AutoSize = true;
             this.label5.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label5.Location = new System.Drawing.Point(9, 151);
-            this.label5.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label5.Location = new System.Drawing.Point(14, 219);
+            this.label5.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(130, 20);
             this.label5.TabIndex = 35;
@@ -207,8 +207,8 @@
             // 
             this.label4.AutoSize = true;
             this.label4.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label4.Location = new System.Drawing.Point(10, 89);
-            this.label4.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label4.Location = new System.Drawing.Point(16, 129);
+            this.label4.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(127, 20);
             this.label4.TabIndex = 34;
@@ -219,10 +219,10 @@
             // 
             this.Panel_Actions.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.Panel_Actions.Controls.Add(this.Button_Run);
-            this.Panel_Actions.Location = new System.Drawing.Point(408, 140);
-            this.Panel_Actions.Margin = new System.Windows.Forms.Padding(1);
+            this.Panel_Actions.Location = new System.Drawing.Point(635, 203);
+            this.Panel_Actions.Margin = new System.Windows.Forms.Padding(2, 1, 2, 1);
             this.Panel_Actions.Name = "Panel_Actions";
-            this.Panel_Actions.Size = new System.Drawing.Size(186, 289);
+            this.Panel_Actions.Size = new System.Drawing.Size(289, 419);
             this.Panel_Actions.TabIndex = 30;
             // 
             // Button_Run
@@ -231,9 +231,9 @@
             this.Button_Run.Dock = System.Windows.Forms.DockStyle.Left;
             this.Button_Run.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Button_Run.Location = new System.Drawing.Point(0, 0);
-            this.Button_Run.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.Button_Run.Margin = new System.Windows.Forms.Padding(6, 7, 6, 7);
             this.Button_Run.Name = "Button_Run";
-            this.Button_Run.Size = new System.Drawing.Size(183, 289);
+            this.Button_Run.Size = new System.Drawing.Size(285, 419);
             this.Button_Run.TabIndex = 1;
             this.Button_Run.Text = "Start";
             this.Button_Run.UseVisualStyleBackColor = false;
@@ -244,11 +244,11 @@
             this.Output_Window.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.Output_Window.Location = new System.Drawing.Point(18, 486);
-            this.Output_Window.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.Output_Window.Location = new System.Drawing.Point(28, 705);
+            this.Output_Window.Margin = new System.Windows.Forms.Padding(6, 7, 6, 7);
             this.Output_Window.Name = "Output_Window";
             this.Output_Window.ReadOnly = true;
-            this.Output_Window.Size = new System.Drawing.Size(896, 341);
+            this.Output_Window.Size = new System.Drawing.Size(1392, 507);
             this.Output_Window.TabIndex = 9;
             this.Output_Window.Text = "";
             this.Output_Window.TextChanged += new System.EventHandler(this.Output_Window_TextChanged);
@@ -257,10 +257,10 @@
             // 
             this.ProgressBar.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.ProgressBar.Location = new System.Drawing.Point(18, 435);
-            this.ProgressBar.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.ProgressBar.Location = new System.Drawing.Point(28, 631);
+            this.ProgressBar.Margin = new System.Windows.Forms.Padding(6, 7, 6, 7);
             this.ProgressBar.Name = "ProgressBar";
-            this.ProgressBar.Size = new System.Drawing.Size(896, 41);
+            this.ProgressBar.Size = new System.Drawing.Size(1394, 59);
             this.ProgressBar.Style = System.Windows.Forms.ProgressBarStyle.Continuous;
             this.ProgressBar.TabIndex = 12;
             // 
@@ -271,10 +271,10 @@
             this.Logo_VLS.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None;
             this.Logo_VLS.Image = ((System.Drawing.Image)(resources.GetObject("Logo_VLS.Image")));
             this.Logo_VLS.InitialImage = ((System.Drawing.Image)(resources.GetObject("Logo_VLS.InitialImage")));
-            this.Logo_VLS.Location = new System.Drawing.Point(18, 14);
+            this.Logo_VLS.Location = new System.Drawing.Point(28, 20);
             this.Logo_VLS.Margin = new System.Windows.Forms.Padding(0);
             this.Logo_VLS.Name = "Logo_VLS";
-            this.Logo_VLS.Size = new System.Drawing.Size(896, 117);
+            this.Logo_VLS.Size = new System.Drawing.Size(1394, 170);
             this.Logo_VLS.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.Logo_VLS.TabIndex = 26;
             this.Logo_VLS.TabStop = false;
@@ -290,17 +290,18 @@
             this.Panel_Settings.Controls.Add(this.Check_SingleTest);
             this.Panel_Settings.Controls.Add(this.Dropdown_Test_List);
             this.Panel_Settings.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
-            this.Panel_Settings.Location = new System.Drawing.Point(18, 140);
+            this.Panel_Settings.Location = new System.Drawing.Point(28, 203);
+            this.Panel_Settings.Margin = new System.Windows.Forms.Padding(5, 4, 5, 4);
             this.Panel_Settings.Name = "Panel_Settings";
-            this.Panel_Settings.Size = new System.Drawing.Size(379, 289);
+            this.Panel_Settings.Size = new System.Drawing.Size(590, 419);
             this.Panel_Settings.TabIndex = 0;
             // 
             // label1
             // 
             this.label1.AutoSize = true;
             this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label1.Location = new System.Drawing.Point(4, 8);
-            this.label1.Margin = new System.Windows.Forms.Padding(4, 8, 4, 5);
+            this.label1.Location = new System.Drawing.Point(6, 12);
+            this.label1.Margin = new System.Windows.Forms.Padding(6, 12, 6, 7);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(135, 20);
             this.label1.TabIndex = 33;
@@ -310,10 +311,10 @@
             // 
             this.Field_SerialNumber.BackColor = System.Drawing.SystemColors.Window;
             this.Field_SerialNumber.CharacterCasing = System.Windows.Forms.CharacterCasing.Upper;
-            this.Field_SerialNumber.Location = new System.Drawing.Point(4, 38);
-            this.Field_SerialNumber.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.Field_SerialNumber.Location = new System.Drawing.Point(6, 46);
+            this.Field_SerialNumber.Margin = new System.Windows.Forms.Padding(6, 7, 6, 7);
             this.Field_SerialNumber.Name = "Field_SerialNumber";
-            this.Field_SerialNumber.Size = new System.Drawing.Size(367, 26);
+            this.Field_SerialNumber.Size = new System.Drawing.Size(569, 35);
             this.Field_SerialNumber.TabIndex = 0;
             this.Field_SerialNumber.TextChanged += new System.EventHandler(this.Field_SerialNumber_TextChanged);
             this.Field_SerialNumber.KeyUp += new System.Windows.Forms.KeyEventHandler(this.Field_SerialNumber_KeyUp);
@@ -322,8 +323,8 @@
             // 
             this.PN_Label.AutoSize = true;
             this.PN_Label.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.PN_Label.Location = new System.Drawing.Point(1, 69);
-            this.PN_Label.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
+            this.PN_Label.Location = new System.Drawing.Point(2, 88);
+            this.PN_Label.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.PN_Label.Name = "PN_Label";
             this.PN_Label.Size = new System.Drawing.Size(115, 20);
             this.PN_Label.TabIndex = 34;
@@ -333,10 +334,10 @@
             // 
             this.List_PartNumbers.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.List_PartNumbers.FormattingEnabled = true;
-            this.List_PartNumbers.Location = new System.Drawing.Point(4, 94);
-            this.List_PartNumbers.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.List_PartNumbers.Location = new System.Drawing.Point(6, 115);
+            this.List_PartNumbers.Margin = new System.Windows.Forms.Padding(6, 7, 6, 7);
             this.List_PartNumbers.Name = "List_PartNumbers";
-            this.List_PartNumbers.Size = new System.Drawing.Size(367, 28);
+            this.List_PartNumbers.Size = new System.Drawing.Size(569, 37);
             this.List_PartNumbers.TabIndex = 1;
             this.List_PartNumbers.SelectedValueChanged += new System.EventHandler(this.List_PartNumbers_SelectedIndexChanged);
             // 
@@ -344,8 +345,8 @@
             // 
             this.label2.AutoSize = true;
             this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label2.Location = new System.Drawing.Point(4, 135);
-            this.label2.Margin = new System.Windows.Forms.Padding(4, 8, 4, 5);
+            this.label2.Location = new System.Drawing.Point(6, 171);
+            this.label2.Margin = new System.Windows.Forms.Padding(6, 12, 6, 7);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(196, 20);
             this.label2.TabIndex = 33;
@@ -357,10 +358,10 @@
             this.Check_FCT.Checked = true;
             this.Check_FCT.CheckState = System.Windows.Forms.CheckState.Checked;
             this.Check_FCT.Enabled = false;
-            this.Check_FCT.Location = new System.Drawing.Point(22, 165);
-            this.Check_FCT.Margin = new System.Windows.Forms.Padding(22, 5, 4, 5);
+            this.Check_FCT.Location = new System.Drawing.Point(34, 205);
+            this.Check_FCT.Margin = new System.Windows.Forms.Padding(34, 7, 6, 7);
             this.Check_FCT.Name = "Check_FCT";
-            this.Check_FCT.Size = new System.Drawing.Size(95, 24);
+            this.Check_FCT.Size = new System.Drawing.Size(133, 33);
             this.Check_FCT.TabIndex = 2;
             this.Check_FCT.Text = "Full Test";
             this.Check_FCT.UseVisualStyleBackColor = true;
@@ -370,10 +371,10 @@
             // 
             this.Check_SingleTest.AutoSize = true;
             this.Check_SingleTest.Enabled = false;
-            this.Check_SingleTest.Location = new System.Drawing.Point(22, 199);
-            this.Check_SingleTest.Margin = new System.Windows.Forms.Padding(22, 5, 4, 5);
+            this.Check_SingleTest.Location = new System.Drawing.Point(34, 252);
+            this.Check_SingleTest.Margin = new System.Windows.Forms.Padding(34, 7, 6, 7);
             this.Check_SingleTest.Name = "Check_SingleTest";
-            this.Check_SingleTest.Size = new System.Drawing.Size(114, 24);
+            this.Check_SingleTest.Size = new System.Drawing.Size(162, 33);
             this.Check_SingleTest.TabIndex = 3;
             this.Check_SingleTest.Text = "Single Test";
             this.Check_SingleTest.UseVisualStyleBackColor = true;
@@ -387,10 +388,10 @@
             this.Dropdown_Test_List.Enabled = false;
             this.Dropdown_Test_List.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Dropdown_Test_List.FormattingEnabled = true;
-            this.Dropdown_Test_List.Location = new System.Drawing.Point(22, 233);
-            this.Dropdown_Test_List.Margin = new System.Windows.Forms.Padding(22, 5, 4, 5);
+            this.Dropdown_Test_List.Location = new System.Drawing.Point(34, 299);
+            this.Dropdown_Test_List.Margin = new System.Windows.Forms.Padding(34, 7, 6, 7);
             this.Dropdown_Test_List.Name = "Dropdown_Test_List";
-            this.Dropdown_Test_List.Size = new System.Drawing.Size(349, 30);
+            this.Dropdown_Test_List.Size = new System.Drawing.Size(541, 30);
             this.Dropdown_Test_List.TabIndex = 4;
             this.Dropdown_Test_List.SelectedIndexChanged += new System.EventHandler(this.Dropdown_Test_List_SelectedIndexChanged);
             // 
@@ -420,6 +421,7 @@
             // 
             this.menuItem1.Index = 1;
             this.menuItem1.Text = "Configuration";
+            this.menuItem1.Click += new System.EventHandler(this.Configuration_Click);
             // 
             // Menu_About
             // 
@@ -444,10 +446,10 @@
             this.Status_ToolTag,
             this.Status_UserLabel,
             this.Status_UserTag});
-            this.StatusBar.Location = new System.Drawing.Point(0, 835);
+            this.StatusBar.Location = new System.Drawing.Point(0, 1225);
             this.StatusBar.Name = "StatusBar";
-            this.StatusBar.Padding = new System.Windows.Forms.Padding(0, 0, 8, 0);
-            this.StatusBar.Size = new System.Drawing.Size(932, 32);
+            this.StatusBar.Padding = new System.Windows.Forms.Padding(0, 0, 12, 0);
+            this.StatusBar.Size = new System.Drawing.Size(1450, 32);
             this.StatusBar.TabIndex = 27;
             this.StatusBar.Text = "StatusStrip";
             // 
@@ -492,18 +494,18 @@
             // 
             // MainForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(14F, 29F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoSize = true;
             this.BackColor = System.Drawing.Color.Gainsboro;
             this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
-            this.ClientSize = new System.Drawing.Size(932, 867);
+            this.ClientSize = new System.Drawing.Size(1450, 1257);
             this.Controls.Add(this.MainPanel);
             this.Controls.Add(this.StatusBar);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.Margin = new System.Windows.Forms.Padding(6, 7, 6, 7);
             this.Menu = this.MenuBar;
-            this.MinimumSize = new System.Drawing.Size(954, 922);
+            this.MinimumSize = new System.Drawing.Size(1472, 1312);
             this.Name = "MainForm";
             this.RightToLeft = System.Windows.Forms.RightToLeft.No;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
