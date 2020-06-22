@@ -1,31 +1,46 @@
 
-![Ventec Life Systems](./Assets/vls_logo.png)
-# MFG-00529 Rev A: 
+![Ventec Life Systems](./Images/vls_logo.png)
+
+# MFG-00529 Rev A
+
 ## Software Specification - Control Board Test Station
 
 This document outlines the functional and design specifications that compose MFG-00529: Control Board Test Station Software
 
-## Build
-1. Open mfg_527.sln using Visual Studio.
-2. Change the Active build configuration to Debug/Release. The Debug configuration should build only the application. The Release configuration should build the Application and the Installer Project.
+## Revision History
 
-## Install
+### V1.0 --> Rev A
 
-To Install:
-1. Run the MFG-00529_\<rev\>.msi file. Follow all default installation instructions
-2. 
-1. Open the MFG-00529_Setup.msi file after a release build.
-2. Select all default options in the installer.
-3. Install Instacal, located in <em>C:\Program Files (x86)\Ventec Life Systems\Control Board Test\Dependencies\ </em>
-4. Restart PC.
-5. When opening the application, confirm that the settings.xml file has been updated to reflect the physical COM port addresses that the DMM, PPS, and SOM Serial port use. These can be found in the Device Manager application or via Command Prompt.
-6. Be sure that applications have read/write privelages to the <em>C:\Program Files (x86)\Ventec Life Systems\Control Board Test\ </em> folder
+* Initial Release
+
+### V2.2 --> Rev B
+
+* Added networked/remote SQL Server database support.
+* Added better file management
+    * Local Db to C:\Ventec\TestData
+    * Separation of tests and config file
+    * Config file to %LOCALAPPDATA%\VLS\MFG-00529
+* Added support for V+Pro model
+* Bug fixes for tests
+    * Nurse Call Test changed order of operations
+    * High speed fan test automated using parameter file to turn on external O2
+    * Cough Assist test automated using low side measurement of Piezo buzzer
+    * Piezo and microhphone tests automated using low side measurement of piezo buzzer
+    * FCT starts by setting parameters to make speaker volume low for test.
+    * Added charger current protection to battery charge tests
+    * Added additional retries to Rotary Valve Tests due to GPIO thresholds.
+* Added configuration form to auto generate config file
+* Changed configuration file from xml to json for better readability
 
 ## Table Of Contents
-1. [Installation Instruction](#Installation-Instructions)
-1. [Functional Description](#Functional-Description)
-1. [Database Tables](#Database-Tables)
-2. [Tests](#Tests)
+
+1. [Building From Source](#Building-from-source)
+1. [Installation](#Installation)
+1. [Installation Qualification](#Installation-Qualification)
+1. [Operational Qualification](#Operational-Qualification)
+2. [Functional Description](#Functional-Description)
+3. [Database Tables](#Database-Tables)
+4. [Tests](#Tests)
     1. [Signal Tests](#Signal-Tests)
         1. [Signal: LCD Test](#Signal:-LCD-Test)
         2. [Signal: Exhl SV 6](#Signal:-Exhl-SV-6)
@@ -109,9 +124,107 @@ To Install:
         3. [Alarms: Piezo](#Alarms:-Piezo)
         4. [Alarms: System Fault 9](#Alarms:-System-Fault-9)
 
+## Building From Source
+
+### Dependencies
+
+This project relies on the following NuGet packages
+1. System.Text.Json (and subsequent dependencies)
+2. System.Data.Sqlite
+
+### Build Process
+
+1. Open mfg_527.sln using Visual Studio.
+2. Build Solution in Visual Studio after installing all NuGet packages
+
+## Installation
+
+To Install:
+1. Run the MFG-00529_\<rev\>.msi file. Follow all default installation instructions.
+2. Follow the instructions to install Instacal. If Instacal is already installed, cancel the install.
+3. Run the msoledsql-64bit.msi file. Follow all default installation instructions.
+4. Restart the PC.
+
+## Installation Verification
+
+To verify the installation
+1. Confirm that the following files are located in __C:\Program Files (x86)\Ventec Life Systems\\__
+    1. Dependencies\
+        1. icalsetup.exe
+        2. msoledsql-64bit.msi
+    2. Images\
+        1. FAIL.png
+        2. PASS.png
+        3. vls_logo.png
+        4. vlslogo.ico
+    3. Settings\
+        1. v_tests.xml
+        2. vocsn_tests.xml
+    4. MFG-00529.exe
+    5. MccDaq.dll
+    6. MFG-00529.exe.config
+    7. Microsoft.Bcl.AsyncInterfaces.dll
+    8. System.Buffers.dll
+    9. System.Data.SQLite.dll
+    10. System.Diagnostics.Tracing.dll
+    11. System.Memory.dll
+    12. System.Net.Http.dll
+    13. System.Numerics.Vectors.dll
+    14. System.Runtime.CompilerServices.Unsafe.dll
+    15. System.Text.Encodings.Web.dll
+    16. System.Text.Json.dll
+    17. System.Threading.Tasks.Extensions.dll
+    18. System.ValueTuple.dll
+    19. System.Windows.dll
+2. Confirm that shortcuts exist in the following locations
+    * C:\Users\Public\Desktop\MFG-00529
+    * C:\ProgramData\Microsoft\Windows\Start Menu\Programs\MFG-00529
+3. Confirm MFG-00529.exe.config
+    1. The following Connection Strings should be defined
+        * Production
+        * Debug
+        * Local
+    2. The following Keys-Value pairs should be present
+        * ____Key____ = Environment __Value__ = Production
+        * __Key__ = CONFIG __Value__ = %LOCALAPPDATA%\VLS\MFG-00529\config.json
+        * __Key__ = VOCSN_TESTS __Value__ = .\Settings\vocsn_tests.xml
+        * __Key__ = V_TESTS __Value__ = .\Settings\v_tests.xml
+        * __Key__ = LOCALDB __Value__ = C:\Ventec\TestData\ControlBoardLocalDb.db
+        * __Key__ = TESTS_TABLENAME __Value__ = [dbo].[test-data]
+        * __Key__ = INSTANCE_TABLENAME __Value__ = [dbo].[test-results]
+        * __Key__ = PASS_IMAGE __Value__ = .\Images\PASS.png
+        * __Key__ = FAIL_IMAGE __Value__ = .\Images\FAIL.png
+        * __Key__ = EXT_O2_SETTINGSPATH __Value__ = /fs/usb/fct_settings/exto2.bin
+        * __Key__ = HIGH_VOL_SETTINGSPATH __Value__ = /fs/usb/fct_settings/highvol.bin
+        * __Key__ = LOW_VOL_SETTINGSPATH __Value__ = /fs/usb/fct_settings/lowvol.bin
+
+## Operational Verification
+
+1. Run MFG-00529.exe
+    1. Confirm that the first window shown is Configuration Form as shown below.
+    ![ConfigurationWindow](./Images/ConfigurationForm.png)
+    2. Fill out the form with the appropriate information for the test fixture.
+    3. Confirm that the main window opens, shown below
+    ![MainWindow](./Images/MainForm.png)  
+    4. Verify that the following files are created
+        C:\%LOCALAPPDATA%\VLS\MF-00529\config.json
+        C:\Ventec\TestData\ControlBoardLocalDb.db
+2. Verify the local database
+    1. Open up ControlBoardLocalDb.db using Sqlite3
+    2. Confirm that two tables exist
+        * test-data
+        * test-results
+3. Verify connection to remote database
+    1. Confirm that the app is able to connect to the remote database using the credentials provided in MFG-00529.exe.config
+4. Verify that two models exists in the dropdown box: VOCSN_PRO and V_PRO.
+5. Run the VOCSN_PRO test on a known good board and confirm that all tests pass.
+6. Run the V_PRO test on a known good board and confirm that all tests pass.
+
 
 ## Functional Description
+
 ## Database Tables
+
 The control board test station utilizes a SQLite database with three tables.
 
 * <b>Test_Instance:</b> Table to store the test entry. A test is defined as a group of tests performed on a single control board after one press of "Run" button. This provide a group of tests to be looked at using the TestID of the single test. Contains info for a <em>whole</em> test instance, does not contain information
@@ -137,12 +250,17 @@ The control board test station utilizes a SQLite database with three tables.
 ## Tests
 
 ### Signal Tests
+
 There are 9 tests that are focused digital signals on the control board
+
 #### Signal: LCD Test
+
 XML Entry
+
 ```xml
 <test name="Signal: LCD Test" method_name="test_lcd" qual="true"/>
 ```
+
 * <b>Circuit Tested:</b>  3B
 * <b>Description</b>: This test prompts the user to check to the screen and confirm that it is clear. The user is presented with two choices; Yes or No. If the user responds with a "Yes" the test continues with a passing result. If the user responds with a "No" the test prompts the user to describe the screen failure. The measurement for this test is a "PASS" or the failure described by the user.
 * <b>Unique Database Entry Info:</b>
@@ -152,9 +270,11 @@ XML Entry
 
 
 ### Motor: High Speed Fan
+
 ```xml
 <test name="Motor: High Speed Fan" method_name="test_high_fan" qual="false" upper="12.5" lower="10.5" frequency="175" tolerance="15"/>
 ```
+
 * <b>Circuit Tested:</b>  4XF
 * <b>Description</b>: This test enables the high speed fan by turning on nebulizer therapy (running the pump) and measuring the fan voltage an CN400X pin 2. This test performs the following operations in order:
    * Prompt user to clear alarms.
@@ -168,11 +288,12 @@ XML Entry
     * Lower Bound: Volts
     * Measured: Volts
 
-
 ### Motor: Cough Valve
+
 ```xml 
 <test name="Motor: Cough Valve"  method_name="test_cough_valve" qual="true" toggle="10"/>
 ```
+
 * <b>Circuit Tested:</b>  12D
 * <b>Description</b>:  
 This test toggles the cough valve using the port 5000 telnet command "set vcm coughv 0" and "set vcm coughv 1". The command will toggle the cough valve a set number of times, then prompt the user for feedback on whether the cough valve actuated.
@@ -182,13 +303,14 @@ This test toggles the cough valve using the port 5000 telnet command "set vcm co
     * Measured: <b>Pass</b> or <b>Fail</b>
 
 ### Alarms: Nurse Call
+
 ```xml 
     <test name="Alarms: Nurse Call" method_name="test_nurse_call" qual="true" upper="5" lower="0"/>
 ```
+
 * <b>Circuit Tested:</b> 2XG
 * <b>Description:</b>  
     This test measures the resistance between:
-
     * Normally Closed (4) and Common (2 & 3) on CN200X
         * Expected to be a short connection
     * Normally Open (1) and Common (2 & 3) on CN200X
@@ -206,9 +328,11 @@ This test toggles the cough valve using the port 5000 telnet command "set vcm co
     * Measured: <b>Pass</b> or <b>Fail</b>
 
 ### Alarm: Speaker
+
 ```xml
     <test name="Alarm: Speaker" method_name="test_speaker" qual="true"/>
 ```
+
 * <b>Circuit Tested:</b> 3E
 * <b>Description:</b>  
     This test enables a connection between the DUT and the front panel speaker. Then test then creates an alarm condition by restarting the ventilator. The ventilator should begin to alarm, and sound the speaker.
@@ -223,9 +347,11 @@ This test toggles the cough valve using the port 5000 telnet command "set vcm co
     * Measured: <b>Pass</b> or <b>Fail</b>
 
 ### Alarm: Piezo
-```xml 
+
+```xml
     <test name="Alarms: Piezo" method_name="test_piezo" qual="true"/>
 ```
+
 * <b>Circuit Tested:</b> 2XH
 * <b>Description:</b>  
     This test enables a connection between the DUT and the piezo buzzer. The test then creates an alarm condition by restarting the ventilator. The ventilator should begin to alarm, and sound the speaker. After the speaker does NOT sound, the piezo buzzer should begin to alarm. 
@@ -240,9 +366,11 @@ This test toggles the cough valve using the port 5000 telnet command "set vcm co
     * Measured: <b>Pass</b> or <b>Fail</b>
 
 ### Sensor: Microphone
-```xml 
+
+```xml
     <test name="Sensor: Microphone" method_name="test_microphone" qual="true"/>
 ```
+
 * <b>Circuit Tested:</b> 3F
 * <b>Description:</b>  
     This test enables a connection between the DUT and the front panel speaker. Then creates an alarm condition by restarting the ventilator. The ventilator should begin to alarm. After 10s the test will enable the piezo buzzer, then prompt the user and ask if the piezo buzzer sounded. The user may select 'Yes' or 'No'.
@@ -256,9 +384,11 @@ This test toggles the cough valve using the port 5000 telnet command "set vcm co
     * Measured: <b>Pass</b> or <b>Fail</b>
 
 ### LED: Alarm Silence
-```xml 
+
+```xml
     <test name="LED: Alarm Silence"  method_name="test_as_led" qual="true" timeout="60" fs="100" time="10"/>
 ```
+
 * <b>Circuit Tested:</b> 3L
 * <b>Description:</b>  
     This test triggers the Audio Pause button by connecting the two pins together. It then reads the audio pause LED cathode using the GPIO input for the number of seconds specified by 'time' in the xml entry at a rate of 'fs' also specified in the xml entry. The measured values are stored and averaged together to get a representative duty cycle of the LED. The duty cycle is stored in the measurement entry. If the LED goes low at any time, this test passes.
@@ -269,7 +399,8 @@ This test toggles the cough valve using the port 5000 telnet command "set vcm co
     * Measured: Duty cycle obtained from sampling the LED cathode.
 
 ### Comms: VCM
-```xml 
+
+```xml
     <test name="Comms: VCM" method_name="test_vcm_rev" qual="true" rev="4.06.05R"/>
 ```
 * <b>Circuit Tested:</b> 6A

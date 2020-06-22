@@ -195,11 +195,25 @@ namespace GPIO
 
         public void SetPort_Input(DigitalPortType port)
         {
-            this.gpio_board.DConfigPort(port, DigitalPortDirection.DigitalIn);
+            try
+            {
+                this.gpio_board.DConfigPort(port, DigitalPortDirection.DigitalIn);
+            }
+            catch(Exception e)
+            {
+                throw e;
+            }
         }
         public void SetPort_Output(DigitalPortType port)
         {
-            this.gpio_board.DConfigPort(port, DigitalPortDirection.DigitalOut);
+            try
+            {
+                this.gpio_board.DConfigPort(port, DigitalPortDirection.DigitalOut);
+            }
+            catch (Exception e)
+            {
+                throw e;
+            }
         }
 
         /********************************************************************

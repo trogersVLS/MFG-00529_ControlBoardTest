@@ -976,7 +976,14 @@ namespace ControlBoardTest
         /******************************************************************************************************/
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            this.FCT.GPIO.ClearBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+            try
+            {
+                this.FCT.GPIO.ClearBit(GPIO_Defs.AC_EN.port, GPIO_Defs.AC_EN.pin);
+            }
+            catch
+            {
+
+            }
             //this.GPIO.ClearAll();
             this.FCT.GPIO = null;
         }
