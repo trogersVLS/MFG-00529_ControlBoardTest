@@ -225,27 +225,19 @@ To verify the installation
 
 ## Database Tables
 
-The control board test station utilizes a SQLite database with three tables.
+The control board test station utilizes a SQLite database and a SQL Server database (Azure cloud) with two tables. The
 
-* <b>Test_Instance:</b> Table to store the test entry. A test is defined as a group of tests performed on a single control board after one press of "Run" button. This provide a group of tests to be looked at using the TestID of the single test. Contains info for a <em>whole</em> test instance, does not contain information
+* <b>test-results:</b> Table to store the test entry. A test is defined as a group of tests performed on a single control board after one press of "Run" button. This provide a group of tests to be looked at using the TestID of the single test. Contains info for a <em>whole</em> test instance, does not contain information
 
 | TEST_ID | EQID | USER | LOCATION | TIMESTAMP | SERIAL_NUMBER | RESULT |
 | ------- | ---- | ---- | -------- | --------- | ------------- | ------ |
 | Unique auto-incrementing key | EQID of the test station, specified in the settings.xml file | User performing test, only users who have been added to the database can run tests | Location of test station, specified in the settings.xml file | Timestamp when the test was initiated | Serial number of the device entered by user | Result of the test |
 
-* <b>Tests:</b> Table to store all tests run with the measurements taken and the results of the test. This table should be used in conjunction with Test_Instance by linking the Test_IDs together.
+* <b>test-data:</b> Table to store all tests run with the measurements taken and the results of the test. This table should be used in conjunction with Test_Instance by linking the Test_IDs together.
 
 | TEST_ID | SERIAL_NUMBER | TEST_NAME | UPPER_BOUND | LOWER_BOUND | MEASURED | RESULT |
 | ------- | ------------- | --------- | ----------- | ----------- | -------- | ------ |
-| Matched with the test instance entry | Serial entered before test | Name of test | Upper limit, if specified | Lower limit, if specified | measured value | Pass/Fail result
-
-* <b>USERS:</b> This table stores username, password and privelage data. Admin users are able to add users to this table. Any user can change their password. The default username and password is
-    * Username: admin
-    * Password: password
-
-| USERNAME | PASSWORD | ADMIN |
-| -------- | -------- | ----- |
-| Username of the user's choice | Password chosen by user. No limits | Privelages, the options are: true or false |
+| Matched with the test instance entry | Serial entered before test | Name of test | Upper limit, if specified | Lower limit, if specified | measured value | Pass/Fail result |
 
 ## Tests
 
