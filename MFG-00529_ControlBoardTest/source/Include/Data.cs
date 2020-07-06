@@ -13,7 +13,6 @@ namespace ControlBoardTest
     class ConfigObject
     {
         public AppConfig app_settings { get; set; }
-        public List<string> part_numbers { get; set; }
         public DmmConfig dmm_settings { get; set; }
         public PpsConfig pps_settings { get; set; }
         public SomConfig som_settings { get; set; }
