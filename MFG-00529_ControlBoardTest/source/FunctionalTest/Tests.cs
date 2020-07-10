@@ -4097,6 +4097,7 @@ namespace ControlBoardTest
 
         private bool test_nurse_call(IProgress<string> message, IProgress<string> log, TestData test)
         {
+            int MAX_ATTEMPTS = 3;
             bool success = false;
 
             float upper = float.Parse(test.parameters["upper"]);
@@ -4107,69 +4108,66 @@ namespace ControlBoardTest
 
             if (this.powered && this.Vent.Connected && this.GPIO.Connected && this.DMM.Connected)
             {
-                //message.Report("Forcing CPLD Alarm");
+
+                ////////////////////////////////////////////////////////////////////////////////
+                // New testing methodology will apply 24V to C at all times.
+
+                
+                float NurseCall_NC;
+                float NurseCall_NO;
+                float NurseCall_NC_Active;
+                float NurseCall_NO_Active;
+                //Forces the relay into an active state
                 this.Vent.CMD_Write("set vcm cpld 0a 5");
 
-                //var response = this.Vent.CMD_Write("get vcm cpld 0a");
-                //int NurseCall = (((int.Parse(Regex.Matches(response, @"=(?> |)(\w+)")[0].Groups[1].Value, System.Globalization.NumberStyles.HexNumber)) & (1 << 2)) >> 2);
-                //int AlarmLED = (((int.Parse(Regex.Matches(response, @"=(?> |)(\w+)")[0].Groups[1].Value, System.Globalization.NumberStyles.HexNumber)) & (1 << 1)) >> 1);
-                //int AlarmPiezo = (((int.Parse(Regex.Matches(response, @"=(?> |)(\w+)")[0].Groups[1].Value, System.Globalization.NumberStyles.HexNumber)) & (1 << 0)) >> 0);
-                //message.Report("CPLD Alarm Register: NurseCall - " + NurseCall.ToString() + ", AlarmLED - " + AlarmLED.ToString() + ", AlarmPiezo - " + AlarmPiezo.ToString());
-
+                // Relay is in the active state. Expect NC to open and NO to be closed. 
+                    // NC = 0V
+                    // NO = 24V
                 this.GPIO.SetBit(GPIO_Defs.MEAS_NC_NC.port, GPIO_Defs.MEAS_NC_NC.pin);
-                var nc_measured_alarm = this.DMM.Get_Ohms();
-                this.GPIO.ClearBit(GPIO_Defs.MEAS_NC_NC.port, GPIO_Defs.MEAS_NC_NC.pin);                
+                NurseCall_NC_Active = this.DMM.Get_Volts();
+                this.GPIO.ClearBit(GPIO_Defs.MEAS_NC_NC.port, GPIO_Defs.MEAS_NC_NC.pin);
+
                 this.GPIO.SetBit(GPIO_Defs.MEAS_NC_NO.port, GPIO_Defs.MEAS_NC_NO.pin);
-                var no_measured_alarm = this.DMM.Get_Ohms();
+                NurseCall_NO_Active = this.DMM.Get_Volts();
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_NC_NO.port, GPIO_Defs.MEAS_NC_NO.pin);
 
-                message.Report("With alarms:");
-                message.Report("NC measured: " + nc_measured_alarm.ToString());
-                message.Report("NO measured: " + no_measured_alarm.ToString());
-                
-                // Set DUT to Alarm screen
+                message.Report("Relay ON:");
+                message.Report("NC measured: " + NurseCall_NC_Active.ToString());
+                message.Report("NO measured: " + NurseCall_NO_Active.ToString());
+
+
+                //Clear the alarms to get the device back into a non-alarming state.
                 this.Vent.CMD_Write("set uim screen 5023");
                 this.NotifyUser("Please clear all alarms before proceeding");
-                //message.Report("Clearing CPLD Alarm register");
-                
-
-                // The ventilator will sometimes have an error that can't be cleared. We can write to the CPLD; however, the system error could overwrite 
-                // the register while we are reading the DMM. We will try clearing the CPLD Nurse Call register and reading the DMM a few times.   
                 int attempt = 0;
                 do
                 {
+                    //Force CPLD to clear the relay.
                     this.Vent.CMD_Write("set vcm cpld 0a 0");
+
+                    // Relay is in the inactive state. Expect NC to closed and NO to be open. 
+                    // NC = 24V
+                    // NO = 0V
                     this.GPIO.SetBit(GPIO_Defs.MEAS_NC_NC.port, GPIO_Defs.MEAS_NC_NC.pin);
-                    var nc_measured = this.DMM.Get_Ohms();
+                    NurseCall_NC = this.DMM.Get_Volts();
                     this.GPIO.ClearBit(GPIO_Defs.MEAS_NC_NC.port, GPIO_Defs.MEAS_NC_NC.pin);
 
-                    // Clear the CPLD register again in case there was an error trying to reset it
-                    this.Vent.CMD_Write("set vcm cpld 0a 0");
                     this.GPIO.SetBit(GPIO_Defs.MEAS_NC_NO.port, GPIO_Defs.MEAS_NC_NO.pin);
-                    var no_measured = this.DMM.Get_Ohms();
+                    NurseCall_NO = this.DMM.Get_Volts();
                     this.GPIO.ClearBit(GPIO_Defs.MEAS_NC_NO.port, GPIO_Defs.MEAS_NC_NO.pin);
 
-                    message.Report("With no alarms (attempt " + attempt.ToString() + "): ");
-                    message.Report("NC measured: " + nc_measured.ToString());
-                    message.Report("NO measured: " + no_measured.ToString());
+                    message.Report("Relay OFF:");
+                    message.Report("NC measured: " + NurseCall_NC.ToString());
+                    message.Report("NO measured: " + NurseCall_NO.ToString());
 
-                    // Make sure that the NC toggled
-                    if (((nc_measured_alarm > lower) && (nc_measured_alarm < upper) && nc_measured > 1000) ||
-                            ((nc_measured > lower) && (nc_measured < upper) && nc_measured_alarm > 1000))
-                        nc_toggled = true;
-
-                    // Make sure that the NO toggled
-                    if (((no_measured_alarm > lower) && (no_measured_alarm < upper) && no_measured > 1000) ||
-                            ((no_measured > lower) && (no_measured < upper) && no_measured_alarm > 1000))
-                        no_toggled = true;
-
-
-                    if (nc_toggled && no_toggled)
+                    if ((NurseCall_NC > upper) && (NurseCall_NC_Active < lower) && (NurseCall_NO < lower) && (NurseCall_NO_Active > upper))
+                    {
+                        success = true;
                         break;
+                    }
 
-                    attempt++;
-                } while (attempt < 3);
-
+                }
+                while (attempt < MAX_ATTEMPTS);
 
                 if (nc_toggled && no_toggled)
                 {
