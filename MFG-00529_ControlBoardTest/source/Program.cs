@@ -49,9 +49,7 @@ namespace ControlBoardTest
             //TestFCT();
 
             FileManager.ProgramInit();
-            List<string> part_numbers = new List<string>(new string[] { "VOCSN_PRO", "V_PRO" }); //This shouldn't be here, but I don't have time to do anything different.
-
-            Application.Run(new MainForm(part_numbers));
+            Application.Run(new MainForm());
 
 
         }

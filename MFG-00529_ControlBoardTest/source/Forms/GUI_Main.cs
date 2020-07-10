@@ -78,7 +78,7 @@ namespace ControlBoardTest
 
         Stopwatch stopwatch = new Stopwatch();
 
-        public MainForm(List<string> part_numbers)
+        public MainForm()
         {
            
             //Initialize the GUI components
@@ -88,7 +88,7 @@ namespace ControlBoardTest
             //Initialize program settings from configuration file
             this.InitSettings();
             //Initialize GUI settings
-            this.InitGUI(part_numbers);
+            this.InitGUI();
 
             
         }
@@ -173,7 +173,7 @@ namespace ControlBoardTest
          * Function: Initialize all GUI components to their initial settings
          *
          *********************************************************************************************************************************************/
-         private void InitGUI(List<string> part_numbers)
+         private void InitGUI()
         {
             // Update status bar values
             this.Status_LocationTag.Text = this.LOCATION;
@@ -195,15 +195,6 @@ namespace ControlBoardTest
 
             this.DisplayMessage("Please enter the serial number");
             this.Field_SerialNumber.Focus();
-
-            //Fill in the Part number box.
-
-            foreach(string part in part_numbers)
-            {
-                this.List_PartNumbers.Items.Add(part);
-            }
-            this.List_PartNumbers.Enabled = false;
-
             this.ActiveControl = Field_SerialNumber;
         }
 
@@ -339,11 +330,11 @@ namespace ControlBoardTest
                 //Get Test List and all other Object dependent variables
                 try
                 {
-                    if (this.List_PartNumbers.SelectedItem.ToString() == "VOCSN_PRO")
+                    if (radioButtonVOCSN.Checked)
                     {
                         TestList = this.FCT.VOCSN_TESTS;
                     }
-                    else if (this.List_PartNumbers.SelectedItem.ToString() == "V_PRO")
+                    else if (radioButtonVPRO.Checked)
                     {
                         TestList = this.FCT.V_TESTS;
                     }
@@ -697,9 +688,9 @@ namespace ControlBoardTest
                 this.DisplayMessage("Serial Number =  " + this.Field_SerialNumber.Text);
                 this.SERIAL_NUM = this.Field_SerialNumber.Text;
 
-                // Enable option to select part number
-                this.List_PartNumbers.Enabled = true;
-                
+                // Enable option to click test mode
+                this.Check_FCT.Enabled = true;
+                this.Check_SingleTest.Enabled = true;
 
                 // Default select the full test
                 this.Check_FCT.Checked = true;
@@ -854,8 +845,17 @@ namespace ControlBoardTest
         {
             this.ProgressBar.Value = 0;
             this.Check_SingleTest.Checked = !Check_FCT.Checked;
-            Dropdown_Test_List.Enabled = false;
-            Dropdown_Test_List.SelectedIndex = -1;
+
+            if (Check_SingleTest.Checked)
+            {
+                Dropdown_Test_List.Enabled = true;
+                Dropdown_Test_List.SelectedIndex = 0;
+            }
+            else
+            {
+                Dropdown_Test_List.Enabled = false;
+                Dropdown_Test_List.SelectedIndex = -1;
+            }
         }
 
         /******************************************************************************************************
@@ -870,22 +870,17 @@ namespace ControlBoardTest
         {
             this.ProgressBar.Value = 0;
             this.Check_FCT.Checked = !Check_SingleTest.Checked;
-            Dropdown_Test_List.Enabled = true;
-            Dropdown_Test_List.Items.Clear();
-            if (this.List_PartNumbers.SelectedItem.ToString() == "VOCSN_PRO") { //TODO: Eventually do this right so that part number names do not get out of sync with each other.
-                foreach (TestData test in this.FCT.VOCSN_TESTS)
-                {
-                    this.Dropdown_Test_List.Items.Add(test.name);
-                }
+
+            if (Check_SingleTest.Checked)
+            {
+                Dropdown_Test_List.Enabled = true;
+                Dropdown_Test_List.SelectedIndex = 0;
             }
-            if (this.List_PartNumbers.SelectedItem.ToString() == "V_PRO")
-            { //TODO: Eventually do this right so that part number names do not get out of sync with each other.
-                foreach (TestData test in this.FCT.V_TESTS)
-                {
-                    this.Dropdown_Test_List.Items.Add(test.name);
-                }
+            else
+            {
+                Dropdown_Test_List.Enabled = false;
+                Dropdown_Test_List.SelectedIndex = -1;
             }
-            Dropdown_Test_List.SelectedIndex = 0;
         }
         
 
@@ -988,23 +983,6 @@ namespace ControlBoardTest
             this.FCT.GPIO = null;
         }
 
-        private void List_PartNumbers_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            //Is the selected value a valid part number of a blank value?
-            if(this.List_PartNumbers.SelectedItem.ToString() != null)
-            {
-                this.Check_FCT.Enabled = true;
-                this.Check_FCT.Checked = true;
-                this.Check_SingleTest.Enabled = true;
-            }
-            else
-            {
-                this.Check_FCT.Enabled = false;
-                this.Check_SingleTest.Enabled = false;
-            }
-
-        }
-
         private void Configuration_Click(object sender, EventArgs e)
         {
             ConfigurationForm config_form = new ConfigurationForm();
@@ -1014,6 +992,48 @@ namespace ControlBoardTest
             //Restart application
             Application.Restart();
             Environment.Exit(0);
+        }
+
+        private void radioButtonVOCSN_CheckedChanged(object sender, EventArgs e)
+        {
+            radioButtonVPRO.Checked = !radioButtonVOCSN.Checked;
+
+            Dropdown_Test_List.Items.Clear();
+            if (radioButtonVOCSN.Checked)
+            {
+                foreach (TestData test in this.FCT.VOCSN_TESTS)
+                {
+                    this.Dropdown_Test_List.Items.Add(test.name);
+                }
+            }
+            if (radioButtonVPRO.Checked)
+            {
+                foreach (TestData test in this.FCT.V_TESTS)
+                {
+                    this.Dropdown_Test_List.Items.Add(test.name);
+                }
+            }
+        }
+
+        private void radioButtonVPRO_CheckedChanged(object sender, EventArgs e)
+        {
+            radioButtonVOCSN.Checked = !radioButtonVPRO.Checked;
+
+            Dropdown_Test_List.Items.Clear();
+            if (radioButtonVOCSN.Checked)
+            {
+                foreach (TestData test in this.FCT.VOCSN_TESTS)
+                {
+                    this.Dropdown_Test_List.Items.Add(test.name);
+                }
+            }
+            if (radioButtonVPRO.Checked)
+            {
+                foreach (TestData test in this.FCT.V_TESTS)
+                {
+                    this.Dropdown_Test_List.Items.Add(test.name);
+                }
+            }
         }
     }  
 }
