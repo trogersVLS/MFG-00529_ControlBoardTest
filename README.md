@@ -32,6 +32,10 @@ This document outlines the functional and design specifications that compose MFG
 * Added configuration form to auto generate config file
 * Changed configuration file from xml to json for better readability
 
+### V2.4 --> Rev C
+
+* Updated Nurse Call Test to test for voltage instead of resistance.
+
 ## Table Of Contents
 
 1. [Building From Source](#Building-from-source)
