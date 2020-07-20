@@ -4103,9 +4103,6 @@ namespace ControlBoardTest
             float upper = float.Parse(test.parameters["upper"]);
             float lower = float.Parse(test.parameters["lower"]);
 
-            bool nc_toggled = false;
-            bool no_toggled = false;
-
             if (this.powered && this.Vent.Connected && this.GPIO.Connected && this.DMM.Connected)
             {
 
@@ -4125,16 +4122,18 @@ namespace ControlBoardTest
                     // NO = 24V
                 this.GPIO.SetBit(GPIO_Defs.MEAS_NC_NC.port, GPIO_Defs.MEAS_NC_NC.pin);
                 NurseCall_NC_Active = this.DMM.Get_Volts();
+                //MessageBox.Show(string.Format("Normally closed active = {0}", NurseCall_NC_Active.ToString()));
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_NC_NC.port, GPIO_Defs.MEAS_NC_NC.pin);
 
                 this.GPIO.SetBit(GPIO_Defs.MEAS_NC_NO.port, GPIO_Defs.MEAS_NC_NO.pin);
                 NurseCall_NO_Active = this.DMM.Get_Volts();
+                //MessageBox.Show(string.Format("Normally open active = {0}", NurseCall_NO_Active.ToString()));
                 this.GPIO.ClearBit(GPIO_Defs.MEAS_NC_NO.port, GPIO_Defs.MEAS_NC_NO.pin);
 
                 message.Report("Relay ON:");
                 message.Report("NC measured: " + NurseCall_NC_Active.ToString());
                 message.Report("NO measured: " + NurseCall_NO_Active.ToString());
-
+                
 
                 //Clear the alarms to get the device back into a non-alarming state.
                 this.Vent.CMD_Write("set uim screen 5023");
@@ -4150,10 +4149,13 @@ namespace ControlBoardTest
                     // NO = 0V
                     this.GPIO.SetBit(GPIO_Defs.MEAS_NC_NC.port, GPIO_Defs.MEAS_NC_NC.pin);
                     NurseCall_NC = this.DMM.Get_Volts();
+                    //MessageBox.Show(string.Format("Normally closed OFF = {0}", NurseCall_NC.ToString()));
+
                     this.GPIO.ClearBit(GPIO_Defs.MEAS_NC_NC.port, GPIO_Defs.MEAS_NC_NC.pin);
 
                     this.GPIO.SetBit(GPIO_Defs.MEAS_NC_NO.port, GPIO_Defs.MEAS_NC_NO.pin);
                     NurseCall_NO = this.DMM.Get_Volts();
+                    //MessageBox.Show(string.Format("Normally open = {0}", NurseCall_NO.ToString()));
                     this.GPIO.ClearBit(GPIO_Defs.MEAS_NC_NO.port, GPIO_Defs.MEAS_NC_NO.pin);
 
                     message.Report("Relay OFF:");
@@ -4161,19 +4163,20 @@ namespace ControlBoardTest
                     message.Report("NO measured: " + NurseCall_NO.ToString());
 
                     if ((NurseCall_NC > upper) && (NurseCall_NC_Active < lower) && (NurseCall_NO < lower) && (NurseCall_NO_Active > upper))
-                    {
+                    {   
                         success = true;
                         break;
                     }
+                    attempt++;
 
                 }
                 while (attempt < MAX_ATTEMPTS);
 
-                if (nc_toggled && no_toggled)
+                if (success)
                 {
                     message.Report(test.name + ": PASS");
                     test.parameters["measured"] = "PASS";
-                    success = true;
+                    //success = true;
                 }
                 else
                 {
@@ -5156,16 +5159,12 @@ namespace ControlBoardTest
                 }
                 response = this.Vent.QNX_Write("echo \"" + randNum.ToString() + "\" >> /fs/sd0/" + filename);
                 response = this.Vent.QNX_Write("cat /fs/sd0/" + filename);
+                var qnxpresent = this.Vent.QNX_Write("ls /fs/sd0/");
 
-                if (response.Contains(randNum.ToString()))
+                if (response.Contains(randNum.ToString()) && qnxpresent.Contains("qnxifs"))
                 {
                     success = true;
                 }
-
-                
-
-               
-               
                 //Fill in measurement parameter
                 if (success)
                 {
@@ -5201,7 +5200,7 @@ namespace ControlBoardTest
                 while (response.Contains(filename) && (cnt < 50))
                 {
                     response = this.Vent.QNX_Write("rm /fs/usb/" + filename);
-                    response = this.Vent.QNX_Write("ls /fs/usb");
+                    response = this.Vent.QNX_Write("ls /fs/usb/");
                     cnt++;
                 }
                 response = this.Vent.QNX_Write("echo \"" + randNum.ToString() + "\" >> /fs/usb/" + filename);

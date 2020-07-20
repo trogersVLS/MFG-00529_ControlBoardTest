@@ -13,7 +13,7 @@
     <test name="Motor: High Speed Fan" method_name="test_high_fan" qual="false" upper="12.5" lower="10.5" frequency="175" tolerance="15"/>
     <test name="Alarms: Piezo" method_name="test_piezo" qual="true"/>
     <test name="Sensor: Microphone" method_name="test_microphone" qual="true"/>
-    <test name="Alarms: Nurse Call" method_name="test_nurse_call" qual="true" upper="23" lower="0.5"/>
+    <test name="Alarms: Nurse Call" method_name="test_nurse_call" qual="true" upper="23" lower="0.1"/>
     <test name="LED: Alarm Silence"  method_name="test_as_led" qual="true" timeout="60" fs="100" time="10"/>
 
     <test name="Comms: VCM" method_name="test_vcm_rev" qual="true" rev="4.11.00R"/>

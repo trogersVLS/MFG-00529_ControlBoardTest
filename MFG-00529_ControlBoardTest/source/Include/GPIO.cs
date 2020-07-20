@@ -6,7 +6,8 @@ using System.Threading.Tasks;
 using MccDaq;
 using ErrorDefs;
 using System.Windows.Forms;
-
+using System.Diagnostics;
+using System.Configuration;
 
 namespace GPIO
 {
@@ -14,6 +15,7 @@ namespace GPIO
 
     public class MccDaq_GPIO
     {
+        //bool DEBUG = bool.Parse(ConfigurationManager.AppSettings["MOCKGPIO"]);
         MccDaq.MccBoard gpio_board;
         int numChannels;
         MccDaq.ErrorInfo err;
@@ -27,48 +29,49 @@ namespace GPIO
         public MccDaq_GPIO()
         {
             ConnectDevice();
-
-            try
-            {
-                this.SetPort_Output(DigitalPortType.FirstPortA);
-                this.SetPort(DigitalPortType.FirstPortA, 0);
-                this.SetPort_Output(DigitalPortType.FirstPortB);
-                this.SetPort(DigitalPortType.FirstPortB, 0);
-                this.SetPort_Output(DigitalPortType.FirstPortCL);
-                this.SetPort(DigitalPortType.FirstPortCL, 0);
-                this.SetPort_Output(DigitalPortType.FirstPortCH);
-                this.SetPort(DigitalPortType.FirstPortCH, 0);
-
-
-                this.SetPort_Output(DigitalPortType.SecondPortA);
-                this.SetPort(DigitalPortType.SecondPortA, 0);
-                this.SetPort_Output(DigitalPortType.SecondPortB);
-                this.SetPort(DigitalPortType.SecondPortB, 0);
-                this.SetPort_Output(DigitalPortType.SecondPortCL);
-                this.SetPort(DigitalPortType.SecondPortCL, 0);
-                this.SetPort_Output(DigitalPortType.SecondPortCH);
-                this.SetPort(DigitalPortType.SecondPortCH, 0);
-
-                this.SetPort_Input(DigitalPortType.ThirdPortA);
-                //this.SetPort(DigitalPortType.ThirdPortA, 0);
-                this.SetPort_Input(DigitalPortType.ThirdPortB);
-                //this.SetPort(DigitalPortType.ThirdPortB, 0);
-                this.SetPort_Input(DigitalPortType.ThirdPortCL);
-                //this.SetPort(DigitalPortType.ThirdPortCL, 0);
-                this.SetPort_Input(DigitalPortType.ThirdPortCH);
-                //this.SetPort(DigitalPortType.ThirdPortCH, 0);
+            
+                try
+                {
+                    this.SetPort_Output(DigitalPortType.FirstPortA);
+                    this.SetPort(DigitalPortType.FirstPortA, 0);
+                    this.SetPort_Output(DigitalPortType.FirstPortB);
+                    this.SetPort(DigitalPortType.FirstPortB, 0);
+                    this.SetPort_Output(DigitalPortType.FirstPortCL);
+                    this.SetPort(DigitalPortType.FirstPortCL, 0);
+                    this.SetPort_Output(DigitalPortType.FirstPortCH);
+                    this.SetPort(DigitalPortType.FirstPortCH, 0);
 
 
-                this.SetPort_Input(DigitalPortType.FourthPortA);
-                this.SetPort_Input(DigitalPortType.FourthPortB);
-                //this.SetPort_Output(DigitalPortType.FourthPortCL);
-                //this.SetPort_Output(DigitalPortType.FourthPortCH);
-            }
-            catch (Exception )
-            {
-                MessageBox.Show("GPIO is not connected\nPlease connect the GPIO module and restart the application", "GPIO ERROR", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+                    this.SetPort_Output(DigitalPortType.SecondPortA);
+                    this.SetPort(DigitalPortType.SecondPortA, 0);
+                    this.SetPort_Output(DigitalPortType.SecondPortB);
+                    this.SetPort(DigitalPortType.SecondPortB, 0);
+                    this.SetPort_Output(DigitalPortType.SecondPortCL);
+                    this.SetPort(DigitalPortType.SecondPortCL, 0);
+                    this.SetPort_Output(DigitalPortType.SecondPortCH);
+                    this.SetPort(DigitalPortType.SecondPortCH, 0);
 
+                    this.SetPort_Input(DigitalPortType.ThirdPortA);
+                    //this.SetPort(DigitalPortType.ThirdPortA, 0);
+                    this.SetPort_Input(DigitalPortType.ThirdPortB);
+                    //this.SetPort(DigitalPortType.ThirdPortB, 0);
+                    this.SetPort_Input(DigitalPortType.ThirdPortCL);
+                    //this.SetPort(DigitalPortType.ThirdPortCL, 0);
+                    this.SetPort_Input(DigitalPortType.ThirdPortCH);
+                    //this.SetPort(DigitalPortType.ThirdPortCH, 0);
+
+
+                    this.SetPort_Input(DigitalPortType.FourthPortA);
+                    this.SetPort_Input(DigitalPortType.FourthPortB);
+                    //this.SetPort_Output(DigitalPortType.FourthPortCL);
+                    //this.SetPort_Output(DigitalPortType.FourthPortCH);
+                }
+                catch (Exception)
+                {
+                    MessageBox.Show("GPIO is not connected\nPlease connect the GPIO module and restart the application", "GPIO ERROR", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            
+        
 
         }
         ~MccDaq_GPIO()
@@ -162,7 +165,7 @@ namespace GPIO
             }
             catch(Exception e)
             {
-                throw e;
+                //throw e;
             }
             return success;
         }

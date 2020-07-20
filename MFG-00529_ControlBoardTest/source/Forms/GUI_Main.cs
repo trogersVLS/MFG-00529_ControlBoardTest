@@ -148,6 +148,11 @@ namespace ControlBoardTest
 
             //Initialize the functional test class object
             this.FCT = new FunctionalTest();
+            foreach (TestData test in this.FCT.VOCSN_TESTS)
+            {
+                this.Dropdown_Test_List.Items.Add(test.name);
+            }
+
 
             return;
         }
@@ -849,7 +854,7 @@ namespace ControlBoardTest
             if (Check_SingleTest.Checked)
             {
                 Dropdown_Test_List.Enabled = true;
-                Dropdown_Test_List.SelectedIndex = 0;
+                Dropdown_Test_List.SelectedIndex = 1;
             }
             else
             {
@@ -874,7 +879,7 @@ namespace ControlBoardTest
             if (Check_SingleTest.Checked)
             {
                 Dropdown_Test_List.Enabled = true;
-                Dropdown_Test_List.SelectedIndex = 0;
+                Dropdown_Test_List.SelectedIndex = 1;
             }
             else
             {
