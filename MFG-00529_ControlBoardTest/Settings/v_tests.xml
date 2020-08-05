@@ -13,7 +13,7 @@
     <test name="Motor: High Speed Fan" method_name="test_high_fan" qual="false" upper="12.5" lower="10.5" frequency="175" tolerance="15"/>
     <test name="Alarms: Piezo" method_name="test_piezo" qual="true"/>
     <test name="Sensor: Microphone" method_name="test_microphone" qual="true"/>
-    <test name="Alarms: Nurse Call" method_name="test_nurse_call" qual="true" upper="23" lower="0.1"/>
+    <test name="Alarms: Nurse Call" method_name="test_nurse_call" qual="true" upper="23" lower="0.98"/>
     <test name="LED: Alarm Silence"  method_name="test_as_led" qual="true" timeout="60" fs="100" time="10"/>
 
     <test name="Comms: VCM" method_name="test_vcm_rev" qual="true" rev="4.11.00R"/>
@@ -48,12 +48,12 @@
     <test name="Solenoid: SV10 Off" method_name="test_sv10_off" qual="false" upper="12.5" lower="10.5"/>
     <test name="Solenoid: SV9 ON" method_name="test_sv9_on" qual="false" upper="10" lower="-0.3"/>
     <test name="Solenoid: SV10 ON" method_name="test_sv9_on" qual="false" upper="10" lower="-0.3"/>
-    <test name="Signal: Exhl SV 6" method_name="test_exhl_sv6" qual="true" toggle="10" upper="10" lower="10"/>
-    <test name="Signal: Exhl SV 7" method_name="test_exhl_sv7" qual="true" toggle="10" upper="10" lower="10"/>
-    <test name="Signal: Exhl SV 8" method_name="test_exhl_sv8" qual="true" toggle="10" upper="10" lower="10" />
-    <test name="Signal: XFlow SV 1&amp;2" method_name="test_xflow_sv1" qual="false" toggle="10" upper="10" lower="10"/>
-    <test name="Signal: XFlow SV 3&amp;4" method_name="test_xflow_sv3" qual="false" toggle="10" upper="10" lower="10"/>
-    <test name="Signal: Flow SV 5" method_name="test_flow_sv5" qual="false" toggle="10" upper="10" lower="10"/>
+    <test name="Signal: Exhl SV 6" method_name="test_exhl_sv6" qual="true" toggle="2" upper="2" lower="2"/>
+    <test name="Signal: Exhl SV 7" method_name="test_exhl_sv7" qual="true" toggle="2" upper="2" lower="2"/>
+    <test name="Signal: Exhl SV 8" method_name="test_exhl_sv8" qual="true" toggle="2" upper="2" lower="2" />
+    <test name="Signal: XFlow SV 1&amp;2" method_name="test_xflow_sv1" qual="false" toggle="2" upper="2" lower="2"/>
+    <test name="Signal: XFlow SV 3&amp;4" method_name="test_xflow_sv3" qual="false" toggle="2" upper="2" lower="2"/>
+    <test name="Signal: Flow SV 5" method_name="test_flow_sv5" qual="false" toggle="2" upper="2" lower="2"/>
     
     <test name="Signal: OA2 Off"  method_name="test_oa2_off" qual="true"/>
     <test name="Motor: Blower" method_name="test_blower" qual="false" speed="20000" upper="22000" lower="18000" tolerance="10"/>

@@ -522,56 +522,56 @@ namespace ControlBoardTest
             this.FailCountIndicator.Text = fail.ToString();
         }
         
-        private async void LogTestInstance()
-        {
+        //private async void LogTestInstance()
+        //{
             
-            var timestamp = DateTime.UtcNow.ToString();
-            this.RESULT = "In Progress";
+        //    var timestamp = DateTime.UtcNow.ToString();
+        //    this.RESULT = "In Progress";
 
-            try
-            {
-                Dictionary<string, string> data = new Dictionary<string, string>
-                {
-                    { "eqid", this.EQID },
-                    { "user-id", this.USER_NAME },
-                    { "location", this.LOCATION },
-                    { "timestamp", timestamp },
-                    { "serial", this.SERIAL_NUM },
-                    { "result", this.RESULT }
-                };
+        //    try
+        //    {
+        //        Dictionary<string, string> data = new Dictionary<string, string>
+        //        {
+        //            { "eqid", this.EQID },
+        //            { "user-id", this.USER_NAME },
+        //            { "location", this.LOCATION },
+        //            { "timestamp", timestamp },
+        //            { "serial", this.SERIAL_NUM },
+        //            { "result", this.RESULT }
+        //        };
 
-                await SQLServer.InsertOneRow(ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["Environment"]].ConnectionString,
-                                             ConfigurationManager.AppSettings["INSTANCE_TABLENAME"],
-                                             data);
-            }
-            catch (Exception e)
-            {
-                MessageBox.Show(e.Message);
-            }
+        //        await SQLServer.InsertOneRow(ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["Environment"]].ConnectionString,
+        //                                     ConfigurationManager.AppSettings["INSTANCE_TABLENAME"],
+        //                                     data);
+        //    }
+        //    catch (Exception e)
+        //    {
+        //        MessageBox.Show(e.Message);
+        //    }
 
-            return;
-        }
-        private async void LogTestResult(string result)
-        {
+        //    return;
+        //}
+        //private async void LogTestResult(string result)
+        //{
 
-            Dictionary<string, string> data = new Dictionary<string, string>
-            {
-                { "result", result.ToString() }
-            };
-            try
-            {   
-                //Update the test result in the database.
-                await SQLServer.UpdateResult(ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["Environment"]].ConnectionString,
-                                             ConfigurationManager.AppSettings["INSTANCE_TABLENAME"],
-                                             this.TEST_ID.ToString(), data);
-            }
-            catch(Exception e)
-            {
-                MessageBox.Show(e.Message);
-            }
+        //    Dictionary<string, string> data = new Dictionary<string, string>
+        //    {
+        //        { "result", result.ToString() }
+        //    };
+        //    try
+        //    {   
+        //        //Update the test result in the database.
+        //        await SQLServer.UpdateResult(ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["Environment"]].ConnectionString,
+        //                                     ConfigurationManager.AppSettings["INSTANCE_TABLENAME"],
+        //                                     this.TEST_ID.ToString(), data);
+        //    }
+        //    catch(Exception e)
+        //    {
+        //        MessageBox.Show(e.Message);
+        //    }
 
-            return;
-        }
+        //    return;
+        //}
         /************************************************************************************************************
         * LogTestData() - Logs the results of a test to the Tests table in the database
         * 
@@ -580,52 +580,52 @@ namespace ControlBoardTest
         *                            - Returns false if the database log was unsuccessful
         *             
         * **********************************************************************************************************/
-        private async void LogResults(TestData test, string serial, long testid)
-        {
+        //private async void LogResults(TestData test, string serial, long testid)
+        //{
 
 
-            // Put together the data that needs to be uploaded to the database
-            Dictionary<string, string> data = new Dictionary<string, string>
-            {
-                { "test-id", testid.ToString() },
-                { "serial", serial },
-                { "test-name", test.name }
-            };
+        //    // Put together the data that needs to be uploaded to the database
+        //    Dictionary<string, string> data = new Dictionary<string, string>
+        //    {
+        //        { "test-id", testid.ToString() },
+        //        { "serial", serial },
+        //        { "test-name", test.name }
+        //    };
 
-            if (test.parameters["qual"] != "true")
-            {
-                data.Add("upper-bound", test.parameters["upper"]);
-                data.Add("lower-bound", test.parameters["lower"]);
-                data.Add("measured", test.parameters["measured"]);
-            }
-            else
-            {
-                data.Add("upper-bound", "--");
-                data.Add("lower-bound", "--");
+        //    if (test.parameters["qual"] != "true")
+        //    {
+        //        data.Add("upper-bound", test.parameters["upper"]);
+        //        data.Add("lower-bound", test.parameters["lower"]);
+        //        data.Add("measured", test.parameters["measured"]);
+        //    }
+        //    else
+        //    {
+        //        data.Add("upper-bound", "--");
+        //        data.Add("lower-bound", "--");
                 
-            }
+        //    }
 
-            if(!test.parameters.ContainsKey("measured"))
-            {
-                data.Add("measured", "--");
-            }
+        //    if(!test.parameters.ContainsKey("measured"))
+        //    {
+        //        data.Add("measured", "--");
+        //    }
             
 
 
-            try
-            {
-                await SQLServer.InsertOneRow(ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["Environment"]].ConnectionString,
-                                       ConfigurationManager.AppSettings["TESTS_TABLENAME"],
-                                       data);
-            }
-            catch (Exception e)
-            {
-                //Throw exception to RUN TEST function so say which item failed.
-                throw e;
-            }
+        //    try
+        //    {
+        //        await SQLServer.InsertOneRow(ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["Environment"]].ConnectionString,
+        //                               ConfigurationManager.AppSettings["TESTS_TABLENAME"],
+        //                               data);
+        //    }
+        //    catch (Exception e)
+        //    {
+        //        //Throw exception to RUN TEST function so say which item failed.
+        //        throw e;
+        //    }
 
-            return;
-        }
+        //    return;
+        //}
 
         
 

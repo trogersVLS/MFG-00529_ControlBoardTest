@@ -472,13 +472,14 @@ namespace ControlBoardTest
                 Task<int> LoggingNewTest;
                 if (remote)
                 {
-                    LoggingNewTest = SQLServer.InsertOneRow(ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["Environment"]].ToString(),
-                                                                  ConfigurationManager.AppSettings["INSTANCE_TABLENAME"],
-                                                                  row);
+                    // Order of operations is important, any exception made trying to log a new remote test (because of IP and/or connectivity problems will result in not updating the local test id.
                     Task<int> LoggingLocalNewTest = SQLServer.Local_InsertOneRow(ConfigurationManager.ConnectionStrings["Local"].ToString(),
                                                                  ConfigurationManager.AppSettings["INSTANCE_TABLENAME"].Replace("[dbo].", ""),
                                                                  row);
                     local_test_id = await LoggingLocalNewTest;
+                    LoggingNewTest = SQLServer.InsertOneRow(ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["Environment"]].ToString(),
+                                                                  ConfigurationManager.AppSettings["INSTANCE_TABLENAME"],
+                                                                  row);
                     remote_test_id = await LoggingNewTest;
                 }
                 else
@@ -509,15 +510,16 @@ namespace ControlBoardTest
                 Task<int> updating;
                 if (remote)
                 {   
-                    updating = SQLServer.UpdateResult(ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["Environment"]].ToString(),
-                                                                ConfigurationManager.AppSettings["INSTANCE_TABLENAME"],
-                                                                remote_test_id.ToString(),
-                                                                updatedData);
                     Task<int> LocalUpdating = SQLServer.Local_UpdateResult(ConfigurationManager.ConnectionStrings["Local"].ToString(),
                                                                 ConfigurationManager.AppSettings["INSTANCE_TABLENAME"].Replace("[dbo].", ""),
                                                                 local_test_id.ToString(),
                                                                 updatedData);
                     await LocalUpdating;
+                    updating = SQLServer.UpdateResult(ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["Environment"]].ToString(),
+                                                                ConfigurationManager.AppSettings["INSTANCE_TABLENAME"],
+                                                                remote_test_id.ToString(),
+                                                                updatedData);
+                    
                 }
                 else
                 {
@@ -573,15 +575,16 @@ namespace ControlBoardTest
                 Task<int> LoggingTestResults;
                 if (remote) // Log to remote server
                 {
+                    Task<int> LoggingLocalTestResults = SQLServer.Local_InsertOneRow(ConfigurationManager.ConnectionStrings["Local"].ToString(),
+                                                                          ConfigurationManager.AppSettings["TESTS_TABLENAME"].Replace("[dbo].", ""),
+                                                                          row);
+                    await LoggingLocalTestResults;
                     row["test-id"] = remote_test_id.ToString();
                     LoggingTestResults = SQLServer.InsertOneRow(ConfigurationManager.ConnectionStrings[ConfigurationManager.AppSettings["Environment"]].ToString(),
                                                                           ConfigurationManager.AppSettings["TESTS_TABLENAME"],
                                                                           row);
                     row["test-id"] = local_test_id.ToString();
-                    Task<int> LoggingLocalTestResults = SQLServer.Local_InsertOneRow(ConfigurationManager.ConnectionStrings["Local"].ToString(),
-                                                                          ConfigurationManager.AppSettings["TESTS_TABLENAME"].Replace("[dbo].", ""),
-                                                                          row);
-                    await LoggingLocalTestResults;
+                    
                 }
                 else // Couldn't connect to remote server, log to local database
                 {

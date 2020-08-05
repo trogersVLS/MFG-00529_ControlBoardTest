@@ -1013,7 +1013,7 @@ namespace ControlBoardTest
                 //Measure the frequency
                 Thread.Sleep(2000); //Wait for the motor to get up to speed
                 measured = this.DMM.Get_Freq(); //Convert to RPM
-                measured = measured * 6;
+                measured = measured * 6; //What? TODO: Adjust this measurement to be RPM's, right now it is only a 10th of an RPM.
 
                 if ((measured > upper) || (measured < lower))//something may have gone wrong.  Give it another try and toss out the old measurement 
                 {
